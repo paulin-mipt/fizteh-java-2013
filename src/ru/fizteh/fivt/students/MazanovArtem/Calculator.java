@@ -5,8 +5,7 @@ import java.util.Stack;
 
 public class Calculator {
 	 final static int RADIX = 19;
-     public static void main(String[] arg) {
-    	 String[] args = new String[]{};
+     public static void main(String[] args) {
     	 StringBuilder Inputdata = new StringBuilder();
     	 Inputdata.append('(');
     	 if (args.length == 0) {
