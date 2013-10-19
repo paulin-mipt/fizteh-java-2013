@@ -1,4 +1,4 @@
-package ru.fizteh.fivt.students.MazanovArtem.shell;
+package ru.fizteh.fivt.students.mazanovArtem.shell;
 
 import java.io.File;
 import java.nio.file.Files;

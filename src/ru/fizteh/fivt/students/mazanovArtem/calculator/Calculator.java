@@ -1,4 +1,4 @@
-package ru.fizteh.fivt.students.MazanovArtem.calculator;
+package ru.fizteh.fivt.students.mazanovArtem.calculator;
 
 import java.math.BigInteger;
 import java.util.Stack;
