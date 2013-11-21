@@ -1,13 +1,19 @@
-package ru.fizteh.fivt.students.mazanovArtem.shell;
+package ru.fizteh.fivt.students.mazanovArtem.multifilehashmap;
 
-public class Shell {
+import ru.fizteh.fivt.students.mazanovArtem.shell.ShellMain;
+
+import java.io.File;
+
+public class FileMap {
     public static void main(String[] args) {
-        ShellSystem file = new ShellSystem();
+        //File tmp = new File("/home/tema/Documents/java/db.dat");
+        File tmp = new File(System.getProperty("fizteh.db.dir"));
+        FileMapSystem file = new FileMapSystem(tmp);
         ShellMain sys = null;
         try {
             sys = new ShellMain(file);
         } catch (Exception e) {
-            System.out.println("Не реализован метод из ShellSystem");
+            System.out.println("Не реализован метод из FileMapSystem");
         }
         try {
             int result = sys.runShell(args);
@@ -20,3 +26,5 @@ public class Shell {
         }
     }
 }
+
+
