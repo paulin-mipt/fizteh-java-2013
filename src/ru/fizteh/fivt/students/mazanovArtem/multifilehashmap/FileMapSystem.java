@@ -165,7 +165,7 @@ public class FileMapSystem implements Command {
         value = arg.toString();
 
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-        int firstByte = keyBytes[0] + 128;
+        int firstByte = Math.abs(keyBytes[0]);
         int nDirectory = firstByte % 16;
         int nFile = firstByte / 16 % 16;
 
@@ -186,7 +186,7 @@ public class FileMapSystem implements Command {
         checkAmountArgs(args.length, 1);
         String key = args[0];
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-        int firstByte = keyBytes[0] + 128;
+        int firstByte = Math.abs(keyBytes[0]);
         int nDirectory = firstByte % 16;
         int nFile = firstByte / 16 % 16;
         String tmp = map[nDirectory][nFile].get(key);
@@ -205,7 +205,7 @@ public class FileMapSystem implements Command {
         checkAmountArgs(args.length, 1);
         String key = args[0];
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-        int firstByte = keyBytes[0] + 128;
+        int firstByte = Math.abs(keyBytes[0]);
         int nDirectory = firstByte % 16;
         int nFile = firstByte / 16 % 16;
         String tmp = map[nDirectory][nFile].get(key);
@@ -452,7 +452,7 @@ public class FileMapSystem implements Command {
             for (int j = 0; j < 16; ++j) {
                 for (String key : map[i][j].keySet()) {
                     byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-                    int firstByte = keyBytes[0] + 128;
+                    int firstByte = Math.abs(keyBytes[0]);
                     int nDirectory = firstByte % 16;
                     int nFile = firstByte / 16 % 16;
                     if (nDirectory != i || nFile != j) {
