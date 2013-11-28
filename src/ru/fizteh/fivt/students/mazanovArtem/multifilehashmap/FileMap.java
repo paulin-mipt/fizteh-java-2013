@@ -7,6 +7,10 @@ import java.io.File;
 public class FileMap {
     public static void main(String[] args) {
         //File tmp = new File("/home/tema/Documents/java");
+        String prop = System.getProperty("fizteh.db.dir");
+        if (prop == null) {
+            throw new IllegalStateException("directory doesn't exist");
+        }
         File tmp = new File(System.getProperty("fizteh.db.dir"));
         if (!tmp.exists()) {
             System.out.println("Directory doesn't exist");

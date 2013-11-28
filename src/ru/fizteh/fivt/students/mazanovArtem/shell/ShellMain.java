@@ -126,7 +126,6 @@ public class ShellMain {
                 System.out.println(e.getCause().getMessage());
                 throw e;
             }
-
             return 0;
 
         }
