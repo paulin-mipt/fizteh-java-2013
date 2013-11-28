@@ -72,7 +72,7 @@ public class ShellMain {
                     }
                     return 0;
                 } catch (Exception e) {
-                    System.out.println(e.getCause());
+                    System.out.println(e.getCause().getMessage());
                     return 1;
                 }
             } else {
@@ -112,7 +112,7 @@ public class ShellMain {
             try {
                 exampleClass.exit();
             } catch (Exception e) {
-                System.out.println(e.getCause());
+                System.out.println(e.getCause().getMessage());
                 throw e;
             }
 
@@ -123,7 +123,7 @@ public class ShellMain {
             try {
                 exampleClass.exit();
             } catch (Exception e) {
-                System.out.println(e.getCause());
+                System.out.println(e.getCause().getMessage());
                 throw e;
             }
 
@@ -139,7 +139,6 @@ public class ShellMain {
         } catch (Exception e) {
             System.out.print("Проблемы с путем");
         }
-
         Scanner scanner = new Scanner(System.in);
         while (scanner.hasNextLine()) {
             String query = scanner.nextLine().trim();
@@ -157,6 +156,14 @@ public class ShellMain {
             } catch (Exception e) {
                 System.out.println("Плохой путь");
             }
+        }
+    }
+
+    private void checkAmountArgs(int actual, int need) throws Exception {
+        if (actual < need) {
+            throw new Exception("Few arguments");
+        } else if (actual > need) {
+            throw new Exception("Too many arguments");
         }
     }
 }

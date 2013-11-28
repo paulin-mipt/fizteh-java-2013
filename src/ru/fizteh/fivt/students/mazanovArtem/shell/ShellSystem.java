@@ -112,6 +112,7 @@ public class ShellSystem implements Command {
             }
         }
     }
+
     public void rm(String[] args) throws ShellException {
         checkAmountArgs("rm", args.length, 1);
         File rmFile = new File(appendPath(args[0])).getAbsoluteFile();
