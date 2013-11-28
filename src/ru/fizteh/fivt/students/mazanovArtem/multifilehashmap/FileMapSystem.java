@@ -205,7 +205,7 @@ public class FileMapSystem implements Command {
         checkAmountArgs(args.length, 1);
         String key = args[0];
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-        byte firstByte = keyBytes[0];
+        int firstByte = keyBytes[0] + 128;
         int nDirectory = firstByte % 16;
         int nFile = firstByte / 16 % 16;
         String tmp = map[nDirectory][nFile].get(key);
