@@ -307,7 +307,6 @@ public class FileMapSystem implements Command {
                 if (!tmpFile.exists()) {
                     continue;
                 }
-                //System.out.println(tmpFile + " loadTable");
                 try (DataInputStream inputStream = new DataInputStream(new FileInputStream(tmpFile))) {
                     byte[] buffer;
                     ByteBuffer cast;
