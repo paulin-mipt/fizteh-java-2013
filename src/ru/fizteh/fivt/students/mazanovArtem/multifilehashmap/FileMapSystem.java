@@ -236,13 +236,24 @@ public class FileMapSystem implements Command {
         curDir = tmpFile;
         for (int i = 0; i < 16; ++i) {
             tmpFile = new File(appendPath(String.valueOf(i) + ".dir"));
-            if (!tmpFile.exists()) {
-                if (!tmpFile.mkdir()) {
-                    throw new Exception("Can't create directory and save table");
+            for (int j = 0; j < 16; ++j) {
+                if (!map[i][j].isEmpty()) {
+                    if (!tmpFile.exists()) {
+                        if (!tmpFile.mkdir()) {
+                            throw new Exception("Can't create directory and save table");
+                        }
+                        break;
+                    }
                 }
+            }
+            if (!tmpFile.exists()) {
+                continue;
             }
             curDir = tmpFile;
             for (int j = 0; j < 16; ++j) {
+                if (map[i][j].isEmpty()) {
+                    continue;
+                }
                 tmpFile = new File(appendPath(String.valueOf(j) + ".dat"));
                 if (!tmpFile.createNewFile()) {
                     throw new Exception("Can't create file and save table");
