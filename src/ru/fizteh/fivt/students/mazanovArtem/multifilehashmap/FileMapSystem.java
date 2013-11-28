@@ -1,7 +1,6 @@
 package ru.fizteh.fivt.students.mazanovArtem.multifilehashmap;
 
 import ru.fizteh.fivt.students.mazanovArtem.shell.Command;
-import ru.fizteh.fivt.students.mazanovArtem.shell.Shell;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -69,7 +68,7 @@ public class FileMapSystem implements Command {
     }
 
     public void create(String[] args) throws Exception {
-        checkAmountArgs(args.length,1);
+        checkAmountArgs(args.length, 1);
         File tmpFile = new File(appendPath(args[0]));
         if (tmpFile.exists()) {
             System.out.println("tablename exist");
@@ -83,7 +82,7 @@ public class FileMapSystem implements Command {
     }
 
     public void drop(String[] args) throws Exception {
-        checkAmountArgs(args.length,1);
+        checkAmountArgs(args.length, 1);
         File tmpFile = new File(appendPath(args[0]));
         if (nameUseTable.equals(args[0])) {
             cleanHashMap();
@@ -98,7 +97,7 @@ public class FileMapSystem implements Command {
     }
 
     public void use(String[] args) throws Exception {
-        checkAmountArgs(args.length,1);
+        checkAmountArgs(args.length, 1);
         File tmpFile = new File(appendPath(args[0]));
         if (tmpFile.exists()) {
             if (!nameUseTable.equals(args[0])) {
@@ -253,7 +252,7 @@ public class FileMapSystem implements Command {
         for (int i = 0; i < 16; ++i) {
             tmpFile = new File(appendPath(String.valueOf(i) + ".dir"));
             curDir = tmpFile;
-            for (int j = 0;j < 16; ++j) {
+            for (int j = 0; j < 16; ++j) {
                 tmpFile = new File(appendPath(String.valueOf(j) + ".dat"));
                 if (map[i][j].isEmpty()) {
                     continue;
@@ -394,7 +393,7 @@ public class FileMapSystem implements Command {
     }
 
 
-    private String appendPath(String path) {
+    private String appendPath(String path) throws Exception {
         File tmp = new File(path);
         String tmpStr = "";
         if (tmp.isAbsolute()) {
@@ -404,6 +403,7 @@ public class FileMapSystem implements Command {
             try {
                 tmpStr = tmp.getCanonicalPath();
             } catch (IOException e) {
+                throw new Exception("Can't get canonical path");
             }
             return tmpStr;
         }
@@ -446,7 +446,7 @@ public class FileMapSystem implements Command {
         }
     }
 
-    public void checkValidateData() throws Exception{
+    public void checkValidateData() throws Exception {
         for (int i = 0; i < 16; ++i) {
             for (int j = 0; j < 16; ++j) {
                 for (String key : map[i][j].keySet()) {
