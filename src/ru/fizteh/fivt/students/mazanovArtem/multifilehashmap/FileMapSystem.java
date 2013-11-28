@@ -50,7 +50,6 @@ public class FileMapSystem implements Command {
 
     @Override
     public String helloString() throws IOException {
-        //return getFile().getCanonicalPath() + "$ ";
         return "$ ";
     }
 
