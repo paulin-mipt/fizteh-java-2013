@@ -9,7 +9,8 @@ public class FileMap {
         //File tmp = new File("/home/tema/Documents/java");
         String prop = System.getProperty("fizteh.db.dir");
         if (prop == null) {
-            throw new IllegalStateException("directory doesn't exist");
+            System.out.println("directory doesn't exist");
+            System.exit(1);
         }
         File tmp = new File(System.getProperty("fizteh.db.dir"));
         if (!tmp.exists()) {
