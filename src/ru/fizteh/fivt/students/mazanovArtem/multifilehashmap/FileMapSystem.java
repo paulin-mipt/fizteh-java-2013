@@ -70,7 +70,7 @@ public class FileMapSystem implements Command {
         checkAmountArgs(args.length, 1);
         File tmpFile = new File(appendPath(args[0]));
         if (tmpFile.exists()) {
-            System.out.println(args[0] + " exist");
+            System.out.println(args[0] + " exists");
         } else {
             if (!tmpFile.mkdir()) {
                 throw new Exception(String.format("Table %s can't be create", args[0]));
