@@ -5,6 +5,7 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.vlmazlov.generics.GenericTable;
 import ru.fizteh.fivt.students.vlmazlov.utils.ProviderWriter;
+import ru.fizteh.fivt.students.vlmazlov.utils.ProviderReader;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityChecker;
 
@@ -37,6 +38,11 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         specificProvider = provider;
         this.valueTypes = Collections.unmodifiableList(new ArrayList<Class<?>>(valueTypes));
         isClosed = false;
+    }
+
+    @Override
+    protected void loadFileForKey(String key) {
+        ProviderReader.loadFileForKey(key, new File(specificProvider.getRoot(), getName()), this, specificProvider);
     }
 
     @Override

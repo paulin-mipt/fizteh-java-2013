@@ -70,4 +70,9 @@ public class StringTable extends GenericTable<String> implements DiffCountingTab
     protected void storeOnCommit() throws IOException, ValidityCheckFailedException {
         ProviderWriter.writeMultiTable(this, new File(specificProvider.getRoot(), getName()), specificProvider);
     }
+
+    @Override
+    protected void loadFileForKey(String key) {
+        ProviderReader.loadFileForKey(key, new File(specificProvider.getRoot(), getName()), this, specificProvider);
+    }
 }
