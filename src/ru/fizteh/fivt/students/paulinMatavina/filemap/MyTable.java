@@ -1,8 +1,10 @@
 package ru.fizteh.fivt.students.paulinMatavina.filemap;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
@@ -306,7 +308,6 @@ public class MyTable extends State implements Table, AutoCloseable {
     
     private int writeSize(int diff) {
         int result = 0;
-        FileWriter writer = null;
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
         boolean newFile = false;
         if (!sizeFile.exists()) {
@@ -317,30 +318,28 @@ public class MyTable extends State implements Table, AutoCloseable {
             }
             newFile = true;
         }
+        
         try (FileInputStream in = new FileInputStream(sizeFile);
                 DataInputStream intReader = new DataInputStream(in)) {
-            if (newFile) {
-                result = diff;
-            } else {
-                result = intReader.readInt() + diff;
-                if (result < 0) {
-                    throw new IllegalStateException("size.tsv: broken file");
-                }
-            }
+            if (!newFile) {
+                result = intReader.readInt();
+            } 
             
-            writer = new FileWriter(new File(shell.makeNewSource("size.tsv")));
-            writer.write(result);
-        } catch (Exception e) { 
-            throw new RuntimeException("error writing " + "size.tsv", e);
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (Throwable e) {
-                    //do nothing
-                }
+            result += diff;
+            if (result < 0) {
+                throw new IllegalStateException("size.tsv: broken file");
             }
-        }
+        } catch (Exception e) { 
+            throw new RuntimeException("error reading size.tsv", e);
+        } 
+        
+        try (FileOutputStream out = new FileOutputStream(sizeFile);
+                DataOutputStream writer = new DataOutputStream(out)) {
+            writer.writeInt(result);
+        } catch (Exception e) { 
+            throw new RuntimeException("error writing size.tsv", e);
+        } 
+        
         return result;
     }
     
