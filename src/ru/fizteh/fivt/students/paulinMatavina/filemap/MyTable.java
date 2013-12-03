@@ -1,6 +1,8 @@
 package ru.fizteh.fivt.students.paulinMatavina.filemap;
 
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
@@ -29,9 +31,11 @@ public class MyTable extends State implements Table, AutoCloseable {
     private final String signatureName = "signature.tsv";
     public HashMap<Class<?>, String> possibleTypes;
     private ReentrantReadWriteLock diskOperationLock;
+    private ReentrantReadWriteLock sizeLock;
     
     private void init(String dbName) throws IOException, ParseException {   
         diskOperationLock = new ReentrantReadWriteLock(true);
+        sizeLock = new ReentrantReadWriteLock(true);
         isDropped = false;
         isClosed = false;
         data = new FileState[FOLDER_NUM][FILE_IN_FOLD_NUM];
@@ -44,6 +48,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         
         shell.cd(rootPath);
         shell.cd(dbName);
+        writeSize(0);
         
         loadData();
     }
@@ -110,7 +115,7 @@ public class MyTable extends State implements Table, AutoCloseable {
                 throw new IllegalStateException(path + " is not a directory");
             }          
             for (String file : f.list()) {
-                if (file.equals(signatureName)) {
+                if (file.equals(signatureName) || file.equals("size.tsv")) {
                     continue;
                 }              
                 if (!file.matches("([0-9]|1[0-5])\\.dir")) {
@@ -276,12 +281,64 @@ public class MyTable extends State implements Table, AutoCloseable {
     @Override
     public int size() {
         checkCurrentTableState();
+             
+        int added = 0;
+        int deleted = 0;
+        sizeLock.readLock().lock();
+        try {
+            for (int i = 0; i < FOLDER_NUM; i++) {
+                for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
+                     added += data[i][j].added();
+                     deleted += data[i][j].deleted();
+                }       
+            }
+        } finally {
+            sizeLock.readLock().unlock();
+        }
         
+        sizeLock.writeLock().lock();
+        try {
+            return writeSize(added - deleted);   
+        } finally {
+            sizeLock.writeLock().unlock();
+        }
+    }
+    
+    private int writeSize(int diff) {
         int result = 0;
-        
-        for (int i = 0; i < FOLDER_NUM; i++) {
-            for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                result += data[i][j].size();
+        FileWriter writer = null;
+        File sizeFile = new File(shell.makeNewSource("size.tsv"));
+        boolean newFile = false;
+        if (!sizeFile.exists()) {
+            try {
+                sizeFile.createNewFile();
+            } catch (Exception e) {
+                throw new RuntimeException("error when creating size.tsv");
+            }
+            newFile = true;
+        }
+        try (FileInputStream in = new FileInputStream(sizeFile);
+                DataInputStream intReader = new DataInputStream(in)) {
+            if (newFile) {
+                result = diff;
+            } else {
+                result = intReader.readInt() + diff;
+                if (result < 0) {
+                    throw new IllegalStateException("size.tsv: broken file");
+                }
+            }
+            
+            writer = new FileWriter(new File(shell.makeNewSource("size.tsv")));
+            writer.write(result);
+        } catch (Exception e) { 
+            throw new RuntimeException("error writing " + "size.tsv", e);
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (Throwable e) {
+                    //do nothing
+                }
             }
         }
         return result;

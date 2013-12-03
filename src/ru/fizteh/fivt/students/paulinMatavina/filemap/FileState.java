@@ -310,22 +310,41 @@ public class FileState extends State {
         }
     }
     
+    public int added() {
+        initialChangeLock.readLock().lock();
+        int result = 0;
+        try {
+            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
+                if (entry.getValue() != null && !initial.containsKey(entry.getKey())) {
+                    result++;     
+                }
+            }
+        } finally {
+            initialChangeLock.readLock().unlock();
+        }
+        return result;
+    }
+    
+    public int deleted() {
+        initialChangeLock.readLock().lock();
+        int result = 0;
+        try {
+            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
+                if (entry.getValue() == null && initial.containsKey(entry.getKey())) {
+                    result++;
+                }
+            }
+        } finally {
+            initialChangeLock.readLock().unlock();
+        }
+        return result;
+    }
+    
     public int size() {
         initialChangeLock.readLock().lock();
         int result = 0;
         try {
-            result = initial.size();
-            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
-                if (entry.getValue() != null) {
-                    if (!initial.containsKey(entry.getKey())) {
-                        result++;
-                    }     
-                } else {
-                    if (initial.containsKey(entry.getKey())) {
-                        result--;
-                    }
-                }
-            }
+            result = initial.size() + added() - deleted();
         } finally {
             initialChangeLock.readLock().unlock();
         }
