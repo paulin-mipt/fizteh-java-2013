@@ -50,7 +50,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         
         shell.cd(rootPath);
         shell.cd(dbName);
-        writeSize(0);
+        writeSize();
         
         loadData();
     }
@@ -188,6 +188,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         
         diskOperationLock.writeLock().lock();
         try {
+            writeSize();
             chNum = changesNum();
             for (int i = 0; i < FOLDER_NUM; i++) {
                 String fold = Integer.toString(i) + ".dir";
@@ -294,53 +295,54 @@ public class MyTable extends State implements Table, AutoCloseable {
                      deleted += data[i][j].deleted();
                 }       
             }
+            
+            int result = readSize() + added - deleted;
+            if (result < 0) {
+                throw new IllegalStateException("size.tsv: broken file");
+            }
+            return result;  
         } finally {
             sizeLock.readLock().unlock();
         }
-        
-        sizeLock.writeLock().lock();
-        try {
-            return writeSize(added - deleted);   
-        } finally {
-            sizeLock.writeLock().unlock();
-        }
     }
     
-    private int writeSize(int diff) {
+    private int readSize() {
         int result = 0;
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
-        boolean newFile = false;
         if (!sizeFile.exists()) {
             try {
                 sizeFile.createNewFile();
             } catch (Exception e) {
                 throw new RuntimeException("error when creating size.tsv");
             }
-            newFile = true;
+            return 0;
         }
         
         try (FileInputStream in = new FileInputStream(sizeFile);
                 DataInputStream intReader = new DataInputStream(in)) {
-            if (!newFile) {
-                result = intReader.readInt();
-            } 
-            
-            result += diff;
-            if (result < 0) {
-                throw new IllegalStateException("size.tsv: broken file");
-            }
+            result = intReader.readInt();
         } catch (Exception e) { 
             throw new RuntimeException("error reading size.tsv", e);
         } 
+        return result;
+    }
+    
+    private void writeSize() {
+        File sizeFile = new File(shell.makeNewSource("size.tsv"));
+        if (!sizeFile.exists()) {
+            try {
+                sizeFile.createNewFile();
+            } catch (Exception e) {
+                throw new RuntimeException("error when creating size.tsv");
+            }
+        }
         
         try (FileOutputStream out = new FileOutputStream(sizeFile);
                 DataOutputStream writer = new DataOutputStream(out)) {
-            writer.writeInt(result);
+            writer.writeInt(size());
         } catch (Exception e) { 
             throw new RuntimeException("error writing size.tsv", e);
         } 
-        
-        return result;
     }
     
     @Override
