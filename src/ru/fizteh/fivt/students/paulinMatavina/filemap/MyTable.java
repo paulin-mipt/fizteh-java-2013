@@ -50,9 +50,9 @@ public class MyTable extends State implements Table, AutoCloseable {
         
         shell.cd(rootPath);
         shell.cd(dbName);
-        writeSize();
         
         loadData();
+        writeSize();
     }
     
     public MyTable(String property, String dbName, MyTableProvider prov, List<Class<?>> columnTypes) 
@@ -313,7 +313,7 @@ public class MyTable extends State implements Table, AutoCloseable {
             try {
                 sizeFile.createNewFile();
             } catch (Exception e) {
-                throw new RuntimeException("error when creating size.tsv");
+                throw new RuntimeException("error when creating size.tsv", e);
             }
             return 0;
         }
@@ -329,17 +329,23 @@ public class MyTable extends State implements Table, AutoCloseable {
     
     private void writeSize() {
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
+        int result = -1;
         if (!sizeFile.exists()) {
             try {
                 sizeFile.createNewFile();
             } catch (Exception e) {
-                throw new RuntimeException("error when creating size.tsv");
+                throw new RuntimeException("error when creating size.tsv", e);
             }
+            result = 0;
+        }
+        
+        if (result < 0) {
+            result = size();
         }
         
         try (FileOutputStream out = new FileOutputStream(sizeFile);
                 DataOutputStream writer = new DataOutputStream(out)) {
-            writer.writeInt(size());
+            writer.writeInt(result);
         } catch (Exception e) { 
             throw new RuntimeException("error writing size.tsv", e);
         } 
