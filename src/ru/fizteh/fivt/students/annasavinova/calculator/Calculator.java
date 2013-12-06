@@ -6,10 +6,10 @@ import java.util.Stack;
 import java.util.regex.Pattern;
 
 public class Calculator {
-    static int BASE = 18;
+    static final int BASE = 18;
     static Stack<String> signStack = new Stack<>();
     static Stack<Long> digitStack = new Stack<>();
-    
+
     public static int priority(String c) {
         if (c.equals("+") || c.equals("-")) {
             return 0;
@@ -19,7 +19,7 @@ public class Calculator {
             return -1;
         }
     }
-    
+
     public static long getVal() {
         if (signStack.size() == 0 || digitStack.size() < 2) {
             System.err.println("Incorrect num of operators and operands");
@@ -50,6 +50,8 @@ public class Calculator {
                 System.exit(1);
             }
             return res;
+        default:
+            System.exit(1);
         }
         if (tmpRes.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
             System.err.println("Int Overflow");
@@ -62,7 +64,7 @@ public class Calculator {
         res = tmpRes.longValue();
         return res;
     }
-    
+
     public static boolean checkBrackets(String input) {
         int count = 0;
         for (int i = 0; i < input.length(); ++i) {
@@ -80,22 +82,21 @@ public class Calculator {
         }
         return true;
     }
-    
+
     public static boolean checkSpaces(String str) {
-        if (Pattern.matches(
-                "[\\s0-9A-H-h/+-/*///(/)]*[0-9A-Ha-h]+[ ]+[0-9A-Ha-h]+[\\s0-9A-Ha-h/+-/*///(/)]*", str)) {
+        if (Pattern.matches("[\\s0-9A-H-h/+-/*///(/)]*[0-9A-Ha-h]+[ ]+[0-9A-Ha-h]+[\\s0-9A-Ha-h/+-/*///(/)]*", str)) {
             return false;
         }
         return true;
     }
-    
+
     public static boolean checkSymbols(String str) {
         if (!Pattern.matches("[\\s0-9A-Ha-h/+-/*///(/)]*", str)) {
             return false;
         }
         return true;
     }
-    
+
     public static void main(String[] args) {
         if (args.length == 0) {
             System.err.println("Please, input expression, that you want to know");

@@ -29,7 +29,8 @@ public class Calculator {
         long result = 0;
         BigInteger firstBig = BigInteger.valueOf(firstOperand);
         BigInteger secondBig = BigInteger.valueOf(secondOperand);
-        BigInteger realRes = null, myRes = null;
+        BigInteger realRes = null; 
+        BigInteger myRes = null;
 
         if (operator.equals("+")) {
             result = firstOperand + secondOperand;

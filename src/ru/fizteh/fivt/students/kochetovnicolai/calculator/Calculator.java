@@ -29,7 +29,7 @@ public class Calculator {
     }
 
     private static int calculate(String operations, String[] numbers) {
-        Stack<Integer> values = new Stack<>();
+        Stack<Integer> values = new Stack<Integer>();
         values.push(0);
         char operation = '+';
         position++;

@@ -28,7 +28,7 @@ public class Calculator {
         s = sb.toString();
         try {
             if (s.isEmpty()) {
-                throw new IOException("Пустой ввод");
+                throw new IllegalArgumentException("Пустой ввод");
             }
             System.out.println(calculate(s));
         } catch (IOException e) {
@@ -128,7 +128,7 @@ public class Calculator {
                 }
                 return  a+b;
             case '-':
-                if (((a > 0 && b < 0) || (a < 0 && b > 0))
+                if (((a > 0 && b < 0) || (a > 0 && b < 0))
                         && (Math.abs(a) > Math.abs(Integer.MAX_VALUE - b))) {
                     throw new IOException("Ошибка переполнения");
                 }

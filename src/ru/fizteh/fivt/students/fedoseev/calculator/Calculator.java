@@ -7,27 +7,30 @@ import java.util.regex.Pattern;
 
 public class Calculator {
     public static final int RADIX = 18;
-    public static final Map<String, Integer> MATH_OPERATIONS = new HashMap<String, Integer>() {{
-        put("*", 1);
-        put("/", 1);
-        put("+", 2);
-        put("-", 2);
-    }};
+    public static final Map<String, Integer> MATH_OPERATIONS = new HashMap<String, Integer>() {
+        {
+            put("*", 1);
+            put("/", 1);
+            put("+", 2);
+            put("-", 2);
+        }
+    };
 
     public static String shuntingYard(String expr, Map<String, Integer> ops) throws IOException {
-        if (expr == null || expr.length() == 0 || ops == null || ops.isEmpty())
+        if (expr == null || expr.length() == 0 || ops == null || ops.isEmpty()) {
             throw new IllegalStateException();
+        }
 
-        final String L_PAR = "(";
-        final String R_PAR = ")";
+        final String lPar = "(";
+        final String rPar = ")";
         List<String> output = new ArrayList<String>();
         Stack<String> opStack = new Stack<String>();
 
-        final Pattern P1 = Pattern.compile("[A-H0-9\\+\\-\\*/ \\(\\)]*");
-        final Pattern P2 = Pattern.compile("(.*)([A-H0-9]+( )+[A-H0-9]+)(.*)");
-        Matcher m1 = P1.matcher(expr);
+        final Pattern p1 = Pattern.compile("[A-H0-9\\+\\-\\*/ \\(\\)]*");
+        final Pattern p2 = Pattern.compile("(.*)([A-H0-9]+( )+[A-H0-9]+)(.*)");
+        Matcher m1 = p1.matcher(expr);
         boolean b1 = m1.matches();
-        Matcher m2 = P2.matcher(expr);
+        Matcher m2 = p2.matcher(expr);
         boolean b2 = m2.matches();
 
         if (!b1 || b2) {
@@ -38,7 +41,7 @@ public class Calculator {
         }
         expr = expr.replace("(-", "(0-").replace("---", "-").replace("--", "+0+").replace("+-", "+0-");
 
-        String[] symbols = new String[]{"*", "/", "+", "-", L_PAR, R_PAR};
+        String[] symbols = new String[]{"*", "/", "+", "-", lPar, rPar};
         /*
         Set<String> symbols = new HashSet<String>(ops.keySet());
         symbols.add(L_PAR);
@@ -67,10 +70,10 @@ public class Calculator {
                     output.add(expr.substring(opIndex, nextOpIndex));
                 }
 
-                if (nextOp.equals(L_PAR)) {
+                if (nextOp.equals(lPar)) {
                     opStack.push(nextOp);
-                } else if (nextOp.equals(R_PAR)) {
-                    while (!opStack.empty() && !opStack.peek().equals(L_PAR)) {
+                } else if (nextOp.equals(rPar)) {
+                    while (!opStack.empty() && !opStack.peek().equals(lPar)) {
                         output.add(opStack.pop());
 
                         if (opStack.empty()) {
@@ -84,8 +87,8 @@ public class Calculator {
 
                     opStack.pop();
                 } else {
-                    while (!opStack.empty() && !opStack.peek().equals(L_PAR) &&
-                            ops.get(nextOp) >= ops.get(opStack.peek())) {
+                    while (!opStack.empty() && !opStack.peek().equals(lPar)
+                            && ops.get(nextOp) >= ops.get(opStack.peek())) {
                         output.add(opStack.pop());
                     }
 

@@ -28,7 +28,7 @@ public class Calculator {
         Scanner scan = new Scanner(input);
         Stack<String> stack = new Stack<String>();
         StringBuilder polandBuilder = new StringBuilder();
-        String s = "";
+        String s;
         scan.useRadix(RADIX);
         boolean minus = false;
         boolean changeSign = false;
@@ -159,7 +159,8 @@ public class Calculator {
     private static Integer calculate(String s) throws IOException {
         String[] symbols = s.split(" ");
         Stack<Integer> operandStack = new Stack<Integer>();
-        int oper1, oper2;
+        int oper1;
+        int oper2;
 
         for (String symbol : symbols) {
             if (symbol.equals("+")) {

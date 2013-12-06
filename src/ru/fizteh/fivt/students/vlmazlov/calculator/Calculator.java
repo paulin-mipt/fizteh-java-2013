@@ -1,330 +1,334 @@
 package ru.fizteh.fivt.students.vlmazlov.calculator;
-import java.util.Vector;
-import java.util.Scanner;
+
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.NoSuchElementException;
-import java.lang.StringBuilder;
 
 public class Calculator {
 
-	private class WrongArithmeticExpressionException extends Exception {
-		public WrongArithmeticExpressionException() { 
-			super(); 
-		}
-		public WrongArithmeticExpressionException(String message) { 
-			super(message); 
-		}
-		public WrongArithmeticExpressionException(String message, Throwable cause) { 
-			super(message, cause); 
-		}
-		public WrongArithmeticExpressionException(Throwable cause) { 
-			super(cause); 
-		}
-	}
+    private class WrongArithmeticExpressionException extends Exception {
+        public WrongArithmeticExpressionException() {
+            super();
+        }
 
-	private enum OperationType {
-		sum("+"),
-		sub("-"),
-		mult("*"),
-		div("/"),
-		end("."),
-		close(")");
+        public WrongArithmeticExpressionException(String message) {
+            super(message);
+        }
 
-		private String operationType;
+        public WrongArithmeticExpressionException(String message, Throwable cause) {
+            super(message, cause);
+        }
 
-		private OperationType(String type) {
-			operationType = type;
-		}
+        public WrongArithmeticExpressionException(Throwable cause) {
+            super(cause);
+        }
+    }
 
-		public static OperationType getByType(String type) {
-			
-			for (OperationType operation: OperationType.values()) {
-				if (operation.operationType.equals(type)) {
-					return operation;
-				}
-			}
+    private enum OperationType {
+        sum("+"),
+        sub("-"),
+        mult("*"),
+        div("/"),
+        end("."),
+        close(")");
 
-			throw new NoSuchElementException("Operation " + type + " is of unknown type");
-		}
+        private String operationType;
 
-		public String getType() {
-			return operationType;
-		}
-	}
+        private OperationType(String type) {
+            operationType = type;
+        }
 
-	private final static int radix = 17;
-	private String curToken;
-	private char curChar;
-	private boolean spaceSkipped; //vital for detecting spaces inside an integer
-	private InputStream expression;
+        public static OperationType getByType(String type) {
 
-	Calculator() {
-		curToken = "";
-	}
+            for (OperationType operation : OperationType.values()) {
+                if (operation.operationType.equals(type)) {
+                    return operation;
+                }
+            }
 
-	public static void	 main(String[] args) {
-		String arg = "";
-		int curRes;
-		Calculator calc = new Calculator();
+            throw new NoSuchElementException("Operation " + type + " is of unknown type");
+        }
 
-		StringBuilder argBuilder = new StringBuilder();
+        public String getType() {
+            return operationType;
+        }
+    }
 
-		for (String tmp : args) {
-			argBuilder.append(tmp);
-			argBuilder.append(' ');
-		}
+    private static final int RADIX = 17;
+    private String curToken;
+    private char curChar;
+    private boolean spaceSkipped; //vital for detecting spaces inside an integer
+    private InputStream expression;
 
-		arg = argBuilder.toString();
-		
-		if (arg.equals("")) {
-			System.out.println("Usage: valid aritmetic expression, possibly divided in several strings");
-			System.exit(1);
-		}
+    Calculator() {
+        curToken = "";
+    }
 
-		calc.expression = new ByteArrayInputStream(arg.getBytes()); 
-		
-		try {
-			System.out.println(Integer.toString(calc.countExpression(), radix).toUpperCase());
-		} catch (WrongArithmeticExpressionException ex) {
-			System.out.println(ex.getMessage() + ". Please try again.");
-			System.exit(2);
-		} catch (ArithmeticException ex) {
-			System.out.println("Division by zero inside the expression. Please try again.");
-			System.exit(3);
-		} catch (NoSuchElementException ex) {
-			System.out.println(ex.getMessage() + ". Please try again.");
-			System.exit(4);
-		}
-	}
+    public static void main(String[] args) {
+        String arg = "";
+        int curRes;
+        Calculator calc = new Calculator();
 
-	private boolean isNumber(String toCheck) {
-		try {
-			int tmp = Integer.parseInt(toCheck, radix);
-		} catch (NumberFormatException ex) {
-			return false;
-		}
-		return true;	
-	}
+        StringBuilder argBuilder = new StringBuilder();
 
-	private boolean isValid() {
-		return ((('0' <= curChar) && ('9' >= curChar)) || (('A' <= curChar) && ('A' + radix - 10 > curChar)));
-	}
+        for (String tmp : args) {
+            argBuilder.append(tmp);
+            argBuilder.append(' ');
+        }
 
-	private void parseFail(String errorMessage) throws WrongArithmeticExpressionException {
-		throw new WrongArithmeticExpressionException(errorMessage);
-	}
+        arg = argBuilder.toString();
 
-	public int countExpression() throws WrongArithmeticExpressionException {
-		nextChar();
-		nextToken();
-		int res = parseExpression();
+        if (arg.equals("")) {
+            System.out.println("Usage: valid aritmetic expression, possibly divided in several strings");
+            System.exit(1);
+        }
 
-		if (!curToken.equals(".")) {
-			throw new WrongArithmeticExpressionException(curToken + " out of place");
-		}
+        calc.expression = new ByteArrayInputStream(arg.getBytes());
 
-		return res;
-	}
+        try {
+            System.out.println(Integer.toString(calc.countExpression(), RADIX).toUpperCase());
+        } catch (WrongArithmeticExpressionException ex) {
+            System.out.println(ex.getMessage() + ". Please try again.");
+            System.exit(2);
+        } catch (ArithmeticException ex) {
+            System.out.println("Division by zero inside the expression. Please try again.");
+            System.exit(3);
+        } catch (NoSuchElementException ex) {
+            System.out.println(ex.getMessage() + ". Please try again.");
+            System.exit(4);
+        }
+    }
 
-	//In all following functions it is assumed that current token
-	//is the beginning of the parsed expression
+    private boolean isNumber(String toCheck) {
+        try {
+            int tmp = Integer.parseInt(toCheck, RADIX);
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+        return true;
+    }
 
-	private int parseExpression() throws WrongArithmeticExpressionException {
-		//Expression is considered to be a sequence of summators,
-		//connected by + and -
+    private boolean isValid() {
+        return ((('0' <= curChar) && ('9' >= curChar)) || (('A' <= curChar) && ('A' + RADIX - 10 > curChar)));
+    }
 
-		int res = parseSummator();
+    private void parseFail(String errorMessage) throws WrongArithmeticExpressionException {
+        throw new WrongArithmeticExpressionException(errorMessage);
+    }
 
-		while ((curToken.equals("+")) || (curToken.equals("-"))) {
+    public int countExpression() throws WrongArithmeticExpressionException {
+        nextChar();
+        nextToken();
+        int res = parseExpression();
 
-			int tmpRes;
+        if (!curToken.equals(".")) {
+            throw new WrongArithmeticExpressionException(curToken + " out of place");
+        }
 
-			OperationType operation = OperationType.getByType(curToken);
+        return res;
+    }
 
-			switch(operation) {
-			case sum:
-				nextToken();
-				
-				tmpRes = parseSummator();
-				
-				if (((0 < tmpRes) && (Integer.MAX_VALUE - tmpRes < res)) || 
-					((0 > tmpRes) && (Integer.MIN_VALUE - tmpRes > res))) {
-					parseFail("Arithmetic overflow"); 
-				}
+    //In all following functions it is assumed that current token
+    //is the beginning of the parsed expression
 
-				res += tmpRes;
+    private int parseExpression() throws WrongArithmeticExpressionException {
+        //Expression is considered to be a sequence of summators,
+        //connected by + and -
 
-				break;
-			case sub:
-				nextToken();
+        int res = parseSummator();
 
-				tmpRes = parseSummator();
-				
-				if (((0 > tmpRes) && (Integer.MAX_VALUE + tmpRes < res)) || 
-					((0 < tmpRes) && (Integer.MIN_VALUE + tmpRes > res))) {
-					parseFail("Arithmetic overflow"); 
-				}
+        while ((curToken.equals("+")) || (curToken.equals("-"))) {
 
-				res -= tmpRes;
+            int tmpRes;
 
-				break;
-			case end:
-			case mult:
-			case div:
-			case close:
-				return res;
-			default:
-				if (operation == OperationType.end) {
-					parseFail("Expression unfinished");
-				} else {
-					parseFail(operation.getType() + " out of place");
-				}
-			}
-		}
-		return res;
- 	}
+            OperationType operation = OperationType.getByType(curToken);
 
-	private int parseSummator() throws WrongArithmeticExpressionException {
-		//Summator is a sequence of multipliers
-		//connected with * or /
+            switch (operation) {
+                case sum:
+                    nextToken();
 
-		int tmpRes;
-		int res = parseMultiplier();
+                    tmpRes = parseSummator();
 
-		while ((curToken.equals("*")) || (curToken.equals("/"))) {
+                    if (((0 < tmpRes) && (Integer.MAX_VALUE - tmpRes < res)) 
+                        || ((0 > tmpRes) && (Integer.MIN_VALUE - tmpRes > res))) {
+                        parseFail("Arithmetic overflow");
+                    }
 
-			OperationType operation = OperationType.getByType(curToken);
+                    res += tmpRes;
 
-			switch(operation) {
-			case mult:
-				nextToken();
-				
-				tmpRes = parseMultiplier();	
+                    break;
+                case sub:
+                    nextToken();
 
-				if ((0 != tmpRes) //if tmpRes == 0, overflow is impossible anyway
-					&& (Integer.MAX_VALUE / Math.abs(tmpRes) < Math.abs(res)))  { 
-					parseFail("Arithmetic overflow");
-				}
+                    tmpRes = parseSummator();
 
-				res *= tmpRes;
+                    if (((0 > tmpRes) && (Integer.MAX_VALUE + tmpRes < res)) 
+                        || ((0 < tmpRes) && (Integer.MIN_VALUE + tmpRes > res))) {
+                        parseFail("Arithmetic overflow");
+                    }
 
-				break;
-			case div:
-				nextToken();
-				
-				tmpRes = parseMultiplier();
-				
-				if (0 != tmpRes) {
-					
-					res /= tmpRes;
+                    res -= tmpRes;
 
-				} else throw new ArithmeticException();	
+                    break;
+                case end:
+                case mult:
+                case div:
+                case close:
+                    return res;
+                default:
+                    if (operation == OperationType.end) {
+                        parseFail("Expression unfinished");
+                    } else {
+                        parseFail(operation.getType() + " out of place");
+                    }
+            }
+        }
+        return res;
+    }
 
-				break;
-			case end:
-			case sum:
-			case sub:
-			case close:
-				return res;
-			default:
-				if (operation == OperationType.end) {
-					parseFail("Expression unfinished");
-				} else {
-					parseFail(operation.getType() + " out of place");
-				}
-			}
-		}
-		return res;
-	}
+    private int parseSummator() throws WrongArithmeticExpressionException {
+        //Summator is a sequence of multipliers
+        //connected with * or /
 
-	private int parseMultiplier() throws WrongArithmeticExpressionException {
-		//Multiplier is either a number or an expression in brackets
+        int tmpRes;
+        int res = parseMultiplier();
 
-		int res = 0;
+        while ((curToken.equals("*")) || (curToken.equals("/"))) {
 
-		if (curToken.equals("(")) {
-			nextToken();
-			
-			res = parseExpression(); 
+            OperationType operation = OperationType.getByType(curToken);
 
-			if (!curToken.equals(")")) {
-				parseFail("Unbalanced brackets");
-			}
+            switch (operation) {
+                case mult:
+                    nextToken();
 
-			nextToken();
+                    tmpRes = parseMultiplier();
 
-		} else if (isNumber(curToken)) { 
-			res = Integer.parseInt(curToken, radix);
-			nextToken();
+                    if ((0 != tmpRes) //if tmpRes == 0, overflow is impossible anyway
+                            && (Integer.MAX_VALUE / Math.abs(tmpRes) < Math.abs(res))) {
+                        parseFail("Arithmetic overflow");
+                    }
 
-		} else if (curToken.equals("-")) {
-			nextToken();
-			res = -parseMultiplier();
+                    res *= tmpRes;
 
-		} else {
-			if (curToken.equals(".")) {
-				parseFail("Expression unfinished");
-			} else {
-				parseFail(curToken + " out of place");
-			}
-		}
+                    break;
+                case div:
+                    nextToken();
 
-		return res;
-	} 
+                    tmpRes = parseMultiplier();
 
-	private void nextChar() {
-		try {
-			if (0 < expression.available()) {
-				curChar = (char)expression.read();
-			}  else {
-				curChar = '.';
-			}
-		} catch (IOException ex) {
-			curChar = '.';
-		}
-		if (' ' == curChar) {
-			spaceSkipped = true;
-			nextChar();
-		}
-	}
+                    if (0 != tmpRes) {
 
-	//Valid tokens:
-	// (,),+,-,/,*,., string representing a number
-	//. - end of expression
+                        res /= tmpRes;
 
-	private void nextToken() throws WrongArithmeticExpressionException {
-		//nextToken is never called recursively, therefore, it's valid
-		spaceSkipped = false;
+                    } else {
+                        throw new ArithmeticException();
+                    }
 
-		switch (curChar) {
-		case '(':
-		case ')':
-		case '+':
-		case '-':
-		case '/':
-		case '*':
-		case '.':
-			char[] curCharArray = {curChar};
-			curToken = new String(curCharArray);	
-			nextChar();
-			break;
-		default:
-			if (!isValid()) {
-				parseFail("Unknown symbol " + curChar); 
-			}
-			
-			StringBuilder curTokenBuilder = new StringBuilder();
+                    break;
+                case end:
+                case sum:
+                case sub:
+                case close:
+                    return res;
+                default:
+                    if (operation == OperationType.end) {
+                        parseFail("Expression unfinished");
+                    } else {
+                        parseFail(operation.getType() + " out of place");
+                    }
+            }
+        }
+        return res;
+    }
 
-			while ((isValid()) && (!spaceSkipped)) {
-				curTokenBuilder.append(curChar);
-				nextChar();
-			}
-			
-			spaceSkipped = false;
+    private int parseMultiplier() throws WrongArithmeticExpressionException {
+        //Multiplier is either a number or an expression in brackets
 
-			curToken = curTokenBuilder.toString();
-		}
-	}
+        int res = 0;
+
+        if (curToken.equals("(")) {
+            nextToken();
+
+            res = parseExpression();
+
+            if (!curToken.equals(")")) {
+                parseFail("Unbalanced brackets");
+            }
+
+            nextToken();
+
+        } else if (isNumber(curToken)) {
+            res = Integer.parseInt(curToken, RADIX);
+            nextToken();
+
+        } else if (curToken.equals("-")) {
+            nextToken();
+            res = -parseMultiplier();
+
+        } else {
+            if (curToken.equals(".")) {
+                parseFail("Expression unfinished");
+            } else {
+                parseFail(curToken + " out of place");
+            }
+        }
+
+        return res;
+    }
+
+    private void nextChar() {
+        try {
+            if (0 < expression.available()) {
+                curChar = (char) expression.read();
+            } else {
+                curChar = '.';
+            }
+        } catch (IOException ex) {
+            curChar = '.';
+        }
+        if (' ' == curChar) {
+            spaceSkipped = true;
+            nextChar();
+        }
+    }
+
+    //Valid tokens:
+    // (,),+,-,/,*,., string representing a number
+    //. - end of expression
+
+    private void nextToken() throws WrongArithmeticExpressionException {
+        //nextToken is never called recursively, therefore, it's valid
+        spaceSkipped = false;
+
+        switch (curChar) {
+            case '(':
+            case ')':
+            case '+':
+            case '-':
+            case '/':
+            case '*':
+            case '.':
+                char[] curCharArray = {curChar};
+                curToken = new String(curCharArray);
+                nextChar();
+                break;
+            default:
+                if (!isValid()) {
+                    parseFail("Unknown symbol " + curChar);
+                }
+
+                StringBuilder curTokenBuilder = new StringBuilder();
+
+                while ((isValid()) && (!spaceSkipped)) {
+                    curTokenBuilder.append(curChar);
+                    nextChar();
+                }
+
+                spaceSkipped = false;
+
+                curToken = curTokenBuilder.toString();
+        }
+    }
 }
+

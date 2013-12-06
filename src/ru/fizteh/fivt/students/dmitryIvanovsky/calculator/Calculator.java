@@ -2,10 +2,30 @@ package ru.fizteh.fivt.students.dmitryIvanovsky.calculator;
 
 import java.math.BigInteger;
 
-class ErrorFormula extends Exception {
-    public ErrorFormula(String text) {
-        super(text);
+public class Calculator {
+
+    public static void main(String[] args) {
+        StringBuilder builder = new StringBuilder();
+        for (String arg : args) {
+            builder.append(arg.toUpperCase());
+            builder.append(' ');
+        }
+        String query = builder.toString();
+        if (query.equals("")) {
+            System.err.println("Пустой ввод");
+            System.exit(1);
+        }
+        try {
+            MyCalc calculator = new MyCalc(query);
+            String res = calculator.result();
+            System.out.println(res);
+        } catch (ErrorFormula e) {
+            System.err.println(e);
+            System.exit(1);
+        }
+
     }
+
 }
 
 class MyCalc {
@@ -205,29 +225,8 @@ class MyCalc {
     }
 }
 
-public class Calculator {
-
-    public static void main(String[] args) {
-        StringBuilder builder = new StringBuilder();
-        for (String arg : args) {
-            builder.append(arg.toUpperCase());
-            builder.append(' ');
-        }
-        String query = builder.toString();
-        if (query.equals("")) {
-            System.err.println("Пустой ввод");
-            System.exit(1);
-        }
-        try {
-            MyCalc calculator = new MyCalc(query);
-            String res = calculator.result();
-            System.out.println(res);
-        } catch (ErrorFormula e) {
-            System.err.println(e);
-            System.exit(1);
-        }
-
+class ErrorFormula extends Exception {
+    public ErrorFormula(String text) {
+        super(text);
     }
-
 }
-

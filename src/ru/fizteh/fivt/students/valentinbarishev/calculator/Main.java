@@ -53,7 +53,7 @@ public class Main {
     private static void makePolskaRecord(String expression) {
 
         polskaRecord = new Stack<String>();
-        char str[] = expression.toCharArray();
+        char[] str = expression.toCharArray();
         Stack<String> digitStack = new Stack<String>();
 
         for (int i = 0; i < str.length; ++i) {
@@ -118,8 +118,8 @@ public class Main {
             long argument2 = polskaCalculator(scale);
             long argument1 = polskaCalculator(scale);
 
-            if (((argument1 >= 0) && (Long.MAX_VALUE - argument1 < - argument2))
-                    || ((argument1 < 0) && (Long.MIN_VALUE - argument1 > - argument2))) {
+            if (((argument1 >= 0) && (Long.MAX_VALUE - argument1 < -argument2))
+                    || ((argument1 < 0) && (Long.MIN_VALUE - argument1 > -argument2))) {
                 throw new ArithmeticException("Overflow while subtracting numbers.");
             }
 
@@ -227,7 +227,7 @@ public class Main {
             numberBefore = true;
         }
 
-        if (numberBefore != true) {
+        if (numberBefore) {
             System.err.println("Wrong argument to last operation.");
             return false;
         }

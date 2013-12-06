@@ -1,21 +1,14 @@
 package ru.fizteh.fivt.students.anastasyev.calculator;
 
 import java.util.Stack;
-import java.lang.String;
-import java.lang.Integer;
-import java.lang.Character;
 
 public class Main {
     private static final int RADIX = 17;
 
     private static Boolean numberChecker(String[] args, int i, int j) {
-        if ((args[i].charAt(j) >= '0' && args[i].charAt(j) <= '9')
-                || (args[i].charAt(j) >= 'A' && args[i].charAt(j) <= 'G') || (args[i].charAt(j) >= 'a'
-                && args[i].charAt(j) <= 'g')) {
-            return true;
-        } else {
-            return false;
-        }
+        return ((args[i].charAt(j) >= '0' && args[i].charAt(j) <= '9')
+                || (args[i].charAt(j) >= 'A' && args[i].charAt(j) <= 'G')
+                || (args[i].charAt(j) >= 'a' && args[i].charAt(j) <= 'g'));
     }
 
     private static String reversePolishNotationConversation(String[] args) {
@@ -42,13 +35,14 @@ public class Main {
                     if (emptyBrackets) {
                         emptyBrackets = false;
                     }
-                } else if (args[i].charAt(j) == '(') { // (
+                } else if (args[i].charAt(j) == '(') {
                     emptyBrackets = true;
                     int k = j + 1;
                     int count = 1;
                     while (k < args[i].length() && (args[i].charAt(k) == '(' || args[i].charAt(k) == ' ')) {
-                        if (args[i].charAt(j) == '(')
+                        if (args[i].charAt(j) == '(') {
                             ++count;
+                        }
                         ++k;
                     }
                     for (int p = 0; p < count; ++p) {
@@ -118,6 +112,7 @@ public class Main {
                         emptyBrackets = false;
                     }
                 } else if (Character.isWhitespace(args[i].charAt(j))) {
+                    //
                 } else {
                     System.err.println("Bad symbol: " + args[i].charAt(j));
                     System.exit(1);
@@ -177,7 +172,8 @@ public class Main {
                 value2 = values.pop();
                 value1 = values.pop();
                 if (((value1 > 0 && value2 > 0 || value1 < 0 && value2 < 0) && Integer.MAX_VALUE / value2 <= value1)
-                        || ((value1 < 0 && value2 > 0 || value1 > 0 && value2 < 0) && Integer.MIN_VALUE / value2 >= value1)) {
+                        || ((value1 < 0 && value2 > 0 || value1 > 0 && value2 < 0)
+                        && Integer.MIN_VALUE / value2 >= value1)) {
                     System.err.println("Integer overflow: " + value1 + "*" + value2);
                     System.exit(1);
                 }
