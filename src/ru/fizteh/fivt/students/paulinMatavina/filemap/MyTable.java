@@ -188,8 +188,8 @@ public class MyTable extends State implements Table, AutoCloseable {
         
         diskOperationLock.writeLock().lock();
         try {
-            writeSize();
             chNum = changesNum();
+            writeSize();
             for (int i = 0; i < FOLDER_NUM; i++) {
                 String fold = Integer.toString(i) + ".dir";
                 if (!fileExist(fold)) {

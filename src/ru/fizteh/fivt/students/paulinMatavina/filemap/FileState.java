@@ -9,13 +9,14 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
+import java.util.WeakHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import ru.fizteh.fivt.students.paulinMatavina.utils.*;
 import ru.fizteh.fivt.storage.structured.*;
 
 public class FileState extends State {
-    private HashMap<String, Storeable> initial;
+    private WeakHashMap<String, Storeable> cache;
     private ThreadLocal<HashMap<String, Storeable>> changes;
     public RandomAccessFile dbFile;
     public String path;
@@ -23,11 +24,13 @@ public class FileState extends State {
     private Table table;
     private int foldNum;
     private int fileNum;
+    private int added = 0;
+    private int deleted = 0;
     private ReentrantReadWriteLock initialChangeLock;
     
     public FileState(String dbPath, int folder, int file, TableProvider prov, Table newTable)
                                                       throws ParseException, IOException {
-        initial = new HashMap<String, Storeable>();
+        cache = new WeakHashMap<String, Storeable>();
         foldNum = folder;
         fileNum = file;
         provider = prov;
@@ -40,7 +43,6 @@ public class FileState extends State {
                 return new HashMap<String, Storeable>();
             }
         };
-        loadData();
     }
     
     private void fileCheck() throws IOException {
@@ -61,14 +63,17 @@ public class FileState extends State {
         return;
     }
     
-    public void assignInitial() {
+    private void assignInitial() throws IOException {
+        added = 0;
+        deleted = 0;
         initialChangeLock.writeLock().lock();
         try {
+            loadData();
             for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
                 if (s.getValue() != null) {
-                    initial.put(s.getKey(), s.getValue());
+                    cache.put(s.getKey(), s.getValue());
                 } else {
-                    initial.remove(s.getKey());
+                    cache.remove(s.getKey());
                 }
             }
             changes.get().clear();
@@ -78,6 +83,8 @@ public class FileState extends State {
     }
     
     public void assignData() {
+        added = 0;
+        deleted = 0;
         changes.get().clear();
     }
     
@@ -122,7 +129,7 @@ public class FileState extends State {
         return byteVectToStr(byteVect);
     }    
     
-    public int loadData() throws IOException, ParseException {    
+    public int loadData() throws IOException {    
         int result = 0;  
         dbFile = null;
         try {
@@ -130,8 +137,7 @@ public class FileState extends State {
             if (!dbTempFile.exists()) {
                 return 0;
             }
-            changes.set(new HashMap<String, Storeable>());
-            assignInitial();
+            cache = new WeakHashMap<>();
             fileCheck();  
             if (dbFile.length() == 0) {
                 (new File(path)).delete();
@@ -164,7 +170,7 @@ public class FileState extends State {
                     Storeable stor = provider.deserialize(table, value);
                     initialChangeLock.writeLock().lock();
                     try {
-                        initial.put(key, stor);
+                        cache.put(key, stor);
                     } finally {
                         initialChangeLock.writeLock().unlock();
                     }
@@ -179,6 +185,8 @@ public class FileState extends State {
             } else {
                 throw e;
             }
+        } catch (ParseException e) {
+            throw new IOException(e.getMessage(), e);
         } finally {
             if (dbFile != null) {
                 try {
@@ -193,43 +201,46 @@ public class FileState extends State {
   
     public int getChangeNum() {
         int result = 0;
-        initialChangeLock.readLock().lock();
+        initialChangeLock.writeLock().lock();
         try {
+            loadData();
             for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
                 if (entry.getValue() != null) {
-                    if (initial.get(entry.getKey()) == null || !initial.get(entry.getKey()).equals(entry.getValue())) {
+                    if (cache.get(entry.getKey()) == null || !cache.get(entry.getKey()).equals(entry.getValue())) {
                         result++;
                     }          
                 } else {
-                    if (initial.containsKey(entry.getKey())) {
+                    if (cache.containsKey(entry.getKey())) {
                         result++;
                     }      
                 }
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
         } finally {
-            initialChangeLock.readLock().unlock();
+            initialChangeLock.writeLock().unlock();
         }
         return result;
     }  
 
     public void commit() throws IOException {
-        dbFile = null;
         assignInitial();
+        dbFile = null;
         initialChangeLock.readLock().lock();
         try {
             fileCheck();
-            if (size() == 0) {
+            if (cache.size() + added() - deleted() == 0) {
                 (new File(path)).delete();
                 return;
             }
             int offset = 0;
             long pos = 0;
-            for (Map.Entry<String, Storeable> s : initial.entrySet()) {
+            for (Map.Entry<String, Storeable> s : cache.entrySet()) {
                 if (s.getValue() != null) {
                     offset += s.getKey().getBytes("UTF-8").length + 5;
                 } 
             }
-            for (Map.Entry<String, Storeable> s : initial.entrySet()) {
+            for (Map.Entry<String, Storeable> s : cache.entrySet()) {
                 if (s.getValue() != null) {
                     dbFile.seek(pos);
                     dbFile.write(s.getKey().getBytes("UTF-8"));
@@ -263,17 +274,28 @@ public class FileState extends State {
     }
     
     public Storeable put(String key, Storeable value) {
-        Storeable change = changes.get().get(key);
+        Storeable change = changes.get().get(key); 
         boolean exist = changes.get().containsKey(key);
         changes.get().put(key, value);
         if (exist) {
             return change;
         } else {
-            initialChangeLock.readLock().lock();
+            initialChangeLock.writeLock().lock();
             try {
-                return initial.get(key);
+                Storeable oldValue = cache.get(key);
+                //if not cached
+                if (oldValue == null) {
+                    loadData();
+                    oldValue = cache.get(key);
+                    if (oldValue == null) {
+                        added++;
+                    }
+                }
+                return oldValue;
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage(), e);
             } finally {
-                initialChangeLock.readLock().unlock();
+                initialChangeLock.writeLock().unlock();
             } 
         }   
     }
@@ -284,13 +306,21 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            initialChangeLock.readLock().lock();
+            initialChangeLock.writeLock().lock();
             try {
-                return initial.get(key);
+                Storeable oldValue = cache.get(key);
+                //if not cached
+                if (oldValue == null) {
+                    loadData();
+                    oldValue = cache.get(key);
+                }
+                return oldValue;
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage(), e);
             } finally {
-                initialChangeLock.readLock().unlock();
+                initialChangeLock.writeLock().unlock();
             } 
-        }
+        }   
     }
     
     public Storeable remove(String key) {
@@ -299,55 +329,50 @@ public class FileState extends State {
         changes.get().put(key, null);
         
         if (exist) {
+            if (cache.containsKey(key)) {
+                deleted++;
+            } else {
+                initialChangeLock.writeLock().lock();
+                try {
+                    loadData();
+                    if (cache.containsKey(key)) {
+                        deleted++;
+                    } 
+                } catch (IOException e) {
+                    throw new RuntimeException(e.getMessage(), e);
+                } finally {
+                    initialChangeLock.writeLock().unlock();
+                } 
+            }
             return change;
         } else {
-            initialChangeLock.readLock().lock();
+            initialChangeLock.writeLock().lock();
             try {
-                return initial.get(key);
+                Storeable oldValue = cache.get(key);
+                //if not cached
+                if (oldValue == null) {
+                    loadData();
+                    oldValue = cache.get(key);
+                    if (key != null) {
+                        deleted++;
+                    }
+                } else {
+                    deleted++;
+                }
+                return oldValue;
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage(), e);
             } finally {
-                initialChangeLock.readLock().unlock();
+                initialChangeLock.writeLock().unlock();
             } 
-        }
+        }   
     }
     
     public int added() {
-        initialChangeLock.readLock().lock();
-        int result = 0;
-        try {
-            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
-                if (entry.getValue() != null && !initial.containsKey(entry.getKey())) {
-                    result++;     
-                }
-            }
-        } finally {
-            initialChangeLock.readLock().unlock();
-        }
-        return result;
+        return added;
     }
     
     public int deleted() {
-        initialChangeLock.readLock().lock();
-        int result = 0;
-        try {
-            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
-                if (entry.getValue() == null && initial.containsKey(entry.getKey())) {
-                    result++;
-                }
-            }
-        } finally {
-            initialChangeLock.readLock().unlock();
-        }
-        return result;
-    }
-    
-    public int size() {
-        initialChangeLock.readLock().lock();
-        int result = 0;
-        try {
-            result = initial.size() + added() - deleted();
-        } finally {
-            initialChangeLock.readLock().unlock();
-        }
-        return result;
+        return deleted;
     }
 }
