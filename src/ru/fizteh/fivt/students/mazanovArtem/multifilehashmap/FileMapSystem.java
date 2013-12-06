@@ -15,8 +15,10 @@ import java.io.FileOutputStream;
 public class FileMapSystem implements Command {
     private File curDir;
     HashMap<String, String>[][] map = new HashMap[16][16];
+    HashMap<String, String>[][] mapChanges = new HashMap[16][16];
     int maxLength;
     String nameUseTable = "";
+    boolean commitmap = true;
 
 
     public File getFile() {
@@ -32,6 +34,7 @@ public class FileMapSystem implements Command {
         for (int i = 0; i < 16; ++i) {
             for (int j = 0; j < 16; ++j) {
                 map[i][j] = new HashMap<>();
+                mapChanges[i][j] = new HashMap<>();
             }
         }
     }
@@ -62,6 +65,9 @@ public class FileMapSystem implements Command {
             put("create", new Object[] {"create", false, 1 });
             put("drop", new Object[] {"drop", false, 1 });
             put("use", new Object[] {"use", false, 1 });
+            put("size", new Object[] {"size", false, 0});
+            put("commit", new Object[] {"commit", false, 0});
+            put("rollback", new Object[] {"rollback", false, 0});
         }};
         return commandList;
     }
@@ -84,8 +90,9 @@ public class FileMapSystem implements Command {
         checkAmountArgs(args.length, 1);
         File tmpFile = new File(appendPath(args[0]));
         if (nameUseTable.equals(args[0])) {
-            cleanHashMap();
+            cleanHashMap(map);
             nameUseTable = "";
+            cleanHashMap(mapChanges);//TODO хз,что надо конкретно делать
         }
         if (tmpFile.exists()) {
             dropTable(args[0]);
@@ -101,10 +108,22 @@ public class FileMapSystem implements Command {
         if (tmpFile.exists()) {
             if (!nameUseTable.equals(args[0])) {
                 if (!nameUseTable.equals("")) {
-                    saveTable();
+                    //saveTable();
                 }
-                nameUseTable = args[0];
-                loadTable();
+                boolean flag = false;
+                for (int i = 0; i < 16; ++i) {
+                    for (int j = 0; j < 16; ++j) {
+                        if (!mapChanges[i][j].isEmpty()) {
+                            flag = true;
+                        }
+                    }
+                }
+                if (flag) {
+                    System.out.println(sizeChanges() + " unsaved changes");
+                } else {
+                    nameUseTable = args[0];
+                    loadTable();
+                }
             }
             System.out.println("using " + nameUseTable);
         } else {
@@ -168,17 +187,18 @@ public class FileMapSystem implements Command {
         int nDirectory = firstByte % 16;
         int nFile = firstByte / 16 % 16;
 
-        String tmp = map[nDirectory][nFile].get(key);
+        /*String tmp = map[nDirectory][nFile].get(key);
         if (tmp != null) {
             System.out.println("overwrite");
             System.out.println(tmp);
         } else {
             System.out.println("new");
         }
-        map[nDirectory][nFile].put(key, value);
+        map[nDirectory][nFile].put(key, value);*/
+        mapChanges[nDirectory][nFile].put(key, value);
     }
 
-    public void get(String[] args) throws Exception {
+    public void get(String[] args) throws Exception { //TODO нужно ли тут учитывать незакоммиченные данные?
         if (nameUseTable.equals("")) {
             throw new Exception("no table");
         }
@@ -207,13 +227,114 @@ public class FileMapSystem implements Command {
         int firstByte = Math.abs(keyBytes[0]);
         int nDirectory = firstByte % 16;
         int nFile = firstByte / 16 % 16;
-        String tmp = map[nDirectory][nFile].get(key);
+        /*String tmp = map[nDirectory][nFile].get(key);
         if (tmp == null) {
             System.out.println("not found");
         } else {
             map[nDirectory][nFile].remove(key);
             System.out.println("removed");
+        }*/
+        String tmp = mapChanges[nDirectory][nFile].get(key);
+        if (tmp != null) {
+            mapChanges[nDirectory][nFile].put(key,null);
         }
+    }
+
+    public void size(String[] args) throws Exception {
+        if (nameUseTable.equals("")) {
+            throw new Exception("no table");
+        }
+        checkAmountArgs(args.length, 0);
+        int s = 0;
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0; j < 16; ++j) {
+                if (!map[i][j].isEmpty()) {
+                    s += map[i][j].size();
+                }
+            }
+        }
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0;j < 16; ++j) {
+                for (String key : mapChanges[i][j].keySet()) {
+                    if (map[i][j].containsKey(key)) {
+                        if (mapChanges[i][j].get(key) == null) {
+                            s--;
+                        }
+                    } else {
+                        if (mapChanges[i][j].get(key) != null) {
+                            s++;
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println(s);
+    }
+
+    public void commit(String[] args) throws Exception {
+        if (nameUseTable.equals("")) {
+            throw new Exception("no table");
+        }
+        checkAmountArgs(args.length, 0);
+        int s = 0;
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0; j < 16; ++j) {
+                for (String key : mapChanges[i][j].keySet()) {
+                    boolean mapcontkey = map[i][j].containsKey(key);
+                    String value = map[i][j].get(key);
+                    String changeValue = mapChanges[i][j].get(key);
+                    if (mapcontkey) {
+                        if (changeValue != null) {
+                            if (!changeValue.equals(value)) {
+                                map[i][j].put(key, changeValue);
+                                s++;
+                            }
+                        } else {
+                            map[i][j].remove(key);
+                            s++;
+                        }
+                    } else {
+                        if (changeValue != null) {
+                            map[i][j].put(key,changeValue);
+                            s++;
+                        }
+                    }
+                }
+            }
+        }
+        saveTable();
+        cleanHashMap(mapChanges);
+        System.out.println(s);
+    }
+
+    public void rollback(String[] args) throws Exception {
+        if (nameUseTable.equals("")) {
+            throw new Exception("no table");
+        }
+        checkAmountArgs(args.length, 0);
+        int s = sizeChanges();
+        cleanHashMap(mapChanges);
+        System.out.println(s);
+    }
+
+    public int sizeChanges() {
+        int s = 0;
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0; j < 16; ++j) {
+                for (String key : mapChanges[i][j].keySet()) {
+                    if (map[i][j].containsKey(key)) {
+                        if (mapChanges[i][j].get(key) == null) {
+                            s++;
+                        }
+                    } else {
+                        if (!mapChanges[i][j].get(key).equals(map[i][j].get(key))) {
+                            s++;
+                        }
+                    }
+                }
+            }
+        }
+        return s;
     }
 
     private void saveTable() throws Exception {
@@ -288,7 +409,7 @@ public class FileMapSystem implements Command {
     }
 
     private void loadTable() throws Exception {
-        cleanHashMap();
+        cleanHashMap(map);
         if (!curDir.getParentFile().exists() || !curDir.getParentFile().isDirectory()) {
             throw new Exception("directory doesn't exist");
         }
@@ -394,10 +515,10 @@ public class FileMapSystem implements Command {
         }
     }
 
-    private void cleanHashMap() {
+    private void cleanHashMap(HashMap<String, String>[][] mapa) {
         for (int i = 0; i < 16; ++i) {
             for (int j = 0; j < 16; ++j) {
-                map[i][j].clear();
+                mapa[i][j].clear();
             }
         }
     }
