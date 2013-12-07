@@ -143,6 +143,10 @@ public class MyTable implements Table {
         return f.toPath();
     }
 
+    public void setUsing(int i, int j, boolean b) {
+        uses[i][j] = b;
+    }
+
     public void setByteSize(long newSize) {
         byteSize = newSize;
     }

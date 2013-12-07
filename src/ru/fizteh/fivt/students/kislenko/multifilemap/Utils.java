@@ -32,8 +32,8 @@ public class Utils {
         int valueLength;
         String key;
         String value;
-        table.setSize(table.getSize() + datafile.length());
-        if (table.getSize() > MAX_TABLE_SIZE) {
+        table.setByteSize(table.getByteSize() + datafile.length());
+        if (table.getByteSize() > MAX_TABLE_SIZE) {
             dumpTable(table);
             table.getMap().clear();
         }
@@ -41,7 +41,7 @@ public class Utils {
             datafile.close();
             throw new IOException("Too big datafile.");
         }
-        table.setSize(table.getSize() + datafile.length());
+        table.setByteSize(table.getByteSize() + datafile.length());
         while (datafile.getFilePointer() != datafile.length()) {
             keyLength = datafile.readInt();
             if (keyLength < 1 || keyLength > datafile.length() - datafile.getFilePointer() + 4) {
@@ -68,7 +68,7 @@ public class Utils {
         if (table == null) {
             return;
         }
-        table.setSize(0);
+        table.setByteSize(0);
         File[] dirs = new File[16];
         Map<String, TwoLayeredString> strings = new HashMap<String, TwoLayeredString>();
         Map<Integer, File> files = new TreeMap<Integer, File>();
