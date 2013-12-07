@@ -149,8 +149,7 @@ public class FileState extends State {
             cache = new WeakHashMap<>();
             fileCheck();  
             if (dbFile.length() == 0) {
-                (new File(path)).delete();
-                return null;
+                throw new IllegalStateException("empty file " + fileNum);
             } 
             
             int position = 0;
