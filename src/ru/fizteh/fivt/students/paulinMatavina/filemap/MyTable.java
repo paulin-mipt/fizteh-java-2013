@@ -184,11 +184,9 @@ public class MyTable extends State implements Table, AutoCloseable {
     public int commit() throws IOException {
         checkCurrentTableState();
         
-        int chNum = 0;
-        
+        int chNum = 0;      
         diskOperationLock.writeLock().lock();
         try {
-            chNum = changesNum();
             writeSize();
             for (int i = 0; i < FOLDER_NUM; i++) {
                 String fold = Integer.toString(i) + ".dir";
@@ -196,7 +194,7 @@ public class MyTable extends State implements Table, AutoCloseable {
                     shell.mkdir(new String[] {fold});
                 }
                 for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                    data[i][j].commit();
+                    chNum += data[i][j].commit();
                 }
                
                 File folderFile = new File(shell.makeNewSource(fold));
@@ -285,18 +283,16 @@ public class MyTable extends State implements Table, AutoCloseable {
     public int size() {
         checkCurrentTableState();
              
-        int added = 0;
-        int deleted = 0;
+        int delta = 0;
         sizeLock.readLock().lock();
         try {
             for (int i = 0; i < FOLDER_NUM; i++) {
                 for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                     added += data[i][j].added();
-                     deleted += data[i][j].deleted();
+                     delta += data[i][j].getDeltaSize();
                 }       
             }
             
-            int result = readSize() + added - deleted;
+            int result = readSize() + delta;
             if (result < 0) {
                 throw new IllegalStateException("size.tsv: broken file");
             }
