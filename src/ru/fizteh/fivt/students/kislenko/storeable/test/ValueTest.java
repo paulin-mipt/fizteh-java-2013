@@ -19,7 +19,7 @@ public class ValueTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        provider = new MyTableProvider();
+        provider = new MyTableProvider("provider");
         List<Class<?>> typelist = new ArrayList<Class<?>>();
         typelist.add(Integer.class);
         typelist.add(Long.class);

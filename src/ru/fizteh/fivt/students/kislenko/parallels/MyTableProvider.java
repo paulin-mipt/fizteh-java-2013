@@ -24,87 +24,70 @@ public class MyTableProvider implements TableProvider {
     @Override
     public MyTable getTable(String name) {
         if (name == null || !Paths.get(name).getFileName().toString().matches("[0-9a-zA-Zа-яА-Я]+")) {
-            //System.out.println(Thread.currentThread().getName() + " exit get with incorrect table name");
             throw new IllegalArgumentException("Incorrect table name.");
         }
         lock.writeLock().lock();
         MyTable table = tables.get(name);
         lock.writeLock().unlock();
-        //System.out.println(Thread.currentThread().getName() + " exit get with success");
         return table;
     }
 
     @Override
     public MyTable createTable(String name, List<Class<?>> columnTypes) throws IOException {
         if (name == null) {
-            //System.out.println(Thread.currentThread().getName() + " exit with null name");
             throw new IllegalArgumentException("Incorrect table name.");
         }
         if (columnTypes == null) {
-            //System.out.println(Thread.currentThread().getName() + " exit with incorrect columns");
             throw new IllegalArgumentException("Incorrect column type list.");
         }
         if (columnTypes.size() == 0) {
-            //System.out.println(Thread.currentThread().getName() + " exit with empty columns list");
             throw new IllegalArgumentException("Empty signature.");
         }
         for (Class<?> columnType : columnTypes) {
             if (columnType == null) {
-                //    System.out.println(Thread.currentThread().getName() + " exit with bad column list");
                 throw new IllegalArgumentException("Incorrect column types in creating table.");
             }
             if (columnType != Integer.class && columnType != Long.class && columnType != Byte.class
                     && columnType != Float.class && columnType != Double.class && columnType != Boolean.class
                     && columnType != String.class) {
-                //    System.out.println(Thread.currentThread().getName() + " exit with bad column list");
                 throw new IllegalArgumentException("Incorrect column types in creating table.");
             }
         }
         if (name.contains(".")) {
-            //System.out.println(Thread.currentThread().getName() + " exit with dots in the name");
             throw new RuntimeException("There is a fucking dot!");
         }
         if (!Paths.get(name).getFileName().toString().matches("[0-9a-zA-Zа-яА-Я]+")) {
-            //System.out.println(Thread.currentThread().getName() + " exit with collision incorrect name");
             throw new IllegalArgumentException("Incorrect table name.");
         }
         while (!lock.writeLock().tryLock()) {
             if (name.equals(nameOfCurrentCreatingTable)) {
-                //    System.out.println(Thread.currentThread().getName() + " exit with collision in name");
                 return null;
             }
         }
         nameOfCurrentCreatingTable = name;
         if (tables.containsKey(name)) {
             lock.writeLock().unlock();
-            //System.out.println(Thread.currentThread().getName()
-            // + " exit with name that doesn't contains in name list");
             return null;
         }
         MyTable table = new MyTable(name, columnTypes, this);
         tables.put(name, table);
         nameOfCurrentCreatingTable = null;
         lock.writeLock().unlock();
-        //System.out.println(Thread.currentThread().getName() + " exit create with success");
         return table;
     }
 
     @Override
     public void removeTable(String name) throws IOException {
         if (name == null || !Paths.get(name).getFileName().toString().matches("[0-9a-zA-Zа-яА-Я]+")) {
-            //    System.out.println(Thread.currentThread().getName() + " exit remove with incorrect table name");
             throw new IllegalArgumentException("Incorrect table name.");
         }
         lock.writeLock().lock();
         if (!tables.containsKey(name)) {
             lock.writeLock().unlock();
-            //    System.out.println(Thread.currentThread().getName()
-            // + " exit remove, because haven't table with that name");
             throw new IllegalStateException("Have no table to remove.");
         }
         tables.remove(name);
         lock.writeLock().unlock();
-        //System.out.println(Thread.currentThread().getName() + " exit remove with success");
     }
 
     @Override
