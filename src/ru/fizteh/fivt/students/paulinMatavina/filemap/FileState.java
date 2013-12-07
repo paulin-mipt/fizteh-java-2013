@@ -41,6 +41,8 @@ public class FileState extends State {
                 return new HashMap<String, Storeable>();
             }
         };
+        
+        loadData(null, cache);
     }
     
     private void fileCheck() throws IOException {
