@@ -75,6 +75,11 @@ public class JUnitState extends TransactionalFatherState {
         return currentTable.getChangeCount();
     }
 
+    @Override
+    public boolean autoCommit() {
+        return false;
+    }
+
     public MyTable getCurrentTable() {
         return currentTable;
     }

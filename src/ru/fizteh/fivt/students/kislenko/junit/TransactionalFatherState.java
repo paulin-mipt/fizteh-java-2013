@@ -9,8 +9,6 @@ public abstract class TransactionalFatherState extends MultiTableFatherState {
 
     public abstract void dumpCurrentTable() throws IOException;
 
-    public abstract int commitCurrentTable() throws IOException;
-
     public abstract int rollbackCurrentTable();
 
     public abstract int getCurrentTableSize();

@@ -28,6 +28,9 @@ public class CommandUse implements Command<MultiTableFatherState> {
             System.out.println(state.getTableChangeCount() + " unsaved changes");
             throw new IOException("Unsaved changes detected.");
         }
+        if (state.autoCommit()) {
+            state.commitCurrentTable();
+        }
         state.dumpOldTable();
         state.changeTable(args[0], message);
         System.out.println(message);

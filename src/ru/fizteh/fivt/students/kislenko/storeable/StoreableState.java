@@ -70,6 +70,11 @@ public class StoreableState extends TransactionalFatherState {
         return currentTable.getChangeCount();
     }
 
+    @Override
+    public boolean autoCommit() {
+        return false;
+    }
+
     public void createTable(String tableName) throws Exception {
         String temp = databasePath.resolve(tableName).toString();
         tables.createTable(temp, Utils.readColumnTypes(temp));
