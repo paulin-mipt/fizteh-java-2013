@@ -1,7 +1,9 @@
 package ru.fizteh.fivt.students.kislenko.junit;
 
-
 import ru.fizteh.fivt.students.kislenko.filemap.CommandUtils;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTable;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTableProvider;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTableProviderFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;

@@ -4,9 +4,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import ru.fizteh.fivt.students.kislenko.junit.MyTable;
-import ru.fizteh.fivt.students.kislenko.junit.MyTableProvider;
-import ru.fizteh.fivt.students.kislenko.junit.MyTableProviderFactory;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTable;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTableProvider;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTableProviderFactory;
 
 import java.io.File;
 

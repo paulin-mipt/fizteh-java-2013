@@ -3,9 +3,9 @@ package ru.fizteh.fivt.students.kislenko.parallels.test;
 import org.junit.*;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.students.kislenko.junit.test.Cleaner;
-import ru.fizteh.fivt.students.kislenko.parallels.MyTable;
-import ru.fizteh.fivt.students.kislenko.parallels.MyTableProvider;
-import ru.fizteh.fivt.students.kislenko.parallels.MyTableProviderFactory;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTable;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProvider;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProviderFactory;
 import ru.fizteh.fivt.students.kislenko.storeable.Value;
 
 import java.io.File;

@@ -6,7 +6,7 @@ import org.junit.Test;
 import ru.fizteh.fivt.proxy.LoggingProxyFactory;
 import ru.fizteh.fivt.storage.structured.TableProviderFactory;
 import ru.fizteh.fivt.students.kislenko.proxy.MyLoggingProxyFactory;
-import ru.fizteh.fivt.students.kislenko.proxy.MyTableProviderFactory;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProviderFactory;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
