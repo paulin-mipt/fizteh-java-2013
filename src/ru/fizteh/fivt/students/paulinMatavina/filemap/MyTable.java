@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 import java.util.StringTokenizer;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import ru.fizteh.fivt.storage.structured.*;
@@ -33,11 +34,11 @@ public class MyTable extends State implements Table, AutoCloseable {
     private final String signatureName = "signature.tsv";
     public HashMap<Class<?>, String> possibleTypes;
     private ReentrantReadWriteLock diskOperationLock;
-    private ReentrantReadWriteLock sizeLock;
+    private ReentrantLock sizeLock;
     
     private void init(String dbName) throws IOException, ParseException {   
         diskOperationLock = new ReentrantReadWriteLock(true);
-        sizeLock = new ReentrantReadWriteLock(true);
+        sizeLock = new ReentrantLock(true);
         isDropped = false;
         isClosed = false;
         data = new FileState[FOLDER_NUM][FILE_IN_FOLD_NUM];
@@ -284,7 +285,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         checkCurrentTableState();
              
         int delta = 0;
-        sizeLock.readLock().lock();
+        sizeLock.lock();
         try {
             for (int i = 0; i < FOLDER_NUM; i++) {
                 for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
@@ -298,7 +299,7 @@ public class MyTable extends State implements Table, AutoCloseable {
             }
             return result;  
         } finally {
-            sizeLock.readLock().unlock();
+            sizeLock.unlock();
         }
     }
     
@@ -355,10 +356,9 @@ public class MyTable extends State implements Table, AutoCloseable {
         
         diskOperationLock.readLock().lock();
         try {
-            chNum = changesNum();
             for (int i = 0; i < FOLDER_NUM; i++) {
                 for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                    data[i][j].assignData();
+                    chNum += data[i][j].rollback();
                 }
             }
         } finally {

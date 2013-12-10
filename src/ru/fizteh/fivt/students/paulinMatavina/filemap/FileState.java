@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import ru.fizteh.fivt.students.paulinMatavina.utils.*;
 import ru.fizteh.fivt.storage.structured.*;
@@ -24,7 +24,7 @@ public class FileState extends State {
     private Table table;
     private int foldNum;
     private int fileNum;
-    private ReentrantReadWriteLock cacheLock;
+    private ReentrantLock cacheLock;
     
     public FileState(String dbPath, int folder, int file, TableProvider prov, Table newTable)
                                                       throws ParseException, IOException {
@@ -34,7 +34,7 @@ public class FileState extends State {
         provider = prov;
         table = newTable;
         path = dbPath;
-        cacheLock = new ReentrantReadWriteLock(true);
+        cacheLock = new ReentrantLock(true);
         changes = new ThreadLocal<HashMap<String, Storeable>>() {
             @Override
             public HashMap<String, Storeable> initialValue() {
@@ -80,8 +80,10 @@ public class FileState extends State {
         return currentInFile;
     }
     
-    public void assignData() {
+    public int rollback() {
+        int result = getChangeNum();
         changes.get().clear();
+        return result;
     }
     
     private String byteVectToStr(Vector<Byte> byteVect) throws IOException {
@@ -144,11 +146,11 @@ public class FileState extends State {
         Storeable result = null;  
         dbFile = null;
         try {
+            map.clear();
             File dbTempFile = new File(path);
             if (!dbTempFile.exists()) {
                 return null;
             }
-            cache = new WeakHashMap<>();
             fileCheck();  
             if (dbFile.length() == 0) {
                 throw new IllegalStateException("empty file " + fileNum);
@@ -178,14 +180,14 @@ public class FileState extends State {
                     }
                     
                     Storeable stor = provider.deserialize(table, value);
-                    cacheLock.writeLock().lock();
+                    cacheLock.lock();
                     try {
                         map.put(key, stor);
                         if (key.equals(requestedKey)) {
                             return stor;
                         }
                     } finally {
-                        cacheLock.writeLock().unlock();
+                        cacheLock.unlock();
                     }
                 }
                 
@@ -214,7 +216,7 @@ public class FileState extends State {
   
     public int getChangeNum() {
         int result = 0;
-        cacheLock.writeLock().lock();
+        cacheLock.lock();
         try {
             for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
                 Storeable stored = getValue(entry.getKey());
@@ -230,7 +232,7 @@ public class FileState extends State {
                 }
             }
         } finally {
-            cacheLock.writeLock().unlock();
+            cacheLock.unlock();
         }
         return result;
     }  
@@ -295,12 +297,12 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            cacheLock.writeLock().lock();
+            cacheLock.lock();
             try {
                 Storeable stored = getValue(key);
                 return stored;
             } finally {
-                cacheLock.writeLock().unlock();
+                cacheLock.unlock();
             } 
         }   
     }
@@ -311,12 +313,12 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            cacheLock.writeLock().lock();
+            cacheLock.lock();
             try {
                 Storeable stored = getValue(key);
                 return stored;
             }  finally {
-                cacheLock.writeLock().unlock();
+                cacheLock.unlock();
             } 
         }   
     }
@@ -329,19 +331,19 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            cacheLock.writeLock().lock();
+            cacheLock.lock();
             try {
                 Storeable stored = getValue(key);
                 return stored;
             } finally {
-                cacheLock.writeLock().unlock();
+                cacheLock.unlock();
             } 
         }  
     }
     
     public int getDeltaSize() {
         int result = 0;
-        cacheLock.writeLock().lock();
+        cacheLock.lock();
         try {
             for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
                 Storeable stored = getValue(entry.getKey());
@@ -357,7 +359,7 @@ public class FileState extends State {
                 }
             }
         } finally {
-            cacheLock.writeLock().unlock();
+            cacheLock.unlock();
         }
         return result;
     }
