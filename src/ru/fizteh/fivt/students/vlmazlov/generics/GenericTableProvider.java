@@ -53,11 +53,12 @@ public abstract class GenericTableProvider<V, T extends GenericTable<V>> {
             return null;
         }
 
+        (new File(root, name)).mkdir();
+
         newTable = instantiateTable(name, args);
 
         tables.put(name, newTable);
 
-        (new File(root, name)).mkdir();
         return newTable;
     }
 

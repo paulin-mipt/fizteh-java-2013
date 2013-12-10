@@ -25,9 +25,12 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     private final List<Class<?>> valueTypes;
 
     public StoreableTable(StoreableTableProvider provider, 
-        String name, List<Class<?>> valueTypes, int initialSize) {
+        String name, List<Class<?>> valueTypes) 
+    throws ValidityCheckFailedException, IOException {
         
-        super(provider, name, false, initialSize);
+        super(provider, name, false);
+
+        setInitialSize(provider, name);
 
         if (valueTypes == null) {
             throw new IllegalArgumentException("Value types not specified");
@@ -40,13 +43,31 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     }
 
     public StoreableTable(StoreableTableProvider provider, 
-        String name, boolean autoCommit, List<Class<?>> valueTypes, int initialSize) {
+        String name, boolean autoCommit, List<Class<?>> valueTypes) 
+    throws ValidityCheckFailedException, IOException {
         
-        super(provider, name, autoCommit, initialSize);
+        super(provider, name, autoCommit);
+
+        setInitialSize(provider, name);
+
+        if (valueTypes == null) {
+            throw new IllegalArgumentException("Value types not specified");
+        }
 
         specificProvider = provider;
         this.valueTypes = Collections.unmodifiableList(new ArrayList<Class<?>>(valueTypes));
         isClosed = false;
+    }
+
+    private void setInitialSize(StoreableTableProvider provider, String name)
+    throws ValidityCheckFailedException, IOException {
+        getCommitLock.writeLock().lock();
+
+        try {
+            commitedSize = StoreableTableFileManager.getTableSize(name, provider);
+        } finally {
+            getCommitLock.writeLock().unlock();
+        }
     }
 
     //MUST be under lock
@@ -82,10 +103,12 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     protected Storeable getCommited(String key) {
         checkClosed();
 
-        try {
-           loadKey(key);
-        } catch (Exception ex) {
-            throw new RuntimeException("Unable to load key from file: " + ex.getMessage());
+        if (!commited.containsKey(key)) {
+            try {
+                loadKey(key);
+            } catch (Exception ex) {
+                throw new RuntimeException("Unable to load key from file: " + ex.getMessage());
+            }
         }
 
         //readlock reaquired in loadKey()
@@ -147,10 +170,11 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         return valueTypes.get(columnIndex);
     }
 
+    //the table is now strongly tied to the disk, therefore, the method is not applicable
     @Override
     public StoreableTable clone() {
         checkClosed();
-        return new StoreableTable(specificProvider, getName(), autoCommit, valueTypes, commitedSize);
+        throw new RuntimeException("Cloning not supported in the current version");
     }
 
     @Override

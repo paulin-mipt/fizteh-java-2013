@@ -225,7 +225,6 @@ public class StoreableTableTest {
         Assert.assertEquals("Incorrect diff on put commit", 4, table.commit());   
         table.close();
         table = provider.getTable("testTable");
-        System.out.println("reopened");
         table.remove("key1");
         table.remove("key2"); 
         table.remove("key3"); 

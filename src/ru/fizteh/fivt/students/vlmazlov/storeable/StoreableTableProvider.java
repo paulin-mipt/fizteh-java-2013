@@ -32,7 +32,13 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
     @Override
     protected StoreableTable instantiateTable(String name, Object[] args) {
         checkClosed();
-        return new StoreableTable(this, name, autoCommit, (List) args[0], 0);
+        try {
+            return new StoreableTable(this, name, autoCommit, (List) args[0]);
+        } catch (ValidityCheckFailedException ex) {
+            throw new RuntimeException("Validity check failed: " + ex.getMessage());
+        } catch (IOException ex) {
+            throw new RuntimeException("Validity check failed: " + ex.getMessage());
+        }
     }
 
     public StoreableTable getTable(String name) {
@@ -71,9 +77,10 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
 
         File tableDir = new File(getRoot(), name);
 
+        ValidityChecker.checkMultiStoreableTableRoot(tableDir);
+
         StoreableTable table = new StoreableTable(this, name, autoCommit, 
-            StoreableTableFileManager.getTableSignature(name, this), 
-            StoreableTableFileManager.getTableSize(name, this));
+            StoreableTableFileManager.getTableSignature(name, this));
         
         //ProviderReader.readMultiTable(tableDir, table, this);
         tables.put(name, table);
@@ -103,7 +110,7 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
 
         StoreableTable table = super.createTable(name, new Object[]{columnTypes});
         StoreableTableFileManager.writeSignature(table, this);
-        StoreableTableFileManager.writeSize(table, this);
+        //StoreableTableFileManager.writeSize(table, this);
 
         return table;
     }

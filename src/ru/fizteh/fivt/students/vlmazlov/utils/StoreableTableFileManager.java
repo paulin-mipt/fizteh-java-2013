@@ -36,7 +36,11 @@ public class StoreableTableFileManager {
 
     private static File getTableDir(StoreableTable table, StoreableTableProvider provider) {
         return new File(provider.getRoot(), table.getName());
-    }    
+    }
+
+    private static File getTableDir(String name, StoreableTableProvider provider) {
+        return new File(provider.getRoot(), name);
+    }
 
     public static int getDirNum(String key) {
         return Math.abs(key.getBytes()[0]) % DIRECTORIES_QUANTITY;
@@ -46,23 +50,26 @@ public class StoreableTableFileManager {
         return Math.abs(key.getBytes()[0]) / FILES_QUANTITY % FILES_QUANTITY;
     }
 
-    public static void writeSize(StoreableTable table, StoreableTableProvider provider) throws IOException {
-
-        File tableDir = getTableDir(table, provider);
-        File sizeFile = new File(tableDir, "size.tsv");
-
-        sizeFile.createNewFile();
-
+    public static void writeSizeFile(int size, File sizeFile) throws IOException {
         PrintWriter writer = new PrintWriter(sizeFile);
 
         try {
-            writer.print(table.size());
+            writer.print(size);
         } finally {
             QuietCloser.closeQuietly(writer);
         }
     }
 
-       public static void writeSignature(StoreableTable table, StoreableTableProvider provider) throws IOException {
+    public static void writeSize(StoreableTable table, StoreableTableProvider provider) throws IOException {
+        File tableDir = getTableDir(table, provider);
+        File sizeFile = new File(tableDir, "size.tsv");
+
+        sizeFile.createNewFile();
+
+        writeSizeFile(table.size(), sizeFile);
+    }
+
+    public static void writeSignature(StoreableTable table, StoreableTableProvider provider) throws IOException {
 
         File tableDir = getTableDir(table, provider);
         File signatureFile = new File(tableDir, "signature.tsv");
@@ -84,7 +91,7 @@ public class StoreableTableFileManager {
     public static List<Class<?>> getTableSignature(String name, StoreableTableProvider provider)
     throws ValidityCheckFailedException, IOException {
 
-        File tableDir = new File(provider.getRoot(), name);
+        File tableDir = getTableDir(name, provider);
         
         ValidityChecker.checkMultiStoreableTableRoot(tableDir);
 
@@ -112,17 +119,52 @@ public class StoreableTableFileManager {
         }
     }
 
+    private static int countTableSize(String name, StoreableTableProvider provider)
+    throws IOException, ValidityCheckFailedException {
+
+        File tableDir = getTableDir(name, provider);
+        int size = 0;
+
+        for (int i = 0;i < DIRECTORIES_QUANTITY;++i) {
+            for (int j = 0;j < FILES_QUANTITY;++j) {
+                File directory = new File(tableDir, i + ".dir");
+                File file = new File(directory, j + ".dat");
+
+                if (!file.exists()) {
+                    continue;
+                }
+
+                StoreableTableFileReader reader = new StoreableTableFileReader(file);
+
+                try {
+                    String key = reader.nextKey();
+                    
+                    while (key != null) {
+                        ++size;
+                        key = reader.nextKey();
+                    }
+                } finally {
+                    QuietCloser.closeQuietly(reader);
+                } 
+            }
+        }
+
+        writeSizeFile(size, new File(tableDir, "size.tsv"));
+
+        return size;
+    }
+
     public static int getTableSize(String name, StoreableTableProvider provider)
     throws ValidityCheckFailedException, IOException {
 
-        File tableDir = new File(provider.getRoot(), name);  
+        File tableDir = getTableDir(name, provider);  
 
-        ValidityChecker.checkMultiStoreableTableRoot(tableDir);
+        //ValidityChecker.checkMultiStoreableTableRoot(tableDir);
 
         File sizeFile = new File(tableDir, "size.tsv");
         
         if (!sizeFile.exists()) {
-            return 0;
+            return countTableSize(name, provider);
         }
 
         ValidityChecker.checkTableSize(sizeFile);

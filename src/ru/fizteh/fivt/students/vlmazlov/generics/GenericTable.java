@@ -41,20 +41,14 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
         this(provider, name, true);
     }
 
-    public GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, 
-        String name, boolean autoCommit) {
-
-        this(provider, name, autoCommit, 0);
-    }
-
     protected GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, 
-        String name, boolean autoCommit, int initialSize) {
+        String name, boolean autoCommit) {
 
             this.name = name;
             this.provider = provider;
             commited = new HashMap<String, V>();
 
-            commitedSize = initialSize;
+            commitedSize = 0;
             this.autoCommit = autoCommit;
             //fair queue
             getCommitLock = new ReentrantReadWriteLock(true);

@@ -135,7 +135,6 @@ public class ValidityChecker {
         }
 
         boolean signatureSeen = false;
-        boolean sizeSeen = false;
 
         for (File content : root.listFiles()) {
             if ((content.isFile()) && (content.getName().equals("signature.tsv"))) {
@@ -145,7 +144,6 @@ public class ValidityChecker {
 
             //also allowed since Cache
             if ((content.isFile()) && (content.getName().equals("size.tsv"))) {
-                sizeSeen = true;
                 continue;
             }
 
@@ -162,10 +160,6 @@ public class ValidityChecker {
 
         if (!signatureSeen) {
             throw new ValidityCheckFailedException("Table signature not specified or specified incorrectly");
-        }
-
-        if (!sizeSeen) {
-            throw new ValidityCheckFailedException("Table size not specified or specified incorrectly");
         }
     }
 
