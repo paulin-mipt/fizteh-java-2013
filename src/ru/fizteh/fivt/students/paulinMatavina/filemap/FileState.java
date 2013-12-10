@@ -148,6 +148,11 @@ public class FileState extends State {
             if (!dbTempFile.exists()) {
                 return null;
             }
+            try {
+                dbFile = new RandomAccessFile(path, "rw");
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException(path + " not found");
+            }
             int position = 0;
             String key = getKeyFromFile(position);
             int startOffset = dbFile.readInt();
