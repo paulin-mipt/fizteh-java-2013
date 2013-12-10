@@ -235,11 +235,11 @@ public class FileState extends State {
             File file = new File(path);
             if (!file.exists()) {
                 file.createNewFile();
-                try {
-                    dbFile = new RandomAccessFile(path, "rw");
-                } catch (FileNotFoundException e) {
-                    throw new IllegalStateException(path + " not found");
-                }
+            }
+            try {
+                dbFile = new RandomAccessFile(path, "rw");
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException(path + " not found");
             }
             int offset = 0;
             long pos = 0;
