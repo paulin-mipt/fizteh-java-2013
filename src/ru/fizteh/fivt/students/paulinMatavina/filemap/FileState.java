@@ -151,7 +151,7 @@ public class FileState extends State {
             if (!dbTempFile.exists()) {
                 return null;
             }
-            
+            fileCheck();
             int position = 0;
             String key = getKeyFromFile(position);
             int startOffset = dbFile.readInt();
