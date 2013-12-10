@@ -42,7 +42,7 @@ public class FileState extends State {
             }
         };
         
-        loadData(null, cache);
+        fileCheck();
     }
     
     private void fileCheck() throws IOException {
@@ -151,10 +151,6 @@ public class FileState extends State {
             if (!dbTempFile.exists()) {
                 return null;
             }
-            fileCheck();  
-            if (dbFile.length() == 0) {
-                throw new IllegalStateException("empty file " + fileNum);
-            } 
             
             int position = 0;
             String key = getKeyFromFile(position);
