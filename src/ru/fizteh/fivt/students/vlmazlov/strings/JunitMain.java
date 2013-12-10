@@ -52,6 +52,7 @@ public class JunitMain {
             System.err.println(ex.getMessage());
             System.exit(7);
         } catch (UserInterruptionException ex) {
+            //Do nothing
         }
 
         try {

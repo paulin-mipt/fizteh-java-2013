@@ -7,16 +7,13 @@ import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.vlmazlov.generics.GenericTableProvider;
 import ru.fizteh.fivt.students.vlmazlov.utils.*;
 
-import javax.activation.UnsupportedDataTypeException;
 import javax.xml.stream.XMLStreamException;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Arrays;
 
 public class StoreableTableProvider extends GenericTableProvider<Storeable, StoreableTable>
