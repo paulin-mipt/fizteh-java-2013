@@ -228,7 +228,6 @@ public class FileState extends State {
         }
         try {
             HashMap<String, Storeable> toWrite = dataToWrite();
-            fileCheck();
             File file = new File(path);
             if (!file.exists()) {
                 file.createNewFile();
