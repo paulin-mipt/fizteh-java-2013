@@ -3,6 +3,7 @@ package ru.fizteh.fivt.students.vlmazlov.strings;
 import ru.fizteh.fivt.students.vlmazlov.generics.GenericTable;
 import ru.fizteh.fivt.students.vlmazlov.utils.*;
 
+import java.util.Map;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -48,12 +49,43 @@ public class StringTable extends GenericTable<String> implements DiffCountingTab
     }
 
     @Override
+    protected String getCommited(String key) {
+        return commited.get(key);
+    }
+
+    @Override
     public int commit() {
         try {
             return super.commit();
         } catch (IOException ex) {
             throw new RuntimeException(ex.getMessage());
         }
+    }
+
+    @Override
+    public int size() {
+        int size = 0;
+        getCommitLock.readLock().lock();
+
+        try {
+            size = commited.size();
+
+            for (Map.Entry<String, String> entry : changed.get().entrySet()) {
+                if (commited.get(entry.getKey()) == null) {
+                    ++size;
+                }
+            }
+
+            for (String entry : deleted.get()) {
+                if (commited.get(entry) != null) {
+                    --size;
+                }
+            }
+        } finally {
+            getCommitLock.readLock().unlock();
+        }
+
+        return size;
     }
 
     @Override
@@ -69,10 +101,5 @@ public class StringTable extends GenericTable<String> implements DiffCountingTab
     @Override
     protected void storeOnCommit() throws IOException, ValidityCheckFailedException {
         ProviderWriter.writeMultiTable(this, new File(specificProvider.getRoot(), getName()), specificProvider);
-    }
-
-    @Override
-    protected void loadFileForKey(String key) {
-        ProviderReader.loadFileForKey(key, new File(specificProvider.getRoot(), getName()), this, specificProvider);
     }
 }

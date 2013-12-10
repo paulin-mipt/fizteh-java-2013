@@ -17,80 +17,54 @@ import java.util.AbstractMap;
 
 public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>, Cloneable {
 
-    private class GenericTableIterator implements Iterator<Map.Entry<String, V>> {
-        private final Iterator<Map.Entry<String, WeakReference<V>>> commitedIterator;
-
-        private GenericTableIterator() {
-            commitedIterator = commited.entrySet().iterator();
-        }
-
-        public boolean hasNext() {
-            return commitedIterator.hasNext();
-        }
-
-        public Map.Entry<String, V> next() {
-           String nextKey = commitedIterator.next().getKey();
-
-           return new AbstractMap.SimpleEntry(nextKey, get(nextKey));
-        }
-
-        public void remove() {
-            //Not necessary
-        }
-    }
-
-    private Map<String, WeakReference<V>> commited;
+    protected Map<String, V> commited;
     protected GenericTableProvider<V, ? extends GenericTable<V>> provider;
 
-    private final ThreadLocal<HashMap<String, V>> changed = new ThreadLocal<HashMap<String, V>>() {
+    protected final ThreadLocal<HashMap<String, V>> changed = new ThreadLocal<HashMap<String, V>>() {
         protected HashMap<String, V> initialValue() {
             return new HashMap<String, V>();
         }
     };
 
-    private final ThreadLocal<HashSet<String>> deleted = new ThreadLocal<HashSet<String>>() {
+    protected final ThreadLocal<HashSet<String>> deleted = new ThreadLocal<HashSet<String>>() {
         protected HashSet<String> initialValue() {
             return new HashSet<String>();
         }
     };
 
+    protected int commitedSize;
+    protected final boolean autoCommit;   
+    protected final ReadWriteLock getCommitLock;
     private final String name;
-    protected final boolean autoCommit;
-    private int size;
-    private ReadWriteLock getCommitLock;
 
     public GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, String name) {
         this(provider, name, true);
     }
 
-    public GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, String name, boolean autoCommit) {
-        this.name = name;
-        this.provider = provider;
-        commited = new HashMap<String, WeakReference<V>>();
+    public GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, 
+        String name, boolean autoCommit) {
 
-        size = 0;
-        this.autoCommit = autoCommit;
-        //fair queue
-        getCommitLock = new ReentrantReadWriteLock(true);
+        this(provider, name, autoCommit, 0);
+    }
+
+    protected GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, 
+        String name, boolean autoCommit, int initialSize) {
+
+            this.name = name;
+            this.provider = provider;
+            commited = new HashMap<String, V>();
+
+            commitedSize = initialSize;
+            this.autoCommit = autoCommit;
+            //fair queue
+            getCommitLock = new ReentrantReadWriteLock(true);
     }
 
     public Iterator iterator() {
-        return new GenericTableIterator();
+        return commited.entrySet().iterator();
     }
 
-    protected abstract void loadFileForKey(String key);
-
-    private V getCommited(String key) {
-        if (commited.get(key) == null) {
-            return null;
-        }
-
-        if (commited.get(key).get() == null) {
-            loadFileForKey(key);
-        }
-        
-        return commited.get(key).get();
-    }
+    protected abstract V getCommited(String key);
 
     public V put(String key, V value) {
         try {
@@ -101,10 +75,6 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
         }
 
         V returnValue = get(key);
-
-        if (returnValue == null) {
-            ++size;
-        }
 
         //putting the same value as in the last commited version
         //effectively discards any changes made to it
@@ -167,10 +137,6 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
             getCommitLock.readLock().unlock();
         }
 
-        if (returnValue != null) {
-            --size;
-        }
-
         //if present, the key should be deleted from a commited version of a table
         if (commitedValue != null) {
             deleted.get().add(key);
@@ -184,9 +150,7 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
         return returnValue;
     }
 
-    public int size() {
-        return size;
-    }
+    public abstract int size();
 
     public String getName() {
         return name;
@@ -200,10 +164,23 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
         getCommitLock.writeLock().lock();
 
         try {
-            diffNum = getDiffCount();
 
+            getCommitLock.readLock().lock();
+
+            try {
+                diffNum = getDiffCount();
+            } finally {
+                getCommitLock.readLock().unlock();
+            }
+
+            //NB: first calculate size, then push changes
+            //System.out.println(commitedSize);
+            int newSize = size();
+           
             pushChanges();
             storeOnCommit();
+            
+            commitedSize = newSize;
 
         } catch (ValidityCheckFailedException ex) {
             throw new RuntimeException("Validity check failed: " + ex.getMessage());
@@ -239,7 +216,7 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
 
     public synchronized void pushChanges() {
         for (Map.Entry<String, V> entry : changed.get().entrySet()) {
-            commited.put(entry.getKey(), new WeakReference<V>(entry.getValue()));
+            commited.put(entry.getKey(), entry.getValue());
         }
 
         for (String entry : deleted.get()) {
@@ -254,7 +231,7 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
 
         for (Map.Entry<String, V> entry : changed.get().entrySet()) {
 
-            if ((commited.get(entry.getKey()) == null) 
+            if ((getCommited(entry.getKey()) == null) 
                 || (!isValueEqual(entry.getValue(), getCommited(entry.getKey())))) {
 
                 ++diffCount;
@@ -262,7 +239,7 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
         }
 
         for (String entry : deleted.get()) {
-            if (commited.get(entry) != null) {
+            if (getCommited(entry) != null) {
                 ++diffCount;
             }
         }

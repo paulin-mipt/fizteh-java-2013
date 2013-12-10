@@ -8,12 +8,15 @@ import ru.fizteh.fivt.students.vlmazlov.utils.ProviderWriter;
 import ru.fizteh.fivt.students.vlmazlov.utils.ProviderReader;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityChecker;
+import ru.fizteh.fivt.students.vlmazlov.utils.StoreableTableFileManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.text.ParseException;
 
 public class StoreableTable extends GenericTable<Storeable> implements Table, Cloneable, AutoCloseable {
 
@@ -21,8 +24,11 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     private boolean isClosed;
     private final List<Class<?>> valueTypes;
 
-    public StoreableTable(StoreableTableProvider provider, String name, List<Class<?>> valueTypes) {
-        super(provider, name);
+    public StoreableTable(StoreableTableProvider provider, 
+        String name, List<Class<?>> valueTypes, int initialSize) {
+        
+        super(provider, name, false, initialSize);
+
         if (valueTypes == null) {
             throw new IllegalArgumentException("Value types not specified");
         }
@@ -33,16 +39,57 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         isClosed = false;
     }
 
-    public StoreableTable(StoreableTableProvider provider, String name, boolean autoCommit, List<Class<?>> valueTypes) {
-        super(provider, name, autoCommit);
+    public StoreableTable(StoreableTableProvider provider, 
+        String name, boolean autoCommit, List<Class<?>> valueTypes, int initialSize) {
+        
+        super(provider, name, autoCommit, initialSize);
+
         specificProvider = provider;
         this.valueTypes = Collections.unmodifiableList(new ArrayList<Class<?>>(valueTypes));
         isClosed = false;
     }
 
+    //MUST be under lock
+    private void loadKey(String key) 
+    throws IOException, ValidityCheckFailedException, ParseException {
+        checkClosed();
+
+        Storeable value = StoreableTableFileManager.readSingleKey(key, this, specificProvider);
+
+        if (value != null) { 
+            if (!Thread.currentThread().holdsLock(getCommitLock.writeLock())) {
+
+                getCommitLock.readLock().unlock();
+                getCommitLock.writeLock().lock();
+
+                try {
+                
+                    commited.put(key, value);
+                
+                } finally    {
+                    getCommitLock.writeLock().unlock();
+                    getCommitLock.readLock().lock();
+                }
+
+            } else {
+                commited.put(key, value);
+            }
+        }
+    }
+
+    //MUST be under lock
     @Override
-    protected void loadFileForKey(String key) {
-        ProviderReader.loadFileForKey(key, new File(specificProvider.getRoot(), getName()), this, specificProvider);
+    protected Storeable getCommited(String key) {
+        checkClosed();
+
+        try {
+           loadKey(key);
+        } catch (Exception ex) {
+            throw new RuntimeException("Unable to load key from file: " + ex.getMessage());
+        }
+
+        //readlock reaquired in loadKey()
+        return commited.get(key);
     }
 
     @Override
@@ -77,12 +124,6 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     }
 
     @Override
-    public int size() {
-        checkClosed();
-        return super.size();
-    }
-
-    @Override
     public int commit() throws IOException {
         checkClosed();
         return super.commit();
@@ -109,7 +150,7 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     @Override
     public StoreableTable clone() {
         checkClosed();
-        return new StoreableTable(specificProvider, getName(), autoCommit, valueTypes);
+        return new StoreableTable(specificProvider, getName(), autoCommit, valueTypes, commitedSize);
     }
 
     @Override
@@ -125,9 +166,40 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     }
 
     @Override
+    public int size() {
+        checkClosed();
+        
+        getCommitLock.readLock().lock();
+        
+        int size = commitedSize;
+
+        try {
+
+            for (Map.Entry<String, Storeable> entry : changed.get().entrySet()) {
+                if (getCommited(entry.getKey()) == null) {
+                    ++size;
+                }
+            }
+
+            for (String entry : deleted.get()) {
+                if (getCommited(entry) != null) {
+                    --size;
+                }
+            }
+        } finally {
+            getCommitLock.readLock().unlock();
+        }
+
+        return size;
+    }
+
+    @Override
     protected void storeOnCommit() throws IOException, ValidityCheckFailedException {
         checkClosed();
-        ProviderWriter.writeMultiTable(this, new File(specificProvider.getRoot(), getName()), specificProvider);
+
+        StoreableTableFileManager.writeSize(this, specificProvider);
+        StoreableTableFileManager.writeSignature(this, specificProvider);
+        StoreableTableFileManager.modifyMultipleFiles(changed.get(), deleted.get(), this, specificProvider);
     }
 
     public void close() {

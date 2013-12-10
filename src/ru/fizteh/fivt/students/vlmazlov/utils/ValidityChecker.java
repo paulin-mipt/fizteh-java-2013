@@ -4,7 +4,9 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -133,10 +135,17 @@ public class ValidityChecker {
         }
 
         boolean signatureSeen = false;
+        boolean sizeSeen = false;
 
         for (File content : root.listFiles()) {
             if ((content.isFile()) && (content.getName().equals("signature.tsv"))) {
                 signatureSeen = true;
+                continue;
+            }
+
+            //also allowed since Cache
+            if ((content.isFile()) && (content.getName().equals("size.tsv"))) {
+                sizeSeen = true;
                 continue;
             }
 
@@ -153,6 +162,10 @@ public class ValidityChecker {
 
         if (!signatureSeen) {
             throw new ValidityCheckFailedException("Table signature not specified or specified incorrectly");
+        }
+
+        if (!sizeSeen) {
+            throw new ValidityCheckFailedException("Table size not specified or specified incorrectly");
         }
     }
 
@@ -218,6 +231,35 @@ public class ValidityChecker {
     public static void checkStoreableTableSignature(List<Class<?>> signature) throws ValidityCheckFailedException {
         if (signature.isEmpty()) {
             throw new ValidityCheckFailedException("Table signature not specified");
+        }
+    }
+
+    public static void checkTableSize(File sizeFile) throws ValidityCheckFailedException {
+       
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner(sizeFile);
+        } catch (FileNotFoundException ex) {
+            throw new ValidityCheckFailedException("Unable to read file: " + ex.getMessage());
+        }
+
+        try {
+
+            if (!scanner.hasNextInt()) {
+                throw new ValidityCheckFailedException("Table size not specified int the corresponding file");
+            }
+
+            int size = scanner.nextInt();
+
+            if (size < 0) {
+                throw new ValidityCheckFailedException("Table size is negative");
+            }
+
+            if (scanner.hasNext()) {
+                throw new ValidityCheckFailedException("size.tsv contains junk");
+            }
+        } finally {
+            scanner.close();
         }
     }
 }

@@ -222,14 +222,15 @@ public class StoreableTableTest {
         table.put("key2", val2);
         table.put("key3", val3);
         table.put("key4", val4);
-        Assert.assertEquals("Incorrect diff on remove commit", 4, table.commit());   
+        Assert.assertEquals("Incorrect diff on put commit", 4, table.commit());   
         table.close();
-        table = provider.getTable("testTable");     
+        table = provider.getTable("testTable");
+        System.out.println("reopened");
         table.remove("key1");
         table.remove("key2"); 
         table.remove("key3"); 
         table.remove("key4");
-        Assert.assertEquals("Incorrect diff on remove commit", 4, table.commit());   
+        Assert.assertEquals("Incorrect diff on remove commit", 4, table.commit());
     }
 
     @Test

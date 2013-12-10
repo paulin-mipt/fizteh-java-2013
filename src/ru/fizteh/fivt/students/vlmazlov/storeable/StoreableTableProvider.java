@@ -32,7 +32,7 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
     @Override
     protected StoreableTable instantiateTable(String name, Object[] args) {
         checkClosed();
-        return new StoreableTable(this, name, autoCommit, (List) args[0]);
+        return new StoreableTable(this, name, autoCommit, (List) args[0], 0);
     }
 
     public StoreableTable getTable(String name) {
@@ -64,16 +64,20 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
     }
 
     private StoreableTable loadTable(String name) throws IOException, ValidityCheckFailedException {
+        
         if (!Arrays.asList(new File(getRoot()).list()).contains(name)) {
             return null;
         }
 
         File tableDir = new File(getRoot(), name);
 
-        StoreableTable table = new StoreableTable(this, name, autoCommit, getTableSignature(tableDir));
-        ProviderReader.readMultiTable(tableDir, table, this);
+        StoreableTable table = new StoreableTable(this, name, autoCommit, 
+            StoreableTableFileManager.getTableSignature(name, this), 
+            StoreableTableFileManager.getTableSize(name, this));
+        
+        //ProviderReader.readMultiTable(tableDir, table, this);
         tables.put(name, table);
-        table.pushChanges();
+        //table.pushChanges();
 
         return table;
     }
@@ -93,22 +97,13 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
             throw new IllegalArgumentException(ex.getMessage());
         }
 
-        StoreableTable table = super.createTable(name, new Object[]{columnTypes});
-
-        File tableDir = new File(getRoot(), name);
-        File signatureFile = new File(tableDir, "signature.tsv");
-
-        signatureFile.createNewFile();
-
-        PrintWriter writer = new PrintWriter(signatureFile);
-
-        try {
-            for (Class<?> clazz : columnTypes) {
-                writer.print(TypeName.getNameByClass(clazz) + " ");
-            }
-        } finally {
-            QuietCloser.closeQuietly(writer);
+        if (getTable(name) != null) {
+            return null;
         }
+
+        StoreableTable table = super.createTable(name, new Object[]{columnTypes});
+        StoreableTableFileManager.writeSignature(table, this);
+        StoreableTableFileManager.writeSize(table, this);
 
         return table;
     }
@@ -208,52 +203,36 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
         return result;
     }
 
-    private List<Class<?>> getTableSignature(File tableDir)
-            throws ValidityCheckFailedException, IOException {
-        checkClosed();
-
-        ValidityChecker.checkMultiStoreableTableRoot(tableDir);
-
-        File signatureFile = new File(tableDir, "signature.tsv");
-        List<Class<?>> signature = new ArrayList<Class<?>>();
-        Scanner scanner = new Scanner(signatureFile);
-
-        try {
-            while (scanner.hasNext()) {
-                String type = scanner.next();
-                Class<?> columnType = TypeName.getClassByName(type.trim());
-
-                if (columnType == null) {
-                    throw new UnsupportedDataTypeException("Unsupported column type: " + type);
-                }
-
-                signature.add(columnType);
-            }
-
-            ValidityChecker.checkStoreableTableSignature(signature);
-
-            return signature;
-        } finally {
-            scanner.close();
-        }
-    }
-
     @Override
     public void read() throws IOException, ValidityCheckFailedException {
         checkClosed();
 
         for (File file : ProviderReader.getTableDirList(this)) {
             StoreableTable table = loadTable(file.getName());
-            ProviderReader.readMultiTable(file, table, this);
+            //ProviderReader.readMultiTable(file, table, this);
             //read data has to be preserved
-            table.pushChanges();
+            //table.pushChanges();
         }
     }
 
     @Override
     public void write() throws IOException, ValidityCheckFailedException {
         checkClosed();
-        ProviderWriter.writeProvider(this);
+        
+        File rootDir = new File(getRoot());
+
+        for (File entry : rootDir.listFiles()) {
+
+            StoreableTable curTable = getTable(entry.getName());
+
+            if (curTable == null) {
+                throw new IOException(entry.getName() + " doesn't match any database");
+            }
+
+            curTable.checkRoot(entry);
+
+            curTable.commit();
+        }
     }
 
     public void closeTable(String name) {
