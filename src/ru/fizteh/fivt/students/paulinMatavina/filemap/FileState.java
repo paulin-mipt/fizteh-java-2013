@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 import ru.fizteh.fivt.students.paulinMatavina.utils.*;
 import ru.fizteh.fivt.storage.structured.*;
@@ -24,7 +23,6 @@ public class FileState extends State {
     private Table table;
     private int foldNum;
     private int fileNum;
-    private ReentrantLock cacheLock;
     
     public FileState(String dbPath, int folder, int file, TableProvider prov, Table newTable)
                                                       throws ParseException, IOException {
@@ -34,7 +32,6 @@ public class FileState extends State {
         provider = prov;
         table = newTable;
         path = dbPath;
-        cacheLock = new ReentrantLock(true);
         changes = new ThreadLocal<HashMap<String, Storeable>>() {
             @Override
             public HashMap<String, Storeable> initialValue() {
@@ -42,19 +39,19 @@ public class FileState extends State {
             }
         };
         
-        fileCheck();
+        if (new File(path).exists()) {
+            fileCheck();
+        }
     }
     
-    private void fileCheck() throws IOException {
-        boolean newFile = false;
-        File file = new File(path);
-        if (!file.exists()) {
-            file.createNewFile();
-            newFile = true;
-        }      
+    private void fileCheck() throws IOException {  
+        if (!new File(path).exists()) {
+            return;
+        }
+        
         try {
             dbFile = new RandomAccessFile(path, "rw");
-            if (dbFile.length() == 0 && !newFile) {
+            if (dbFile.length() == 0) {
                 throw new IllegalStateException(path + " is an empty file");
             }
         } catch (FileNotFoundException e) {
@@ -176,14 +173,9 @@ public class FileState extends State {
                     }
                     
                     Storeable stor = provider.deserialize(table, value);
-                    cacheLock.lock();
-                    try {
-                        map.put(key, stor);
-                        if (key.equals(requestedKey)) {
-                            return stor;
-                        }
-                    } finally {
-                        cacheLock.unlock();
+                    map.put(key, stor);
+                    if (key.equals(requestedKey)) {
+                        return stor;
                     }
                 }
                 
@@ -212,23 +204,18 @@ public class FileState extends State {
   
     public int getChangeNum() {
         int result = 0;
-        cacheLock.lock();
-        try {
-            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
-                Storeable stored = getValue(entry.getKey());
-                Storeable changed = entry.getValue();
-                if (changed != null) {
-                    if (stored == null || !stored.equals(changed)) {
-                        result++;
-                    }          
-                } else {
-                    if (stored != null) {
-                        result++;
-                    }      
-                }
+        for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
+            Storeable stored = getValue(entry.getKey());
+            Storeable changed = entry.getValue();
+            if (changed != null) {
+                if (stored == null || !stored.equals(changed)) {
+                    result++;
+                }          
+            } else {
+                if (stored != null) {
+                    result++;
+                }      
             }
-        } finally {
-            cacheLock.unlock();
         }
         return result;
     }  
@@ -242,6 +229,15 @@ public class FileState extends State {
         try {
             HashMap<String, Storeable> toWrite = dataToWrite();
             fileCheck();
+            File file = new File(path);
+            if (!file.exists()) {
+                file.createNewFile();
+                try {
+                    dbFile = new RandomAccessFile(path, "rw");
+                } catch (FileNotFoundException e) {
+                    throw new IllegalStateException(path + " not found");
+                }
+            }
             int offset = 0;
             long pos = 0;
             for (Map.Entry<String, Storeable> s : toWrite.entrySet()) {
@@ -293,13 +289,8 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            cacheLock.lock();
-            try {
-                Storeable stored = getValue(key);
-                return stored;
-            } finally {
-                cacheLock.unlock();
-            } 
+            Storeable stored = getValue(key);
+            return stored;
         }   
     }
     
@@ -309,13 +300,8 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            cacheLock.lock();
-            try {
-                Storeable stored = getValue(key);
-                return stored;
-            }  finally {
-                cacheLock.unlock();
-            } 
+            Storeable stored = getValue(key);
+            return stored;
         }   
     }
     
@@ -327,35 +313,25 @@ public class FileState extends State {
         if (exist) {
             return change;
         } else {
-            cacheLock.lock();
-            try {
-                Storeable stored = getValue(key);
-                return stored;
-            } finally {
-                cacheLock.unlock();
-            } 
+            Storeable stored = getValue(key);
+            return stored;
         }  
     }
     
     public int getDeltaSize() {
         int result = 0;
-        cacheLock.lock();
-        try {
-            for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
-                Storeable stored = getValue(entry.getKey());
-                Storeable changed = entry.getValue();
-                if (changed != null) {
-                    if (stored == null) {
-                        result++;
-                    }          
-                } else {
-                    if (stored != null) {
-                        result--;
-                    }      
-                }
+        for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
+            Storeable stored = getValue(entry.getKey());
+            Storeable changed = entry.getValue();
+            if (changed != null) {
+                if (stored == null) {
+                    result++;
+                }          
+            } else {
+                if (stored != null) {
+                    result--;
+                }      
             }
-        } finally {
-            cacheLock.unlock();
         }
         return result;
     }
