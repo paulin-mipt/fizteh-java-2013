@@ -11,9 +11,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.lang.ref.WeakReference;
-import java.util.Iterator;
-import java.util.AbstractMap;
 
 public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>, Cloneable {
 

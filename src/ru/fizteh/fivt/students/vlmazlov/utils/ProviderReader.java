@@ -37,7 +37,7 @@ public class ProviderReader {
     public static <V, T extends GenericTable<V>> void loadFileForKey(String key, 
         File root, T table, GenericTableProvider<V, T> provider) {
 
-        T tableForFile = (T)table.clone();
+        T tableForFile = (T) table.clone();
         String dirName = Math.abs(key.getBytes()[0]) % DIRECTORIES_QUANTITY + ".dir";
         String fileName = Math.abs(key.getBytes()[0]) / FILES_QUANTITY % FILES_QUANTITY + ".dat";
 

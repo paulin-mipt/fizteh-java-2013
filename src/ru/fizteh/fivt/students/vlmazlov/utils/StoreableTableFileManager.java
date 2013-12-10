@@ -79,7 +79,7 @@ public class StoreableTableFileManager {
         PrintWriter writer = new PrintWriter(signatureFile);
 
         try {
-            for (int i = 0;i < table.getColumnsCount();++i) {
+            for (int i = 0; i < table.getColumnsCount(); ++i) {
                 Class<?> clazz = table.getColumnType(i);
                 writer.print(TypeName.getNameByClass(clazz) + " ");
             }
@@ -125,8 +125,8 @@ public class StoreableTableFileManager {
         File tableDir = getTableDir(name, provider);
         int size = 0;
 
-        for (int i = 0;i < DIRECTORIES_QUANTITY;++i) {
-            for (int j = 0;j < FILES_QUANTITY;++j) {
+        for (int i = 0; i < DIRECTORIES_QUANTITY; ++i) {
+            for (int j = 0; j < FILES_QUANTITY; ++j) {
                 File directory = new File(tableDir, i + ".dir");
                 File file = new File(directory, j + ".dat");
 
@@ -213,8 +213,8 @@ public class StoreableTableFileManager {
         Map<String, String>[][] changedInFile = new HashMap[DIRECTORIES_QUANTITY][FILES_QUANTITY];
         Set<String>[][] deletedInFile = new HashSet[DIRECTORIES_QUANTITY][FILES_QUANTITY];
 
-        for (int i = 0;i < DIRECTORIES_QUANTITY;++i) {
-            for (int j = 0;j < FILES_QUANTITY;++j) {
+        for (int i = 0; i < DIRECTORIES_QUANTITY; ++i) {
+            for (int j = 0; j < FILES_QUANTITY; ++j) {
                 changedInFile[i][j] = new HashMap();
                 deletedInFile[i][j] = new HashSet();
             }
@@ -232,8 +232,8 @@ public class StoreableTableFileManager {
 
         File tableDir = getTableDir(table, provider);
 
-        for (int i = 0;i < DIRECTORIES_QUANTITY;++i) {
-            for (int j = 0;j < FILES_QUANTITY;++j) {
+        for (int i = 0; i < DIRECTORIES_QUANTITY; ++i) {
+            for (int j = 0; j < FILES_QUANTITY; ++j) {
                 File directory = new File(tableDir, i + ".dir");
                 File file = new File(directory, j + ".dat");
 

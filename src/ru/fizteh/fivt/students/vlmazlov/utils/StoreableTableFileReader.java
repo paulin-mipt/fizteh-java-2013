@@ -55,8 +55,8 @@ public class StoreableTableFileReader implements Closeable {
 
     public String nextKey() throws IOException, ValidityCheckFailedException {
 
-        if (((initialOffset != -1) && (initialOffset <= readPosition)) ||
-        (file.length() == 0)) {
+        if (((initialOffset != -1) && (initialOffset <= readPosition)) 
+            || (file.length() == 0)) {
             currentKey = null;
             currentValue = null;
 

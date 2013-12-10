@@ -56,7 +56,8 @@ public class Main {
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(7);
-        } catch (UserInterruptionException ex) {
+        } catch (UserInterruptionException ex) {\
+            //Do nothing
         }
 
         try {
