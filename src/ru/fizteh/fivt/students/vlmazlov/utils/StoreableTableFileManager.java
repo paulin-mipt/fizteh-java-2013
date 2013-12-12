@@ -136,16 +136,11 @@ public class StoreableTableFileManager {
 
                 StoreableTableFileReader reader = new StoreableTableFileReader(file);
 
-                try {
-                    String key = reader.nextKey();
-                    
-                    while (key != null) {
-                        ++size;
-                        key = reader.nextKey();
-                    }
-                } finally {
-                    QuietCloser.closeQuietly(reader);
-                } 
+                String key = reader.nextKey();
+                while (key != null) {
+                    ++size;
+                    key = reader.nextKey();
+                }
             }
         }
 
@@ -191,20 +186,16 @@ public class StoreableTableFileManager {
         String currentKey = null;
         StoreableTableFileReader reader = new StoreableTableFileReader(fileForKey);
 
-        try {
-            do {
-                currentKey = reader.nextKey();
+        do {
+            currentKey = reader.nextKey();
 
-                if (key.equals(currentKey)) {
-                    return provider.deserialize(table, reader.getCurrentSerializedValue());
-                }
+            if (key.equals(currentKey)) {
+                return provider.deserialize(table, reader.getCurrentSerializedValue());
+            }
 
-            } while (currentKey != null);
+        } while (currentKey != null);
 
-            return null;
-        } finally {
-            QuietCloser.closeQuietly(reader);
-        }
+        return null;
     }
 
     public static void modifyMultipleFiles(Map<String, Storeable> changed, Set<String> deleted,
@@ -279,36 +270,32 @@ public class StoreableTableFileManager {
         StoreableTableFileReader reader = new StoreableTableFileReader(file);
         StoreableTableFileWriter writer = new StoreableTableFileWriter(file);
 
-        try {
-            String currentKey = null;
+        String currentKey = null;
 
-            do {
-                currentKey = reader.nextKey();
+        do {
+            currentKey = reader.nextKey();
                 
-                if (changed.containsKey(currentKey)) {
-                    writer.writeKeyValue(currentKey, changed.get(currentKey));
-                    changed.remove(currentKey);
-                    continue;
-                }
-
-                if (deleted.contains(currentKey)) {
-                    continue;
-                }
-
-                if (currentKey != null) {
-                    writer.writeKeyValue(currentKey, reader.getCurrentSerializedValue());
-                }
-
-            } while (currentKey != null);
-
-            for (Map.Entry<String, String> entry : changed.entrySet()) {
-                writer.writeKeyValue(entry.getKey(), entry.getValue());
-                //System.out.println(entry);
+            if (changed.containsKey(currentKey)) {
+                writer.writeKeyValue(currentKey, changed.get(currentKey));
+                changed.remove(currentKey);
+                continue;
             }
 
-            writer.flush();
-        } finally {
-            QuietCloser.closeQuietly(reader);
+            if (deleted.contains(currentKey)) {
+                continue;
+            }
+
+            if (currentKey != null) {
+                writer.writeKeyValue(currentKey, reader.getCurrentSerializedValue());
+            }
+
+        } while (currentKey != null);
+
+        for (Map.Entry<String, String> entry : changed.entrySet()) {
+            writer.writeKeyValue(entry.getKey(), entry.getValue());
+            //System.out.println(entry);
         }
+
+        writer.flush();
     }
 }
