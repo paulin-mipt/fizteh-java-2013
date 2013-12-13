@@ -110,7 +110,7 @@ public class XMLStoreableReader {
             reader.next();
 
             if ((!reader.isEndElement()) || (!(reader.getLocalName().equals(tagName)))) {
-                throw new ParseException("Invalid end column tag", 0);
+                throw new ParseException("Invalid end column tag " +  + reader.getLocalName(), 0);
             }
 
             return curValue;
