@@ -47,9 +47,9 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
             try {
                 table = loadTable(name);
             } catch (IOException ex) {
-                System.err.println("Unable to load table " + name + ": " + ex.getMessage());
+                throw new RuntimeException("Unable to load table " + name + ": " + ex.getMessage());
             } catch (ValidityCheckFailedException ex) {
-                System.err.println("Unable to load table " + name + ": " + ex.getMessage());
+                throw new RuntimeException("Unable to load table " + name + ": " + ex.getMessage());
             }
         }
 
