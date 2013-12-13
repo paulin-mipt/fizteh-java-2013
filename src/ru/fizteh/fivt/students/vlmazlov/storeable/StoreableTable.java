@@ -30,8 +30,6 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         
         super(provider, name, false);
 
-        setInitialSize(provider, name);
-
         if (valueTypes == null) {
             throw new IllegalArgumentException("Value types not specified");
         }
@@ -40,6 +38,8 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         ///questionable
         this.valueTypes = Collections.unmodifiableList(new ArrayList<Class<?>>(valueTypes));
         isClosed = false;
+
+        setInitialSize(provider, name);
     }
 
     public StoreableTable(StoreableTableProvider provider, 
@@ -48,8 +48,6 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         
         super(provider, name, autoCommit);
 
-        setInitialSize(provider, name);
-
         if (valueTypes == null) {
             throw new IllegalArgumentException("Value types not specified");
         }
@@ -57,6 +55,8 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         specificProvider = provider;
         this.valueTypes = Collections.unmodifiableList(new ArrayList<Class<?>>(valueTypes));
         isClosed = false;
+
+        setInitialSize(provider, name);
     }
 
     private void setInitialSize(StoreableTableProvider provider, String name)
