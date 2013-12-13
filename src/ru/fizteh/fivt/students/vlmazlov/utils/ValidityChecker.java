@@ -151,9 +151,17 @@ public class ValidityChecker {
                 throw new ValidityCheckFailedException(root.getPath() + " contains file " + content.getName());
             }
 
+            if (content.list().length == 0) {
+                throw new ValidityCheckFailedException(content.getName() + " is empty");
+            }
+
             for (File file : content.listFiles()) {
                 if (!file.isFile()) {
                     throw new ValidityCheckFailedException(file.getName() + " doesn't denote a file");
+                }
+
+                if (file.length() == 0) {
+                    throw new ValidityCheckFailedException(file.getName() + " is empty");
                 }
             }
         }
@@ -173,9 +181,17 @@ public class ValidityChecker {
                 throw new ValidityCheckFailedException(root.getPath() + " contains file " + directory.getName());
             }
 
+            if (directory.list().length == 0) {
+                throw new ValidityCheckFailedException(directory.getName() + " is empty");
+            }
+
             for (File file : directory.listFiles()) {
                 if (!file.isFile()) {
                     throw new ValidityCheckFailedException(file.getName() + " doesn't denote a file");
+                }
+
+                if (file.length() == 0) {
+                    throw new ValidityCheckFailedException(file.getName() + " is empty");
                 }
             }
         }

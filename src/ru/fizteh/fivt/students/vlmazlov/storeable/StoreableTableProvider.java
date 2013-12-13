@@ -67,21 +67,18 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
     }
 
     private StoreableTable loadTable(String name) throws IOException, ValidityCheckFailedException {
-        
+
         if (!Arrays.asList(new File(getRoot()).list()).contains(name)) {
             return null;
         }
 
-        File tableDir = new File(getRoot(), name);
-
+        File tableDir = new File(getRoot(), name);  
         ValidityChecker.checkMultiStoreableTableRoot(tableDir);
 
         StoreableTable table = new StoreableTable(this, name, autoCommit, 
             StoreableTableFileManager.getTableSignature(name, this));
         
-        //ProviderReader.readMultiTable(tableDir, table, this);
         tables.put(name, table);
-        //table.pushChanges();
 
         return table;
     }
@@ -213,9 +210,6 @@ public class StoreableTableProvider extends GenericTableProvider<Storeable, Stor
 
         for (File file : ProviderReader.getTableDirList(this)) {
             StoreableTable table = loadTable(file.getName());
-            //ProviderReader.readMultiTable(file, table, this);
-            //read data has to be preserved
-            //table.pushChanges();
         }
     }
 

@@ -49,13 +49,13 @@ public class XMLStoreableReader {
         reader = XMLInputFactory.newInstance().createXMLStreamReader(new StringReader(serialized));
         try {
             if (!reader.hasNext()) {
-                throw new ParseException("Unable to read start row tag", 0);
+                throw new ParseException("Unable to read start raw tag", 0);
             }
 
             reader.next();
 
             if ((!reader.isStartElement()) || (!reader.getLocalName().equals("row"))) {
-                throw new ParseException("Invalid start row tag " + reader.getLocalName(), 0);
+                throw new ParseException("Invalid start row tag", 0);
             }
         } catch (XMLStreamException ex) {
             closeReader();
@@ -76,7 +76,7 @@ public class XMLStoreableReader {
 
             if ((!reader.isStartElement()) || ((!reader.getLocalName().equals("col"))
                     && (!reader.getLocalName().equals("null")))) {
-                throw new ParseException("Invalid start column tag "  + reader.getLocalName(), 0);
+                throw new ParseException("Invalid start column tag", 0);
             }
 
             String tagName = reader.getLocalName();
@@ -110,7 +110,7 @@ public class XMLStoreableReader {
             reader.next();
 
             if ((!reader.isEndElement()) || (!(reader.getLocalName().equals(tagName)))) {
-                throw new ParseException("Invalid end column tag " + reader.getLocalName(), 0);
+                throw new ParseException("Invalid end column tag" + getText(), 0);
             }
 
             return curValue;
@@ -132,7 +132,7 @@ public class XMLStoreableReader {
             reader.next();
 
             if ((!reader.isEndElement()) || (!reader.getLocalName().equals("row"))) {
-                throw new ParseException("Invalid end row tag " + reader.getLocalName(), 0);
+                throw new ParseException("Invalid end row tag", 0);
             }
 
             if (reader.hasNext()) {
