@@ -179,7 +179,7 @@ public class FileState extends State {
                     Storeable stor = provider.deserialize(table, value);
                     map.put(key, stor);
                     if (key.equals(requestedKey)) {
-                        result = stor;
+                        return stor;
                     }
                 }
                 
