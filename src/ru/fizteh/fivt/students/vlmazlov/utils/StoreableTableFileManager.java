@@ -119,7 +119,7 @@ public class StoreableTableFileManager {
         }
     }
 
-    private static int countTableSize(String name, StoreableTableProvider provider)
+    private static int countTableSize(String name, StoreableTableProvider provider, StoreableTable table)
     throws IOException, ValidityCheckFailedException {
 
         File tableDir = getTableDir(name, provider);
@@ -134,7 +134,7 @@ public class StoreableTableFileManager {
                     continue;
                 }
 
-                StoreableTableFileReader reader = new StoreableTableFileReader(file);
+                StoreableTableFileReader reader = new StoreableTableFileReader(file, table, provider);
 
                 String key = reader.nextKey();
                 while (key != null) {
@@ -149,17 +149,17 @@ public class StoreableTableFileManager {
         return size;
     }
 
-    public static int getTableSize(String name, StoreableTableProvider provider)
+    public static int getTableSize(String name, StoreableTableProvider provider, StoreableTable table)
     throws ValidityCheckFailedException, IOException {
 
-        File tableDir = getTableDir(name, provider);  
+        File tableDir = getTableDir(table, provider);  
 
         //ValidityChecker.checkMultiStoreableTableRoot(tableDir);
 
         File sizeFile = new File(tableDir, "size.tsv");
         
         if (!sizeFile.exists()) {
-            return countTableSize(name, provider);
+            return countTableSize(name, provider, table);
         }
 
         ValidityChecker.checkTableSize(sizeFile);
@@ -173,29 +173,15 @@ public class StoreableTableFileManager {
         }
     }
 
-    public static Storeable readSingleKey(String key,
+    public static Map<String, Storeable> readFileForKey(String key,
         StoreableTable table, StoreableTableProvider provider) 
     throws IOException, ValidityCheckFailedException, ParseException {
 
         File fileForKey = getFileForKey(key, table, provider);
 
-        if (!fileForKey.exists()) {
-            return null;
-        }
+        StoreableTableFileReader reader = new StoreableTableFileReader(fileForKey, table, provider);
 
-        String currentKey = null;
-        StoreableTableFileReader reader = new StoreableTableFileReader(fileForKey);
-
-        do {
-            currentKey = reader.nextKey();
-
-            if (key.equals(currentKey)) {
-                return provider.deserialize(table, reader.getCurrentSerializedValue());
-            }
-
-        } while (currentKey != null);
-
-        return null;
+        return reader.getData();
     }
 
     public static void modifyMultipleFiles(Map<String, Storeable> changed, Set<String> deleted,
@@ -228,7 +214,7 @@ public class StoreableTableFileManager {
                 File directory = new File(tableDir, i + ".dir");
                 File file = new File(directory, j + ".dat");
 
-                modifySingleFile(directory, file, changedInFile[i][j], deletedInFile[i][j]);
+                modifySingleFile(directory, file, changedInFile[i][j], deletedInFile[i][j], table, provider);
             }
         }
 
@@ -252,7 +238,8 @@ public class StoreableTableFileManager {
         }
     }
 
-    private static void modifySingleFile(File directory, File file, Map<String, String> changed, Set<String> deleted)
+    private static void modifySingleFile(File directory, File file, Map<String, String> changed, Set<String> deleted,
+        StoreableTable table, StoreableTableProvider provider)
     throws IOException, ValidityCheckFailedException {
 
         if ((changed.isEmpty()) && (deleted.isEmpty())) {
@@ -267,7 +254,7 @@ public class StoreableTableFileManager {
             file.createNewFile();
         }
 
-        StoreableTableFileReader reader = new StoreableTableFileReader(file);
+        StoreableTableFileReader reader = new StoreableTableFileReader(file, table, provider);
         StoreableTableFileWriter writer = new StoreableTableFileWriter(file);
 
         String currentKey = null;

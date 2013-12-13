@@ -64,7 +64,7 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
         getCommitLock.writeLock().lock();
 
         try {
-            commitedSize = StoreableTableFileManager.getTableSize(name, provider);
+            commitedSize = StoreableTableFileManager.getTableSize(name, provider, this);
         } finally {
             getCommitLock.writeLock().unlock();
         }
@@ -75,24 +75,32 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Cl
     throws IOException, ValidityCheckFailedException, ParseException {
         checkClosed();
 
-        Storeable value = StoreableTableFileManager.readSingleKey(key, this, specificProvider);
+        Map<String, Storeable> fileData = StoreableTableFileManager.readFileForKey(key, this, specificProvider);
+        Storeable value = fileData.get(key);
 
-        if (value != null) { 
-            if (!Thread.currentThread().holdsLock(getCommitLock.writeLock())) {
+        if (!Thread.currentThread().holdsLock(getCommitLock.writeLock())) {
 
-                getCommitLock.readLock().unlock();
-                getCommitLock.writeLock().lock();
+            getCommitLock.readLock().unlock();
+            getCommitLock.writeLock().lock();
 
-                try {
+            try {
                 
-                    commited.put(key, value);
-                
-                } finally    {
-                    getCommitLock.writeLock().unlock();
-                    getCommitLock.readLock().lock();
-                }
+                commited.putAll(fileData);
 
-            } else {
+                //presence of the key in question, if it is the case, must be ensured
+                if (value != null) {
+                  commited.put(key, value);
+                } 
+            } finally    {
+                getCommitLock.writeLock().unlock();
+                getCommitLock.readLock().lock();
+            }
+
+        } else {
+            commited.putAll(fileData);
+
+            //presence of the key in question, if it is the case, must be ensured
+            if (value != null) {
                 commited.put(key, value);
             }
         }
