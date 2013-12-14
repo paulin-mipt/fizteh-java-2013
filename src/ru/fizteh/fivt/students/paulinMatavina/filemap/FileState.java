@@ -165,10 +165,13 @@ public class FileState extends State {
                 if (position < firstOffset) {   
                     key2 = getKeyFromFile(position);
                     endOffset = dbFile.readInt();
-                    value = getValueFromFile(startOffset, endOffset);
-                    
+                    if (key.equals(requestedKey) || requestedKey == null) {
+                        value = getValueFromFile(startOffset, endOffset);
+                    }                    
                 } else {
-                    value = getValueFromFile(startOffset, (int) dbFile.length());
+                    if (key.equals(requestedKey) || requestedKey == null) {
+                        value = getValueFromFile(startOffset, (int) dbFile.length());
+                    }
                 }
                 
                 if (key.getBytes().length > 0) {
