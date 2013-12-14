@@ -75,15 +75,20 @@ public class StoreableTable implements Table, AutoCloseable {
         setInitialSize(provider, name);
     }
 
-    public Storeable put(String key, Storeable value) {
+    public Storeable put(String key, Storeable value) throws ColumnFormatException {
         checkClosed();
 
         try {
-            ValidityChecker.checkValueFormat(this, value);
             ValidityChecker.checkTableKey(key);
             ValidityChecker.checkTableValue(value);
         } catch (ValidityCheckFailedException ex) {
             throw new IllegalArgumentException(ex.getMessage());
+        }
+
+        try {
+            ValidityChecker.checkValueFormat(this, value);
+        } catch (ValidityCheckFailedException ex) {
+            throw new ColumnFormatException(ex.getMessage());
         }
 
         Storeable returnValue = get(key);
