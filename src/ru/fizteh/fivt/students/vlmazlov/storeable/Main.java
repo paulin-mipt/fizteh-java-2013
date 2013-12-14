@@ -1,8 +1,7 @@
 package ru.fizteh.fivt.students.vlmazlov.storeable;
 
 import ru.fizteh.fivt.storage.structured.Storeable;
-import ru.fizteh.fivt.students.vlmazlov.generics.DataBaseState;
-import ru.fizteh.fivt.students.vlmazlov.generics.commands.*;
+import ru.fizteh.fivt.students.vlmazlov.storeable.commands.*;
 import ru.fizteh.fivt.students.vlmazlov.shell.*;
 import ru.fizteh.fivt.students.vlmazlov.storeable.commands.CreateStoreableCommand;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
@@ -13,10 +12,10 @@ public class Main {
     public static void main(String[] args) {
 
         StoreableTableProviderFactory factory = new StoreableTableProviderFactory();
-        DataBaseState<Storeable, StoreableTable> state = null;
+        StoreableDataBaseState state = null;
 
         try {
-            state = new DataBaseState(factory.create(System.getProperty("fizteh.db.dir")));
+            state = new StoreableDataBaseState(factory.create(System.getProperty("fizteh.db.dir")));
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(1);
@@ -43,7 +42,7 @@ public class Main {
                 new RollBackCommand(), new SizeCommand()
         };
 
-        Shell<DataBaseState> shell = new Shell<DataBaseState>(commands, state);
+        Shell<StoreableDataBaseState> shell = new Shell<StoreableDataBaseState>(commands, state);
 
         try {
             shell.process(args);
