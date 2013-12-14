@@ -1,9 +1,10 @@
-package ru.fizteh.fivt.students.kochetovnicolai.fileMap;
+package ru.fizteh.fivt.students.kochetovnicolai.fileMap.tableCommands;
 
 import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.students.kochetovnicolai.fileMap.TableManager;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.Executable;
 
-public class TableCommandSize extends Executable {
+public class TableCommandRollback extends Executable {
     TableManager manager;
 
     @Override
@@ -13,12 +14,12 @@ public class TableCommandSize extends Executable {
             manager.printMessage("no table");
             return false;
         }
-        manager.printMessage(Integer.toString(table.size()));
+        manager.printMessage(Integer.toString(table.rollback()));
         return true;
     }
 
-    public TableCommandSize(TableManager tableManager) {
-        super("size", 1);
+    public TableCommandRollback(TableManager tableManager) {
+        super("rollback", 1);
         manager = tableManager;
     }
 }

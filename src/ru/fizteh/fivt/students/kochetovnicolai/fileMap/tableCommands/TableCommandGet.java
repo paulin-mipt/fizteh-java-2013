@@ -1,7 +1,8 @@
-package ru.fizteh.fivt.students.kochetovnicolai.fileMap;
+package ru.fizteh.fivt.students.kochetovnicolai.fileMap.tableCommands;
 
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.students.kochetovnicolai.fileMap.TableManager;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.Executable;
 
 import java.text.ParseException;

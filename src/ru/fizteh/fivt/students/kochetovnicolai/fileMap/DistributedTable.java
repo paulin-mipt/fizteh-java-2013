@@ -30,6 +30,8 @@ public class DistributedTable extends FileManager implements Table, AutoCloseabl
     private String tableName;
     private HashMap<String, Storeable> cache;
     private ThreadLocal<HashMap<String, Storeable>> changes;
+    private ThreadLocal<HashMap<String, Storeable>> defaultChanges;
+    private HashMap<Integer, HashMap<String, Storeable>> changesPool;
 
     private final int partsNumber = 16;
     private Path[] directoriesList = new Path[partsNumber];
@@ -171,15 +173,6 @@ public class DistributedTable extends FileManager implements Table, AutoCloseabl
 
     private List<Class<?>> getSignature(Path tableDirectory) throws IOException {
         signature = tableDirectory.resolve("signature.tsv");
-        /*
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        если упадут тесты, заменить на  .toFile().isFile()
-
-
-         */
-        //if (!Files.exists(signature) || Files.isDirectory(signature)) {
         if (!Files.exists(signature) || !Files.isRegularFile(signature)) {
             throw new IOException(signature + ": file doesn't exists");
         }
@@ -224,6 +217,8 @@ public class DistributedTable extends FileManager implements Table, AutoCloseabl
                 return new HashMap<>();
             }
         };
+        defaultChanges = new ThreadLocal<>();
+        changesPool = new HashMap<>();
         readTable();
     }
 
@@ -524,5 +519,35 @@ public class DistributedTable extends FileManager implements Table, AutoCloseabl
     public String toString() {
         checkState();
         return this.getClass().getSimpleName() + '[' + currentPath.toAbsolutePath() + ']';
+    }
+
+    public void useTransaction(Integer transactionID) {
+        checkState();
+        if (defaultChanges.get() == null) {
+            defaultChanges.set(changes.get());
+        }
+        if (!changesPool.containsKey(transactionID)) {
+            changesPool.put(transactionID, new HashMap<String, Storeable>());
+        }
+        changes.set(changesPool.get(transactionID));
+    }
+
+    public void removeTransaction(Integer transactionID) {
+        checkState();
+        HashMap<String, Storeable> transaction = changesPool.get(transactionID);
+        if (transaction != null) {
+            if (transaction == changes.get()) {
+                changes.set(defaultChanges.get());
+            }
+            changesPool.remove(transactionID);
+        }
+    }
+
+    public void setDefaultTransaction() {
+        checkState();
+        HashMap<String, Storeable> transaction = defaultChanges.get();
+        if (transaction != null) {
+            changes.set(transaction);
+        }
     }
 }

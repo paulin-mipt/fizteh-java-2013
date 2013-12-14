@@ -1,5 +1,6 @@
 package ru.fizteh.fivt.students.kochetovnicolai.fileMap;
 
+import ru.fizteh.fivt.students.kochetovnicolai.fileMap.tableCommands.*;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.Launcher;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.Executable;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.StringParser;
@@ -23,6 +24,8 @@ public class FileMap {
         commands.put("size", new TableCommandSize(manager));
         commands.put("commit", new TableCommandCommit(manager));
         commands.put("rollback", new TableCommandRollback(manager));
+        commands.put("starthttp", new TableCommandStartHttp(manager));
+        commands.put("stophttp", new TableCommandStopHttp(manager));
     }
 
     public static void main(String[] args) {

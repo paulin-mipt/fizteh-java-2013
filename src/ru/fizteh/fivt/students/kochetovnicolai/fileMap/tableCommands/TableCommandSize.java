@@ -1,11 +1,10 @@
-package ru.fizteh.fivt.students.kochetovnicolai.fileMap;
+package ru.fizteh.fivt.students.kochetovnicolai.fileMap.tableCommands;
 
 import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.students.kochetovnicolai.fileMap.TableManager;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.Executable;
 
-import java.io.IOException;
-
-public class TableCommandCommit extends Executable {
+public class TableCommandSize extends Executable {
     TableManager manager;
 
     @Override
@@ -15,17 +14,12 @@ public class TableCommandCommit extends Executable {
             manager.printMessage("no table");
             return false;
         }
-        try {
-            manager.printMessage(Integer.toString(table.commit()));
-        } catch (IOException e) {
-            manager.printMessage(e.getMessage());
-            return false;
-        }
+        manager.printMessage(Integer.toString(table.size()));
         return true;
     }
 
-    public TableCommandCommit(TableManager tableManager) {
-        super("commit", 1);
+    public TableCommandSize(TableManager tableManager) {
+        super("size", 1);
         manager = tableManager;
     }
 }
