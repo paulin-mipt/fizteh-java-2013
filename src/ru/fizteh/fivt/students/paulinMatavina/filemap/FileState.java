@@ -179,9 +179,9 @@ public class FileState extends State {
                         throw new RuntimeException("wrong key in file");
                     }
                     
-                    Storeable stor = provider.deserialize(table, value);
-                    map.put(key, stor);
                     if (key.equals(requestedKey)) {
+                        Storeable stor = provider.deserialize(table, value);
+                        map.put(key, stor);
                         return stor;
                     }
                 }
