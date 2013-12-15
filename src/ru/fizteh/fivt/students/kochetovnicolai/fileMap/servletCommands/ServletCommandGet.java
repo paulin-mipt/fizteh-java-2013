@@ -33,7 +33,6 @@ public class ServletCommandGet extends ServletCommand {
         try {
             table.useTransaction(sessionID);
             value = DistributedTableProvider.serializeByTypesList(table.getTypes(), table.get(key));
-            table.setDefaultTransaction();
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
             return;
@@ -41,6 +40,8 @@ public class ServletCommandGet extends ServletCommand {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
             manager.deleteTableByID(sessionID);
             return;
+        } finally {
+            table.setDefaultTransaction();
         }
         if (value == null) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, key + ": no such key");

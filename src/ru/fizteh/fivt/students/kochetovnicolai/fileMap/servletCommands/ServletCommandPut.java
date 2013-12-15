@@ -36,7 +36,6 @@ public class ServletCommandPut extends ServletCommand {
             table.useTransaction(sessionID);
             Storeable storeable = DistributedTableProvider.deserialiseByTypesList(table.getTypes(), value);
             value = DistributedTableProvider.serializeByTypesList(table.getTypes(), table.put(key, storeable));
-            table.setDefaultTransaction();
         } catch (IllegalArgumentException | ParseException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
             return;
@@ -44,6 +43,8 @@ public class ServletCommandPut extends ServletCommand {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
             manager.deleteTableByID(sessionID);
             return;
+        } finally {
+            table.setDefaultTransaction();
         }
 
         if (value == null) {

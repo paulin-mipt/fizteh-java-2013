@@ -197,4 +197,16 @@ public class TableManager extends Manager {
         }
         outputStream.print(" $ ");
     }
+
+    @Override
+    public void setExit() {
+        if (server != null) {
+            try {
+                server.stop();
+            } catch (Exception e) {
+                printMessage(e.getMessage());
+            }
+        }
+        super.setExit();
+    }
 }

@@ -32,11 +32,10 @@ public class ServletCommandCommit extends ServletCommand {
             table.removeTransaction(sessionID);
         } catch (IOException|IllegalStateException e) {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-            manager.deleteTableByID(sessionID);
             return;
+        } finally {
+            manager.deleteTableByID(sessionID);
         }
-
-        manager.deleteTableByID(sessionID);
 
         resp.setStatus(HttpServletResponse.SC_OK);
 
