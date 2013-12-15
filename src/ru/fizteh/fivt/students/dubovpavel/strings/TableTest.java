@@ -19,7 +19,7 @@ public class TableTest {
                 cleanRecursively(sub);
             }
         }
-        assert (pointer.delete());
+        pointer.delete();
     }
 
     @Before

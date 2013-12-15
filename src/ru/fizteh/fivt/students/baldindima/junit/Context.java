@@ -1,7 +1,7 @@
 package ru.fizteh.fivt.students.baldindima.junit;
 
-import ru.fizteh.fivt.storage.strings.Table;
-import ru.fizteh.fivt.storage.strings.TableProvider;
+import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.storage.structured.TableProvider;
 
 public class Context {
     public TableProvider provider;

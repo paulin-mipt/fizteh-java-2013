@@ -22,9 +22,12 @@ public class StorageBuilder {
     }
 
     public Storage construct() {
-        assert (dispatcher != null);
         assert (path != null);
         assert (builder != null);
+        if (dispatcher == null) {
+            dispatcher = new Dispatcher(false);
+            dispatcher.setQuiet(true);
+        }
         if (pathIsProperty) {
             try {
                 return new Storage(dispatcher.getInitProperty(path), dispatcher, builder);

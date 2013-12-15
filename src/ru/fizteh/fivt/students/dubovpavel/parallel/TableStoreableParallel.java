@@ -62,12 +62,12 @@ public class TableStoreableParallel extends TableStoreable implements Table {
 
     @Override
     public int size() {
-        lock.readLock().lock();
-        try {
-            return localDict.size() + calculateAdditions(false) - calculateDeletions();
-        } finally {
-            lock.readLock().unlock();
-        }
+        return new LockingWrapperQuiet<Integer>(lock.readLock()) {
+            @Override
+            protected Integer perform() {
+                return localDict.size() + calculateAdditions(false) - calculateDeletions();
+            }
+        }.invoke();
     }
 
     private Storeable getLocalValue(String key) {
@@ -81,72 +81,72 @@ public class TableStoreableParallel extends TableStoreable implements Table {
     }
 
     @Override
-    public Storeable put(String key, Storeable value) {
-        lock.readLock().lock();
-        try {
-            checkPutInput(key, value);
-            Storeable ret = getLocalValue(key);
-            updates.get().put(key, value);
-            removed.get().remove(key);
-            return ret;
-        } finally {
-            lock.readLock().unlock();
-        }
+    public Storeable put(final String key, final Storeable value) {
+        return new LockingWrapperQuiet<Storeable>(lock.readLock()) {
+            @Override
+            protected Storeable perform() {
+                checkPutInput(key, value);
+                Storeable ret = getLocalValue(key);
+                updates.get().put(key, value);
+                removed.get().remove(key);
+                return ret;
+            }
+        }.invoke();
     }
 
     @Override
-    public Storeable get(String key) {
-        lock.readLock().lock();
-        try {
-            checkGetInput(key);
-            return getLocalValue(key);
-        } finally {
-            lock.readLock().unlock();
-        }
+    public Storeable get(final String key) {
+        return new LockingWrapperQuiet<Storeable>(lock.readLock()) {
+            @Override
+            protected Storeable perform() {
+                checkGetInput(key);
+                return getLocalValue(key);
+            }
+        }.invoke();
     }
 
     @Override
-    public Storeable remove(String key) {
-        lock.readLock().lock();
-        try {
-            checkRemoveInput(key);
-            Storeable ret = getLocalValue(key);
-            updates.get().remove(key);
-            removed.get().add(key);
-            return ret;
-        } finally {
-            lock.readLock().unlock();
-        }
+    public Storeable remove(final String key) {
+        return new LockingWrapperQuiet<Storeable>(lock.readLock()) {
+            @Override
+            protected Storeable perform() {
+                checkRemoveInput(key);
+                Storeable ret = getLocalValue(key);
+                updates.get().remove(key);
+                removed.get().add(key);
+                return ret;
+            }
+        }.invoke();
     }
 
     @Override
     public int rollback() {
-        lock.readLock().lock();
-        try {
-            int ret = countChanges();
-            updates.get().clear();
-            removed.get().clear();
-            return ret;
-        } finally {
-            lock.readLock().unlock();
-        }
+        return new LockingWrapperQuiet<Integer>(lock.readLock()) {
+            @Override
+            protected Integer perform() {
+                int ret = countChanges();
+                updates.get().clear();
+                removed.get().clear();
+                return ret;
+            }
+        }.invoke();
     }
 
     @Override
     public int commit() {
-        lock.writeLock().lock();
-        try {
-            int ret = countChanges();
-            localDict.putAll(updates.get());
-            for (String key: removed.get()) {
-                localDict.remove(key);
+        return new LockingWrapperQuiet<Integer>(lock.writeLock()) {
+            @Override
+            protected Integer perform() {
+                int ret = countChanges();
+                localDict.putAll(updates.get());
+                for (String key: removed.get()) {
+                    localDict.remove(key);
+                }
+                TableStoreableParallel.super.commit();
+                updates.get().clear();
+                removed.get().clear();
+                return ret;
             }
-            super.commit();
-            updates.get().clear();
-            removed.get().clear();
-            return ret;
-        } finally {
-            lock.writeLock().unlock();
-        }
+        }.invoke();
     }
 }

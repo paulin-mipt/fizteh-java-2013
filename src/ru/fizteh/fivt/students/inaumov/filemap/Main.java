@@ -1,46 +1,32 @@
 package ru.fizteh.fivt.students.inaumov.filemap;
 
-import ru.fizteh.fivt.students.inaumov.filemap.base.SingleFileTable;
+import ru.fizteh.fivt.storage.strings.Table;
 import ru.fizteh.fivt.students.inaumov.shell.base.Shell;
 import ru.fizteh.fivt.students.inaumov.filemap.commands.*;
 
-import java.io.IOException;
-
 public class Main {
-	public static void main(String[] args) {
+    public static void main(String[] args) {
+        Shell<FileMapStringShellState> shell = new Shell<FileMapStringShellState>();
+        FileMapStringShellState shellState = new FileMapStringShellState();
+
         String databaseDir = System.getProperty("fizteh.db.dir");
-        if (databaseDir == null) {
+        if (databaseDir == null || databaseDir.isEmpty()) {
             System.err.println("choose working directory");
             System.exit(1);
         }
 
-		Shell<SingleFileMapShellState> fileMapShell = new Shell<SingleFileMapShellState>();
+        shellState.table = new SingleFileStringDatabaseTable(databaseDir, "database");
 
-		SingleFileMapShellState shellState = new SingleFileMapShellState();
-        try {
-			shellState.table = new SingleFileTable(databaseDir, "database");
-		} catch (IOException e) {
-			System.err.println(e.getMessage());
-			System.exit(1);
-		} catch (IllegalArgumentException e) {
-			System.err.println(e.getMessage());
-			System.exit(1);
-		}  catch (IllegalStateException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
+        shell.setState(shellState);
+        shell.setArgs(args);
 
-		fileMapShell.setState(shellState);
-        fileMapShell.setArgs(args);
+        shell.addCommand(new PutCommand<Table, String, String, FileMapStringShellState>());
+        shell.addCommand(new GetCommand<Table, String, String, FileMapStringShellState>());
+        shell.addCommand(new RemoveCommand<Table, String, String, FileMapStringShellState>());
+        shell.addCommand(new CommitCommand<FileMapStringShellState>());
+        shell.addCommand(new RollbackCommand<FileMapStringShellState>());
+        shell.addCommand(new ExitCommand());
 
-		fileMapShell.addCommand(new PutCommand());
-		fileMapShell.addCommand(new GetCommand());
-		fileMapShell.addCommand(new RemoveCommand());
-		fileMapShell.addCommand(new ExitCommand());
-		fileMapShell.addCommand(new CommitCommand());
-		fileMapShell.addCommand(new RollbackCommand());
-		fileMapShell.addCommand(new SizeCommand());
-
-        fileMapShell.run();
-	}
+        shell.run();
+    }
 }

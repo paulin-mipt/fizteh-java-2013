@@ -4,8 +4,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import ru.fizteh.fivt.storage.structured.TableProviderFactory;
-import ru.fizteh.fivt.students.nadezhdakaratsapova.multifilehashmap.MultiFileProviderFactory;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.shell.CommandUtils;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableTableProviderFactory;
 
@@ -13,7 +11,7 @@ import java.io.File;
 
 public class StoreableTableProviderFactoryTest {
     private static final String TESTED_DIRECTORY = "JavaTests";
-    TableProviderFactory tableProviderFactory;
+    StoreableTableProviderFactory tableProviderFactory;
 
     @Before
     public void setUp() throws Exception {
@@ -36,5 +34,11 @@ public class StoreableTableProviderFactoryTest {
     @Test(expected = IllegalArgumentException.class)
     public void createNullNameShouldFail() throws Exception {
         tableProviderFactory.create(null);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderFactoryCreateShouldFail() throws Exception {
+        tableProviderFactory.close();
+        tableProviderFactory.create("newDir");
     }
 }

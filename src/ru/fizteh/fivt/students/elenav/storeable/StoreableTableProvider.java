@@ -18,12 +18,13 @@ import ru.fizteh.fivt.students.elenav.states.FilesystemState;
 import ru.fizteh.fivt.students.elenav.states.Provider;
 import ru.fizteh.fivt.students.elenav.utils.Functions;
 
-public class StoreableTableProvider implements TableProvider, Provider {
+public class StoreableTableProvider implements TableProvider, Provider, AutoCloseable {
 
     private static final String CORRECT_FORMAT = "[a-zA-Zа-яА-Я0-9]+";
     private File workingDirectory = null;
     private PrintStream stream;
     public HashMap<String, StoreableTableState> tables = new HashMap<>();
+    private volatile boolean isClosed = false;
     
     public StoreableTableProvider(File dir, PrintStream out) throws IOException {
         if (dir == null) {
@@ -36,7 +37,7 @@ public class StoreableTableProvider implements TableProvider, Provider {
         loadTablesFromHardDisk(dir);
         setWorkingDirectory(dir);
     }
-
+    
     private synchronized void loadTablesFromHardDisk(File dir) {
         for (File f : dir.listFiles()) {
             if (f.isDirectory()) {
@@ -62,17 +63,23 @@ public class StoreableTableProvider implements TableProvider, Provider {
     
     @Override
     public synchronized Table getTable(String name) {
+        checkIsNotClosed();
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("wrong type (null name)");
         }
         if (!name.matches(CORRECT_FORMAT)) {
             throw new IllegalArgumentException("wrong type (" + name + ")");
         }
+        StoreableTableState table = tables.get(name);
+        if (table != null && table.isClosed()) {
+            tables.put(name, new StoreableTableState(name, table.getWorkingDirectory(), table.getStream(), this));
+        }
         return tables.get(name);
     }
 
     @Override
     public synchronized StoreableTableState createTable(String name, List<Class<?>> columnTypes) throws IOException {
+        checkIsNotClosed();
         if (name == null || name.trim().isEmpty() || !name.matches(CORRECT_FORMAT)) {
             throw new IllegalArgumentException("wrong type (null or invalid name)");
         }
@@ -112,6 +119,7 @@ public class StoreableTableProvider implements TableProvider, Provider {
 
     @Override
     public synchronized void removeTable(String name) throws IOException {
+        checkIsNotClosed();
         if (name == null || name.trim().isEmpty() || !name.matches(CORRECT_FORMAT)) {
             throw new IllegalArgumentException("wrong type (invalid name)");
         }
@@ -128,6 +136,7 @@ public class StoreableTableProvider implements TableProvider, Provider {
 
     @Override
     public Storeable deserialize(Table table, String value) throws ParseException {
+        checkIsNotClosed();
         if (table == null || value == null) {
             throw new IllegalArgumentException("wrong type (null table or value)");
         }
@@ -140,6 +149,7 @@ public class StoreableTableProvider implements TableProvider, Provider {
 
     @Override
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        checkIsNotClosed();
         if (table == null || value == null) {
             throw new IllegalArgumentException("can't serialize: null table or value");
         }
@@ -152,12 +162,14 @@ public class StoreableTableProvider implements TableProvider, Provider {
 
     @Override
     public Storeable createFor(Table table) {
+        checkIsNotClosed();
         return new MyStoreable(table);
     }
 
     @Override
     public Storeable createFor(Table table, List<?> values) 
             throws ColumnFormatException, IndexOutOfBoundsException {
+        checkIsNotClosed();
         Storeable storeable = new MyStoreable(table);
         for (int i = 0; i < table.getColumnsCount(); ++i) {
             storeable.setColumnAt(i, values.get(i));
@@ -189,11 +201,28 @@ public class StoreableTableProvider implements TableProvider, Provider {
 
     @Override
     public void use(FilesystemState table) throws IOException {
+        checkIsNotClosed();
         List<Class<?>> list = new ArrayList<>();
         StoreableTableState.class.cast(table).setColumnTypes(list);
         StoreableTableState.class.cast(table).getColumnTypes();
-        
     }
 
+    public String toString() {
+        return getClass().getSimpleName() + "[" + getWorkingDirectory().getAbsolutePath() + "]";
+    }
+
+    @Override
+    public void close() throws Exception {
+        isClosed = true;
+        for (StoreableTableState table : tables.values()) {
+            table.close();
+        }
+    }
+    
+    private void checkIsNotClosed() {
+        if (isClosed) {
+            throw new IllegalStateException("table provider is closed");
+        }
+    }
     
 }

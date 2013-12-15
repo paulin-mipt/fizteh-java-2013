@@ -3,9 +3,9 @@ package ru.fizteh.fivt.students.inaumov.shell.base;
 import ru.fizteh.fivt.students.inaumov.shell.exceptions.UserInterruptionException;
 
 public interface Command<State> {
-	public String getName();
+    String getName();
 
-    public int getArgumentsNumber();
+    int getArgumentsNumber();
 
-	public void execute(String[] args, State state) throws UserInterruptionException;
+    void execute(String argumentsLine, State state) throws UserInterruptionException;
 }

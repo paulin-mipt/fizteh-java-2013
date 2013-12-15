@@ -14,7 +14,8 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TableProviderStoreable<DB extends FileRepresentativeDataBase<Storeable> & Table>
+public class TableProviderStoreable<DB extends FileRepresentativeDataBase<Storeable>
+        & Table>
         extends TableProviderStorageExtended<DB> implements TableProvider {
     private TableStoreableBuilder dataBaseBuilder;
 
@@ -42,7 +43,7 @@ public class TableProviderStoreable<DB extends FileRepresentativeDataBase<Storea
             throw new IllegalArgumentException();
         }
         for (Class<?> type : columnTypes) {
-            if (!TypeNamesMatcher.NAME_BY_CLASS.containsKey(type)) {
+            if (!TypesCaster.SUPPORTED_TYPES.containsKey(type)) {
                 throw new IllegalArgumentException();
             }
         }

@@ -8,7 +8,6 @@ import java.io.IOException;
 public class FileMapMain {
     public static void main(String[] args) throws IOException {
 
-        //String currentProperty = "/Users/evgenij/Documents/JAVA_Ex/fizteh-java-2013/src/ru/fizteh/fivt/students/ermolenko/filemap";
         String currentProperty = System.getProperty("fizteh.db.dir");
         if (currentProperty == null) {
             System.exit(-1);

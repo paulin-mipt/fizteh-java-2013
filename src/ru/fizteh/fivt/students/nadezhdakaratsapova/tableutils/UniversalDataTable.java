@@ -13,13 +13,14 @@ import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public abstract class UniversalDataTable<ValueType> {
+public abstract class UniversalDataTable<ValueType> implements AutoCloseable {
     public static final int DIR_COUNT = 16;
     public static final int FILE_COUNT = 16;
     protected final ReadWriteLock tableChangesLock = new ReentrantReadWriteLock();
     public ValueConverter<ValueType> valueConverter;
     protected File dataBaseDirectory;
     protected String tableName;
+    protected boolean closed = false;
     private Map<String, ValueType> dataStorage = new HashMap<String, ValueType>();
     private ThreadLocal<Map<String, ValueType>> putKeys = new ThreadLocal<Map<String, ValueType>>() {
         @Override
@@ -49,15 +50,18 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     public String getName() {
+        checkNotClosed();
         return tableName;
     }
 
     protected ValueType putSimple(String key, ValueType value) {
+        checkNotClosed();
         ValueType oldValue = null;
         if (!removeKeys.get().contains(key)) {
             if ((oldValue = putKeys.get().get(key)) == null) {
                 tableChangesLock.readLock().lock();
                 try {
+                    checkNotClosed();
                     oldValue = dataStorage.get(key);
                 } finally {
                     tableChangesLock.readLock().unlock();
@@ -67,6 +71,7 @@ public abstract class UniversalDataTable<ValueType> {
                 tableChangesLock.readLock().lock();
                 ValueType dataValue;
                 try {
+                    checkNotClosed();
                     dataValue = dataStorage.get(key);
                 } finally {
                     tableChangesLock.readLock().unlock();
@@ -76,6 +81,7 @@ public abstract class UniversalDataTable<ValueType> {
                 } else {
                     tableChangesLock.readLock().lock();
                     try {
+                        checkNotClosed();
                         if (!dataStorage.get(key).equals(value)) {
                             putKeys.get().put(key, value);
                         } else {
@@ -91,6 +97,7 @@ public abstract class UniversalDataTable<ValueType> {
             tableChangesLock.readLock().lock();
             ValueType dataValue;
             try {
+                checkNotClosed();
                 dataValue = dataStorage.get(key);
             } finally {
                 tableChangesLock.readLock().unlock();
@@ -108,6 +115,7 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     public ValueType get(String key) throws IllegalArgumentException {
+        checkNotClosed();
         if (key == null) {
             throw new IllegalArgumentException("Not correct key");
         }
@@ -120,6 +128,7 @@ public abstract class UniversalDataTable<ValueType> {
         if (!removeKeys.get().contains(key)) {
             tableChangesLock.readLock().lock();
             try {
+                checkNotClosed();
                 value = dataStorage.get(key);
             } finally {
                 tableChangesLock.readLock().unlock();
@@ -132,6 +141,7 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     public ValueType remove(String key) throws IllegalArgumentException {
+        checkNotClosed();
         if (key == null) {
             throw new IllegalArgumentException("Not correct key");
         }
@@ -139,6 +149,7 @@ public abstract class UniversalDataTable<ValueType> {
             if (putKeys.get().get(key) != null) {
                 tableChangesLock.readLock().lock();
                 try {
+                    checkNotClosed();
                     if (dataStorage.get(key) != null) {
                         removeKeys.get().add(key);
                     }
@@ -156,6 +167,7 @@ public abstract class UniversalDataTable<ValueType> {
         ValueType value;
         tableChangesLock.readLock().lock();
         try {
+            checkNotClosed();
             if ((value = dataStorage.get(key)) != null) {
                 removeKeys.get().add(key);
             }
@@ -175,9 +187,11 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     public int size() {
+        checkNotClosed();
         int size;
         tableChangesLock.readLock().lock();
         try {
+            checkNotClosed();
             size = dataStorage.size();
         } finally {
             tableChangesLock.readLock().unlock();
@@ -185,6 +199,7 @@ public abstract class UniversalDataTable<ValueType> {
         Set<String> keysToCommit = putKeys.get().keySet();
         tableChangesLock.readLock().lock();
         try {
+            checkNotClosed();
             for (String key : keysToCommit) {
                 if (!dataStorage.containsKey(key)) {
                     ++size;
@@ -198,11 +213,13 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     protected int commitWithoutWriteToDataBase() {
+        checkNotClosed();
         int commitSize = 0;
         if (!putKeys.get().isEmpty()) {
             Set<String> putKeysToCommit = putKeys.get().keySet();
             tableChangesLock.readLock().lock();
             try {
+                checkNotClosed();
                 for (String key : putKeysToCommit) {
                     if (dataStorage.get(key) == null) {
                         dataStorage.put(key, putKeys.get().get(key));
@@ -223,6 +240,7 @@ public abstract class UniversalDataTable<ValueType> {
         if (!removeKeys.get().isEmpty()) {
             tableChangesLock.readLock().lock();
             try {
+                checkNotClosed();
                 for (String key : removeKeys.get()) {
                     dataStorage.remove(key);
                     ++commitSize;
@@ -236,11 +254,13 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     public int rollback() {
+        checkNotClosed();
         int rollbackSize = 0;
         if (!putKeys.get().isEmpty()) {
             Set<String> putKeysToRollback = putKeys.get().keySet();
             tableChangesLock.readLock().lock();
             try {
+                checkNotClosed();
                 for (String key : putKeysToRollback) {
                     if (dataStorage.get(key) == null) {
                         ++rollbackSize;
@@ -356,7 +376,8 @@ public abstract class UniversalDataTable<ValueType> {
     }
 
     protected void writeToDataBaseWithoutSignature() throws IOException {
-        rollback();
+        putKeys.get().clear();
+        removeKeys.get().clear();
         Set<String> keys = getKeys();
         if (!keys.isEmpty()) {
             for (int i = 0; i < DIR_COUNT; ++i) {
@@ -394,6 +415,30 @@ public abstract class UniversalDataTable<ValueType> {
                 }
             }
         }
+    }
+
+    public String toString() {
+        checkNotClosed();
+        File dataTable = new File(dataBaseDirectory, tableName);
+        return new String(this.getClass().getSimpleName() + "[" + dataTable.toString() + "]");
+    }
+
+    public void close() throws IOException {
+        if (!closed) {
+            putKeys.get().clear();
+            removeKeys.get().clear();
+            closed = true;
+        }
+    }
+
+    protected void checkNotClosed() {
+        if (closed) {
+            throw new IllegalStateException("the table is closed");
+        }
+    }
+
+    public boolean isTableClosed() {
+        return closed;
     }
 
     public abstract ValueType put(String key, ValueType value);

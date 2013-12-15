@@ -52,13 +52,11 @@ public class Cp implements Command<ShellState> {
 
             if (source.toFile().isFile() && !target.toFile().exists()) {
                 Files.copy(source, target);
-            }
-            //можно копировать файл в директорию
-            else if (source.toFile().isFile() && target.toFile().isDirectory()) {
+            } else
+            if (source.toFile().isFile() && target.toFile().isDirectory()) {
                 Files.copy(source, target.resolve(source.getFileName()));
-            }
-            //можно копировать директорию в директорию
-            else if (source.toFile().isDirectory() && target.toFile().isDirectory()) {
+            } else
+            if (source.toFile().isDirectory() && target.toFile().isDirectory()) {
                 File[] masOfSource = source.toFile().listFiles();
                 target.toFile().mkdir();
                 if (masOfSource != null) {

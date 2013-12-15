@@ -6,7 +6,7 @@ import ru.fizteh.fivt.students.dubovpavel.executor.PerformerException;
 import ru.fizteh.fivt.students.dubovpavel.multifilehashmap.StorageAccessible;
 import ru.fizteh.fivt.students.dubovpavel.multifilehashmap.performers.PerformerCreate;
 import ru.fizteh.fivt.students.dubovpavel.storeable.TableStoreableBuilder;
-import ru.fizteh.fivt.students.dubovpavel.storeable.TypeNamesMatcher;
+import ru.fizteh.fivt.students.dubovpavel.storeable.TypesCaster;
 
 import java.util.ArrayList;
 
@@ -18,7 +18,7 @@ public class PerformerCreateStoreable<D extends Dispatcher & StorageAccessible> 
     }
 
     private void testType(ArrayList<Class<?>> fields, String type, D dispatcher) throws PerformerException {
-        Class<?> caster = TypeNamesMatcher.CLASS_BY_NAME.get(type);
+        Class<?> caster = TypesCaster.SUPPORTED_NAMES.get(type);
         if (caster == null) {
             throw new PerformerException(dispatcher.callbackWriter(Dispatcher.MessageType.ERROR,
                     String.format("wrong type (Type %s is not supported)", type)));

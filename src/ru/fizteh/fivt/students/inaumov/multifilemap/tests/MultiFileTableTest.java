@@ -10,12 +10,13 @@ public class MultiFileTableTest {
     private static final int KEYS_COUNT = 20;
     private static final String TABLE_NAME = "test";
 
-    TableProviderFactory tableProviderFactory = new DatabaseFactory();
-    TableProvider tableProvider = tableProviderFactory.create("/database_test");
+    public TableProviderFactory tableProviderFactory = new DatabaseFactory();
+    public TableProvider tableProvider = tableProviderFactory.create("/database_test");
 
-    Table currentTable;
+    public Table currentTable;
 
     public void prepare() {
+        currentTable = tableProvider.createTable(TABLE_NAME);
         for (int i = 0; i < KEYS_COUNT; ++i) {
             String key = "key" + i;
             String value = "value" + i;
@@ -25,7 +26,6 @@ public class MultiFileTableTest {
 
     @Before
     public void setup() {
-        currentTable = tableProvider.createTable(TABLE_NAME);
         prepare();
     }
 

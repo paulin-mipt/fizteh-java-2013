@@ -23,8 +23,7 @@ public class MultiFileHashMapState {
 
     public MultiFileHashMapTable createTable(String name) throws IOException {
 
-        MultiFileHashMapTable tmp = provider.createTable(name);
-        return tmp;
+        return provider.createTable(name);
     }
 
     public MultiFileHashMapTable getTable(String name) throws IOException {

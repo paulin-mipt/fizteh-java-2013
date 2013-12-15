@@ -10,6 +10,7 @@ public class Dispatcher {
     private ArrayList<Performer> performers;
     private boolean forwarding;
     protected boolean shutdown;
+    private Boolean quiet;
 
     public static class DispatcherException extends Exception {
         public DispatcherException(String msg) {
@@ -23,6 +24,11 @@ public class Dispatcher {
         ERROR
     }
 
+    public void setQuiet(boolean quiet) {
+        synchronized (this.quiet) {
+            this.quiet = quiet;
+        }
+    }
     public String getInitProperty(String key) throws DispatcherException {
         String value = System.getProperty(key);
         if (value == null) {
@@ -38,23 +44,30 @@ public class Dispatcher {
         invalidSequences = 0;
         parser = new Parser();
         this.forwarding = forwarding;
-        performers = new ArrayList<Performer>();
+        performers = new ArrayList<>();
         shutdown = false;
+        quiet = false;
     }
 
     public void addPerformer(Performer performer) {
         performers.add(performer);
     }
 
-    public synchronized String callbackWriter(MessageType type, String msg) {
-        PrintStream stream;
-        if (type == MessageType.SUCCESS || type == MessageType.WARNING) {
-            stream = System.out;
-        } else {
-            stream = System.err;
+    public String callbackWriter(MessageType type, String msg) {
+        synchronized (quiet) {
+            if (!quiet) {
+                PrintStream stream;
+                if (type == MessageType.SUCCESS || type == MessageType.WARNING) {
+                    stream = System.out;
+                } else {
+                    stream = System.err;
+                }
+                stream.println(msg);
+                return msg;
+            } else {
+                return null;
+            }
         }
-        stream.println(msg);
-        return msg;
     }
 
     public void shutDown() {

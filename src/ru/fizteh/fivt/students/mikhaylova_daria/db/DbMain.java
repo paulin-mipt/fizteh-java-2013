@@ -3,6 +3,7 @@ package ru.fizteh.fivt.students.mikhaylova_daria.db;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+
 import ru.fizteh.fivt.storage.structured.*;
 
 
@@ -114,7 +115,7 @@ public class DbMain {
         } catch (IllegalArgumentException e) {
             System.err.println(e.getMessage());
         } catch (IllegalStateException e) {
-             System.out.println("wrong type (" + nameDir + " not exists)");
+             System.out.println(nameDir + " not exists");
         } catch (IOException e) {
             System.out.println("wrong type (Reading/writing error" + e.getMessage() + ")");
         }

@@ -23,7 +23,7 @@ public class Shell<State> {
 
         String cmd = "";
 
-        for (int i = 0; i < command.length - 1; ++i) {
+        for (int i = 0; i < command.length; ++i) {
 
             cmd = command[i].trim();
             if (cmd.equals("exit")) {

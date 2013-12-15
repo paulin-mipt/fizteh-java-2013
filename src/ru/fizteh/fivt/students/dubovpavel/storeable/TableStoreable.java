@@ -37,7 +37,7 @@ public class TableStoreable extends WrappedMindfulDataBaseMultiFileHashMap<Store
             }
             fields.clear();
             for (String type : types) {
-                Class<?> t = TypeNamesMatcher.CLASS_BY_NAME.get(type);
+                Class<?> t = TypesCaster.SUPPORTED_NAMES.get(type);
                 if (t == null) {
                     generateLoadingError("DataBaseException",
                             String.format("Signature file contains unsupported type %s", type), false);
@@ -57,7 +57,7 @@ public class TableStoreable extends WrappedMindfulDataBaseMultiFileHashMap<Store
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(root, "signature.tsv")))) {
             StringBuilder joiner = new StringBuilder();
             for (Class<?> type : fields) {
-                joiner.append(TypeNamesMatcher.NAME_BY_CLASS.get(type));
+                joiner.append(TypesCaster.SUPPORTED_TYPES.get(type));
                 joiner.append(' ');
             }
             writer.write(joiner.toString());

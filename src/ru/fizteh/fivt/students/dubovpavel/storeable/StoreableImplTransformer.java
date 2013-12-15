@@ -51,19 +51,9 @@ public class StoreableImplTransformer implements ObjectTransformer<Storeable> {
     public String serialize(Storeable obj) throws ColumnFormatException {
         JSONArray json = new JSONArray();
         for (int i = 0; i < fields.size(); i++) {
-            Object value = obj.getColumnAt(i);
             try {
-                if (value == null) {
-                    json.put(value);
-                } else {
-                    if (fields.get(i).equals(String.class)) {
-                        json.put(value.toString());
-                    } else {
-                        json.put(fields.get(i).getMethod("valueOf", new Class[]{String.class}).invoke(
-                                null, value.toString()));
-                    }
-                }
-            } catch (Exception e) {
+                json.put(TypesCaster.cast(obj.getColumnAt(i), fields.get(i)));
+            } catch (TypesCaster.TypesCasterException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -87,9 +77,7 @@ public class StoreableImplTransformer implements ObjectTransformer<Storeable> {
             return storeable;
         } catch (JSONException e) {
             throw new ParseException(e.getMessage(), -1);
-        } catch (ColumnFormatException e) {
-            throw new SerialException(e.getMessage());
-        } catch (IndexOutOfBoundsException e) {
+        } catch (ColumnFormatException | IndexOutOfBoundsException e) {
             throw new SerialException(e.getMessage());
         }
     }

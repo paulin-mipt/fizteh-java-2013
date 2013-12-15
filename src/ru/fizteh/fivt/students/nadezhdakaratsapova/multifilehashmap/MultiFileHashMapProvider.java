@@ -115,6 +115,10 @@ public class MultiFileHashMapProvider implements TableProvider, UniversalTablePr
     public UniversalDataTable getCurTable() {
         return curDataBaseStorage;
     }
+
+    public String toString() {
+        return new String(this.getClass().getSimpleName() + "[" + workingDirectory.toString() + "]");
+    }
 }
 
 

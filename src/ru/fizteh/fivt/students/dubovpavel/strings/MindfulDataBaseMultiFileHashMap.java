@@ -37,20 +37,12 @@ public class MindfulDataBaseMultiFileHashMap<V> extends DataBaseMultiFileHashMap
     }
 
     public int size() {
-        return size(localDict);
-    }
-
-    protected int size(HashMap<String, V> dict) {
-        return dict.size();
+        return localDict.size();
     }
 
     public int getDiff() {
-        return getDiff(localDict);
-    }
-
-    protected int getDiff(HashMap<String, V> dict) {
         int diff = 0;
-        for (Map.Entry<String, V> entry : dict.entrySet()) { // Check for new and changed values
+        for (Map.Entry<String, V> entry : localDict.entrySet()) { // Check for new and changed values
             if (!oldDict.containsKey(entry.getKey())
                     || !transformer.equal(oldDict.get(entry.getKey()), entry.getValue())) {
                     // Order of .equals is important here
@@ -58,7 +50,7 @@ public class MindfulDataBaseMultiFileHashMap<V> extends DataBaseMultiFileHashMap
             }
         }
         for (Map.Entry<String, V> entry : oldDict.entrySet()) { // Check for removed values
-            if (!dict.containsKey(entry.getKey())) {
+            if (!localDict.containsKey(entry.getKey())) {
                 diff++;
             }
         }
@@ -73,12 +65,8 @@ public class MindfulDataBaseMultiFileHashMap<V> extends DataBaseMultiFileHashMap
     }
 
     public int rollback() {
-        return rollback(localDict);
-    }
-
-    protected int rollback(HashMap<String, V> dict) {
-        int diff = getDiff(dict);
-        copyHashMap(oldDict, dict);
+        int diff = getDiff();
+        copyHashMap(oldDict, localDict);
         return diff;
     }
 }

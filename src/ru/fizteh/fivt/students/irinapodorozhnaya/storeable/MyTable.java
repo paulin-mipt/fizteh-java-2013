@@ -80,7 +80,7 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
     @Override
     public int commit() throws IOException {
         checkClosed();
-        loadOldDatabase();
+        //loadOldDatabase();
         return super.commit();
     }
 

@@ -10,11 +10,13 @@ import ru.fizteh.fivt.students.ermolenko.multifilehashmap.MultiFileHashMapTableP
 import java.io.File;
 
 public class MultiFileHashMapTableProviderTest {
+
     private static File database;
     private static MultiFileHashMapTableProvider tableProvider;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
+
         database = new File("javatest").getCanonicalFile();
         database.mkdir();
         MultiFileHashMapTableProviderFactory factory = new MultiFileHashMapTableProviderFactory();
@@ -23,6 +25,7 @@ public class MultiFileHashMapTableProviderTest {
 
     @Before
     public void setUp() throws Exception {
+
         tableProvider.createTable("existingTable");
     }
 

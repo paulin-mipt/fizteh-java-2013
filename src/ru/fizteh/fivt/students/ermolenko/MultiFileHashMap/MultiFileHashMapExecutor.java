@@ -2,6 +2,12 @@ package ru.fizteh.fivt.students.ermolenko.multifilehashmap;
 
 import ru.fizteh.fivt.students.ermolenko.shell.Command;
 import ru.fizteh.fivt.students.ermolenko.shell.Executor;
+import ru.fizteh.fivt.students.ermolenko.storable.CmdCommit;
+import ru.fizteh.fivt.students.ermolenko.storable.CmdCreate;
+import ru.fizteh.fivt.students.ermolenko.storable.CmdDrop;
+import ru.fizteh.fivt.students.ermolenko.storable.CmdRollback;
+import ru.fizteh.fivt.students.ermolenko.storable.CmdSize;
+import ru.fizteh.fivt.students.ermolenko.storable.CmdUse;
 
 public class MultiFileHashMapExecutor extends Executor<MultiFileHashMapState> {
 

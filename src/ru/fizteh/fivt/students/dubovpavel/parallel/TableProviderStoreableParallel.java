@@ -12,9 +12,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class TableProviderStoreableParallel<DB extends FileRepresentativeDataBase<Storeable> & Table>
+public class TableProviderStoreableParallel<DB extends FileRepresentativeDataBase<Storeable>
+        & Table>
         extends TableProviderStoreable<DB> implements TableProvider {
-    private ReentrantReadWriteLock lock;
+    protected ReentrantReadWriteLock lock;
 
     public TableProviderStoreableParallel(Storage storage, TableStoreableBuilder builder) {
         super(storage, builder);
@@ -23,31 +24,32 @@ public class TableProviderStoreableParallel<DB extends FileRepresentativeDataBas
 
     @Override
     public Table createTable(final String name, final List<Class<?>> columnTypes) throws IOException {
-        lock.writeLock().lock();
-        try {
-            return super.createTable(name, columnTypes);
-        } finally {
-            lock.writeLock().unlock();
-        }
+        return new LockingWrapper<Table, IOException, RuntimeException>(lock.writeLock()) {
+            @Override
+            protected Table perform() throws IOException {
+                return TableProviderStoreableParallel.super.createTable(name, columnTypes);
+            }
+        }.invoke();
     }
 
     @Override
     public DB getTable(final String name) {
-        lock.readLock().lock();
-        try {
-            return super.getTable(name);
-        } finally {
-            lock.readLock().unlock();
-        }
+        return new LockingWrapperQuiet<DB>(lock.readLock()) {
+            @Override
+            protected DB perform() {
+                return TableProviderStoreableParallel.super.getTable(name);
+            }
+        }.invoke();
     }
 
     @Override
     public void removeTable(final String name) throws IOException {
-        lock.writeLock().lock();
-        try {
-            super.removeTable(name);
-        } finally {
-            lock.writeLock().unlock();
-        }
+        new LockingWrapper<Void, IOException, RuntimeException>(lock.writeLock()) {
+            @Override
+            protected Void perform() throws IOException {
+                TableProviderStoreableParallel.super.removeTable(name);
+                return null;
+            }
+        }.invoke();
     }
 }

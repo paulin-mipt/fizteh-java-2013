@@ -7,6 +7,7 @@ import ru.fizteh.fivt.students.dubovpavel.shell2.performers.PerformerRemove;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class Storage<DB extends FileRepresentativeDataBase> {
@@ -26,6 +27,32 @@ public class Storage<DB extends FileRepresentativeDataBase> {
         }
     }
 
+    public String getPath() {
+        return dir.getAbsolutePath();
+    }
+
+    public Iterator<DB> getDBIterator() {
+        return storage.values().iterator();
+    }
+
+    public DB reOpenDataBase(File folder) {
+        builder.setPath(folder);
+        DB dataBase = builder.construct();
+        try {
+            dataBase.open();
+        } catch (DataBaseHandler.DataBaseException e) {
+            dispatcher.callbackWriter(Dispatcher.MessageType.WARNING,
+                    String.format("Storage loading: Database %s: %s", folder.getName(), e.getMessage()));
+            if (!e.acceptable) {
+                dispatcher.callbackWriter(Dispatcher.MessageType.WARNING,
+                        "Database denied");
+                System.exit(-1);
+            }
+        }
+        storage.put(folder.getName(), dataBase);
+        return dataBase;
+    }
+
     public Storage(String path, Dispatcher dispatcher, DataBaseBuilder<DB> dataBaseBuilder) {
         builder = dataBaseBuilder;
         storage = new HashMap<>();
@@ -39,20 +66,7 @@ public class Storage<DB extends FileRepresentativeDataBase> {
         } else {
             for (File folder : dir.listFiles()) {
                 if (folder.isDirectory()) {
-                    builder.setPath(folder);
-                    DB dataBase = builder.construct();
-                    try {
-                        dataBase.open();
-                    } catch (DataBaseHandler.DataBaseException e) {
-                        this.dispatcher.callbackWriter(Dispatcher.MessageType.WARNING,
-                                String.format("Storage loading: Database %s: %s", folder.getName(), e.getMessage()));
-                        if (!e.acceptable) {
-                            this.dispatcher.callbackWriter(Dispatcher.MessageType.WARNING,
-                                    "Database denied");
-                            System.exit(-1);
-                        }
-                    }
-                    storage.put(folder.getName(), dataBase);
+                   reOpenDataBase(folder);
                 }
             }
         }
@@ -61,10 +75,7 @@ public class Storage<DB extends FileRepresentativeDataBase> {
     public DB create(String key) {
         try {
             return createExplosive(key);
-        } catch (IOException e) {
-            dispatcher.callbackWriter(Dispatcher.MessageType.ERROR, e.getMessage());
-            return null;
-        } catch (StorageException e) {
+        } catch (IOException | StorageException e) {
             dispatcher.callbackWriter(Dispatcher.MessageType.ERROR, e.getMessage());
             return null;
         }

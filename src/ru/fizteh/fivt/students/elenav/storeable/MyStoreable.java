@@ -48,16 +48,16 @@ public class MyStoreable implements Storeable {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (Object o : listValues) {
+            if (!first) {
+                sb.append(",");
+            } else {
+                first = false;
+            }
             if (o != null) {
-                if (!first) {
-                    sb.append(" ");
-                } else {
-                    first = false;
-                }
                 sb.append(o.toString());
             }
         }
-        return sb.toString();
+        return getClass().getSimpleName() + "[" + sb.toString() + "]";
     }
     
     @Override
