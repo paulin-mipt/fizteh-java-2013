@@ -7,7 +7,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         String pwd = System.getProperty("user.dir");
-        Shell shell = new Shell(pwd);
+        Shell shell = new Shell(pwd, System.out);
         FileSystemRoutine.integrate(shell);
         if (args.length != 0) {
             System.exit(shell.runArgs(args));

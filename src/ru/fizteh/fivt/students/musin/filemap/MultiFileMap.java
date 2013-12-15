@@ -10,14 +10,14 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MultiFileMap implements Table, AutoCloseable {
-    File location;
-    FileMap[][] map;
-    ThreadLocal<HashMap<String, Storeable>> diff;
-    ArrayList<Class<?>> columnTypes;
-    FileMapProvider tableProvider;
-    final int arraySize;
-    ReentrantReadWriteLock lock;
-    volatile boolean valid;
+    private File location;
+    private FileMap[][] map;
+    private ThreadLocal<HashMap<String, Storeable>> diff;
+    private ArrayList<Class<?>> columnTypes;
+    private FileMapProvider tableProvider;
+    private final int arraySize;
+    private ReentrantReadWriteLock lock;
+    private volatile boolean valid;
 
     public MultiFileMap(File location, int arraySize, FileMapProvider tableProvider) {
         if (location == null) {
@@ -299,7 +299,7 @@ public class MultiFileMap implements Table, AutoCloseable {
                 }
             }
         } catch (IOException e) {
-            throw new IOException("Error reading a signature file", e);
+            throw new IOException("Error writing a signature file", e);
         }
         for (int dir = 0; dir < arraySize; dir++) {
             boolean dirRequired = false;

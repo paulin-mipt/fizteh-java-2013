@@ -11,11 +11,10 @@ import java.lang.reflect.Method;
 import java.util.IdentityHashMap;
 
 public class XMLLoggingProxyInvocationHandler implements InvocationHandler {
-
-    Object target;
-    XMLStreamWriter writer;
-    Writer initialWriter;
-    IdentityHashMap<Object, Boolean> identityHashMap;
+    private Object target;
+    private XMLStreamWriter writer;
+    private Writer initialWriter;
+    private IdentityHashMap<Object, Boolean> identityHashMap;
 
     public XMLLoggingProxyInvocationHandler(Object target, Writer writer) throws XMLStreamException {
         this.target = target;

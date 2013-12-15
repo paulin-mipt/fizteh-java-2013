@@ -20,8 +20,8 @@ public class FixedList implements Storeable {
             String.class
     };
 
-    final ArrayList<Class<?>> columnTypes;
-    Object[] objects;
+    private final ArrayList<Class<?>> columnTypes;
+    private Object[] objects;
 
     public FixedList(List<Class<?>> columnTypes) {
         this.columnTypes = new ArrayList<Class<?>>(columnTypes);

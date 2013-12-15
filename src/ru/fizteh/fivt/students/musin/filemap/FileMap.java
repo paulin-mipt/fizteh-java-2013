@@ -15,9 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FileMap {
-    File location;
-    HashMap<String, Storeable> map;
-    final int maxLength;
+    private File location;
+    private HashMap<String, Storeable> map;
+    private final int maxLength;
 
     public FileMap(File location) {
         if (location == null) {

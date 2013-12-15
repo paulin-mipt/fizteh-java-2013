@@ -5,23 +5,11 @@ import ru.fizteh.fivt.students.musin.shell.Shell;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-public class Main {
+public class ClientStart {
 
     public static void main(String[] args) throws Exception {
         String pwd = System.getProperty("user.dir");
-        String db = System.getProperty("fizteh.db.dir");
-        if (db == null) {
-            System.err.println("Database file not specified");
-            System.exit(-1);
-        }
-        ShellServerDatabaseHandler database = null;
-        try {
-            FileMapProvider provider = new FileMapProviderFactory().create(db);
-            database = new ShellServerDatabaseHandler(provider);
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            System.exit(-1);
-        }
+        ShellClientDatabaseHandler database = new ShellClientDatabaseHandler(new RemoteFileMapProviderFactory());
         Shell shell = new Shell(pwd, System.out);
         database.integrate(shell);
         int exitCode = 0;
@@ -34,4 +22,3 @@ public class Main {
         System.exit(exitCode);
     }
 }
-
