@@ -408,6 +408,9 @@ public class ShellClientDatabaseHandler {
                         database.close();
                         database = null;
                         current = null;
+                    } catch (IOException e) {
+                        printException(e, shell.writer);
+                        return -1;
                     } catch (RuntimeException e) {
                         printException(e, shell.writer);
                         return -1;
@@ -445,13 +448,6 @@ public class ShellClientDatabaseHandler {
         shell.addExitFunction(new Shell.ShellCommand(null, new Shell.ShellExecutable() {
             @Override
             public int execute(Shell shell, ArrayList<String> args) {
-                try {
-                    if (current != null) {
-                        current.rollback();
-                    }
-                } catch (Exception e) {
-                    printException(e, shell.writer);
-                }
                 try {
                     if (database != null) {
                         database.close();

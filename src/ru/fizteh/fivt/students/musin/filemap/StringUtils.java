@@ -3,7 +3,6 @@ package ru.fizteh.fivt.students.musin.filemap;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class StringUtils {
@@ -30,7 +29,6 @@ public class StringUtils {
     public static ArrayList<Class<?>> stringToClassList(String types) {
         ArrayList<Class<?>> columnTypes = new ArrayList<>();
         String[] typeNames = types.split("\\s+");
-        columnTypes = new ArrayList<>();
         for (int i = 0; i < typeNames.length; i++) {
             if (typeNames[i].equals("int")) {
                 columnTypes.add(Integer.class);

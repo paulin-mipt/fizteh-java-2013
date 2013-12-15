@@ -59,10 +59,10 @@ public class DatabaseServer {
         return started;
     }
 
-    String[] listConnections()
-    {
-        if (!started)
+    String[] listConnections() {
+        if (!started) {
             throw new IllegalStateException("Server not started");
+        }
         server.connectionLock.readLock().lock();
         try {
             String[] result = new String[server.connections.size()];

@@ -147,7 +147,8 @@ public class FileMapProvider implements TableProvider, AutoCloseable {
                 }
             }
             if (!check) {
-                throw new IllegalArgumentException(String.format("wrong type (%s not supported)", columnType.toString()));
+                throw new IllegalArgumentException(String.format("wrong type (%s not supported)",
+                        columnType.toString()));
             }
         }
         if (name.equals("")) {

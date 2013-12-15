@@ -13,7 +13,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoteFileMap implements Table {
+public class RemoteFileMap implements Table, AutoCloseable {
     private Socket socket;
     private BufferedReader reader;
     private PrintStream writer;
@@ -21,12 +21,14 @@ public class RemoteFileMap implements Table {
     private String name;
     private RemoteFileMapProvider provider;
     private ArrayList<Class<?>> columnTypes;
+    private boolean valid;
 
     public RemoteFileMap(String name, Socket socket, RemoteFileMapProvider provider) throws IOException {
         active = false;
         this.socket = socket;
         this.name = name;
         this.provider = provider;
+        valid = true;
         columnTypes = new ArrayList<>();
         reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         writer = new PrintStream(socket.getOutputStream());
@@ -38,7 +40,14 @@ public class RemoteFileMap implements Table {
         this.columnTypes = new ArrayList<>(columnTypes);
     }
 
+    private void checkState() {
+        if (!valid) {
+            throw new IllegalStateException("Table is closed");
+        }
+    }
+
     public boolean checkColumnTypes(Storeable list) {
+        checkState();
         try {
             for (int i = 0; i < columnTypes.size(); i++) {
                 if (list.getColumnAt(i) != null && columnTypes.get(i) != list.getColumnAt(i).getClass()) {
@@ -75,22 +84,27 @@ public class RemoteFileMap implements Table {
     }
 
     public void setActive(boolean value) {
+        checkState();
         active = value;
     }
 
     public boolean isActive() {
+        checkState();
         return active;
     }
 
     public String getName() {
+        checkState();
         return name;
     }
 
     public void setColumnTypes(List<Class<?>> columnTypes) {
+        checkState();
         this.columnTypes = new ArrayList<>(columnTypes);
     }
 
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        checkState();
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
@@ -137,6 +151,7 @@ public class RemoteFileMap implements Table {
     }
 
     public Storeable get(String key) {
+        checkState();
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
@@ -170,6 +185,7 @@ public class RemoteFileMap implements Table {
     }
 
     public Storeable remove(String key) {
+        checkState();
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
@@ -203,6 +219,7 @@ public class RemoteFileMap implements Table {
     }
 
     public int size() {
+        checkState();
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
@@ -222,6 +239,7 @@ public class RemoteFileMap implements Table {
     }
 
     public int commit() throws IOException {
+        checkState();
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
@@ -241,6 +259,7 @@ public class RemoteFileMap implements Table {
     }
 
     public int rollback() {
+        checkState();
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
@@ -260,14 +279,21 @@ public class RemoteFileMap implements Table {
     }
 
     public int getColumnsCount() {
+        checkState();
         return columnTypes.size();
     }
 
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkState();
         if (columnIndex >= getColumnsCount() || columnIndex < 0) {
             throw new IndexOutOfBoundsException(String.format("Index out of bounds: array size %d, found %d",
                     columnTypes.size(), columnIndex));
         }
         return columnTypes.get(columnIndex);
+    }
+
+    public void close() {
+        rollback();
+        valid = false;
     }
 }

@@ -1,6 +1,5 @@
 package ru.fizteh.fivt.students.musin.filemap;
 
-import com.sun.corba.se.spi.activation._InitialNameServiceStub;
 import org.json.JSONArray;
 import org.json.JSONException;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
@@ -17,8 +16,9 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class RemoteFileMapProvider implements RemoteTableProvider {
+public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable {
     private Socket socket;
     private BufferedReader reader;
     private PrintStream writer;
@@ -46,7 +46,6 @@ public class RemoteFileMapProvider implements RemoteTableProvider {
     }
 
     private boolean badSymbolCheck(String string) {
-        checkState();
         for (int i = 0; i < string.length(); i++) {
             if (string.charAt(i) <= 31) {
                 return false;
@@ -140,8 +139,9 @@ public class RemoteFileMapProvider implements RemoteTableProvider {
             throw new IllegalStateException("Socket is closed");
         }
         writer.println(String.format("use %s", table.getName()));
-        if (currentActive != null)
+        if (currentActive != null) {
             currentActive.setActive(false);
+        }
         try {
             String message = StringUtils.readLine(reader);
             if (message.equals(String.format("using %s", table.getName()))) {
@@ -182,7 +182,8 @@ public class RemoteFileMapProvider implements RemoteTableProvider {
                 }
             }
             if (!check) {
-                throw new IllegalArgumentException(String.format("wrong type (%s not supported)", columnType.toString()));
+                throw new IllegalArgumentException(String.format("wrong type (%s not supported)",
+                        columnType.toString()));
             }
         }
         if (name.equals("")) {
@@ -368,15 +369,14 @@ public class RemoteFileMapProvider implements RemoteTableProvider {
         return newList;
     }
 
-    public void close() {
+    public void close() throws IOException {
         valid = false;
+        for (Map.Entry<String, RemoteFileMap> entry : used.entrySet()) {
+            entry.getValue().close();
+        }
         used = null;
         currentActive = null;
-        try {
-            socket.close();
-        } catch (IOException e) {
-            //Nothing
-        }
+        socket.close();
     }
 
     public class UnsavedChangesException extends RuntimeException {
