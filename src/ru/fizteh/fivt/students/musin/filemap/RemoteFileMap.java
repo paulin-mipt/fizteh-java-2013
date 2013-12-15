@@ -293,7 +293,12 @@ public class RemoteFileMap implements Table, AutoCloseable {
     }
 
     public void close() {
-        rollback();
+        if (!valid) {
+            return;
+        }
+        if (!socket.isClosed()) {
+            rollback();
+        }
         valid = false;
     }
 }

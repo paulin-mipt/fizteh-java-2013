@@ -372,6 +372,9 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
     }
 
     public void close() throws IOException {
+        if (!valid) {
+            return;
+        }
         valid = false;
         for (Map.Entry<String, RemoteFileMap> entry : used.entrySet()) {
             entry.getValue().close();

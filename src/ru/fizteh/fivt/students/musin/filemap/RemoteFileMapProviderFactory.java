@@ -36,6 +36,9 @@ public class RemoteFileMapProviderFactory implements RemoteTableProviderFactory,
     }
 
     public void close() throws IOException {
+        if (!valid) {
+            return;
+        }
         for (RemoteFileMapProvider provider : providers) {
             provider.close();
         }
