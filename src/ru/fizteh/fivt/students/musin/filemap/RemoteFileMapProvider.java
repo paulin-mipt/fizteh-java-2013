@@ -106,7 +106,7 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
             throw new IllegalStateException("Socket is closed");
         }
         RemoteFileMap newMap = used.get(name);
-        if (newMap != null) {
+        if (newMap != null && !newMap.isClosed()) {
             return newMap;
         } else {
             writer.println(String.format("describe %s", name));
@@ -375,13 +375,16 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
         if (!valid) {
             return;
         }
-        valid = false;
-        for (Map.Entry<String, RemoteFileMap> entry : used.entrySet()) {
-            entry.getValue().close();
+        try {
+            for (Map.Entry<String, RemoteFileMap> entry : used.entrySet()) {
+                entry.getValue().close();
+            }
+            used = null;
+            currentActive = null;
+            socket.close();
+        } finally {
+            valid = false;
         }
-        used = null;
-        currentActive = null;
-        socket.close();
     }
 
     public class UnsavedChangesException extends RuntimeException {

@@ -44,10 +44,13 @@ public class FileMapProviderFactory implements TableProviderFactory, AutoCloseab
     }
 
     public void close() {
-        valid = false;
-        for (FileMapProvider provider : providers) {
-            provider.close();
+        try {
+            for (FileMapProvider provider : providers) {
+                provider.close();
+            }
+            providers.clear();
+        } finally {
+            valid = false;
         }
-        providers.clear();
     }
 }
