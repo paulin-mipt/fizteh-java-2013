@@ -18,7 +18,6 @@ public class FileMapSystem implements Command {
     HashMap<String, String>[][] mapChanges = new HashMap[16][16];
     int maxLength;
     String nameUseTable = "";
-    boolean commitmap = true;
 
 
     public File getFile() {
@@ -522,7 +521,6 @@ public class FileMapSystem implements Command {
             }
         }
     }
-
 
     private String appendPath(String path) throws Exception {
         File tmp = new File(path);
