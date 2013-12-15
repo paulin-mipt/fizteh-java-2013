@@ -199,9 +199,7 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
         try {
             String message = StringUtils.readLine(reader);
             if (message.equals(String.format("%s exists", name))) {
-                RemoteFileMap table = new RemoteFileMap(name, socket, this, columnTypes);
-                used.put(name, table);
-                return table;
+                return null;
             } else if (message.equals("created")) {
                 RemoteFileMap table = new RemoteFileMap(name, socket, this, columnTypes);
                 used.put(name, table);
