@@ -5,6 +5,8 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import ru.fizteh.fivt.students.eltyshev.servlet.database.TransactionManager;
 
+import java.io.IOException;
+
 public class DatabaseServer {
     private static final int DEFAULT_PORT = 8080;
     private Server server;
@@ -44,11 +46,15 @@ public class DatabaseServer {
         return server.getConnectors()[0].getPort();
     }
 
-    public void stop() {
+    public void stop() throws IOException {
         if (server == null || !server.isStarted()) {
             throw new IllegalStateException("not started");
         }
-        server = null;
+        try {
+            server.stop();
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
 }

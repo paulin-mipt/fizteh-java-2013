@@ -22,7 +22,7 @@ public class StopCommand extends AbstractCommand<ServletShellState> {
             String message = String.format("stopped at %d", shellState.server.getPort());
             shellState.server.stop();
             System.out.println(message);
-        } catch (IllegalStateException e) {
+        } catch (IOException | IllegalStateException e) {
             System.err.println(e.getMessage());
         }
     }
