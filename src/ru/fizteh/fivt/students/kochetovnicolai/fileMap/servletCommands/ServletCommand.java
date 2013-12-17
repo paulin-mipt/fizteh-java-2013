@@ -40,7 +40,7 @@ public abstract class ServletCommand extends HttpServlet {
     protected String getValue(String name, HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String value = req.getParameter(name);
         if (value == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, name + " expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, name + " expected");
             return null;
         }
         return value;
