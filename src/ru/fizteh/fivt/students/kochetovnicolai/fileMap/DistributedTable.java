@@ -43,6 +43,10 @@ public class DistributedTable extends FileManager implements Table, AutoCloseabl
     private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock(true);
     private volatile boolean isClosed = false;
 
+    public boolean closed() {
+        return isClosed;
+    }
+
     private void checkState() throws IllegalStateException {
         if (isClosed) {
             throw new IllegalStateException("table " + tableName + " already closed");
@@ -544,7 +548,7 @@ public class DistributedTable extends FileManager implements Table, AutoCloseabl
     }
 
     public void setDefaultTransaction() {
-        checkState();
+        //checkState();
         HashMap<String, Storeable> transaction = defaultChanges.get();
         if (transaction != null) {
             changes.set(transaction);
