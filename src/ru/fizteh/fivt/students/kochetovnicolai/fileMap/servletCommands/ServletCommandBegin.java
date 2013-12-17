@@ -42,6 +42,7 @@ public class ServletCommandBegin extends ServletCommand {
         char[] str = new char[5];
         for (int i = 4; i >= 0; i--) {
             str[i] = (char) ('0' + sessionID % 10);
+            sessionID /= 10;
         }
         resp.getWriter().println("tid=" + new String(str));
     }
