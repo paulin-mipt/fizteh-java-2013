@@ -26,13 +26,13 @@ public abstract class ServletCommand extends HttpServlet {
             return null;
         }
         if (!id.matches("[0-9]{5}")) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, id + ": invalid tid format");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, id + ": invalid tid format");
             return null;
         }
         sessionID = Integer.parseInt(id);
         DistributedTable table = manager.getTableByID(sessionID);
         if (table == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, id + ": unused tid");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, id + ": unused tid");
         }
         return table;
     }
