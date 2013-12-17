@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class TableManager extends Manager {
 
@@ -24,7 +25,7 @@ public class TableManager extends Manager {
     private HashMap<String, Servlet> servletCommands = null;
     private int port;
     private HashMap<Integer, String> servletTables;
-    final int maxID = 100000;
+    private ReentrantReadWriteLock lock;
 
     private void initialiseServletCommands() {
         servletCommands = new HashMap<>();
@@ -43,12 +44,13 @@ public class TableManager extends Manager {
         }
 
         server = new Server(port);
+        lock = new ReentrantReadWriteLock();
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
         context.setContextPath("/");
         if (servletCommands == null) {
             initialiseServletCommands();
         }
-        for (String command: servletCommands.keySet()) {
+        for (String command : servletCommands.keySet()) {
             context.addServlet(new ServletHolder(servletCommands.get(command)), command);
         }
         server.setHandler(context);
@@ -79,33 +81,53 @@ public class TableManager extends Manager {
         servletTables.clear();
         printMessage("stopped at " + port);
         server = null;
+        lock = null;
         return true;
     }
 
     public Integer newSession(String tableName) throws IllegalStateException {
+        if (server == null) {
+            throw new IllegalStateException("server is not started");
+        }
         DistributedTable table = getTable(tableName);
         if (table == null) {
             return null;
         }
-        for (int i = 0; i < maxID; i++) {
-            if (!servletTables.containsKey(i)) {
-                servletTables.put(i, tableName);
-                return i;
+        lock.writeLock().lock();
+        try {
+            for (int i = 0; i < 100000; i++) {
+                if (!servletTables.containsKey(i)) {
+                    servletTables.put(i, tableName);
+                    return i;
+                }
             }
+        } finally {
+            lock.writeLock().unlock();
         }
         throw new IllegalStateException("server is busy");
     }
 
     public DistributedTable getTableByID(int sessionID) {
-        String tableName = servletTables.get(sessionID);
-        if (tableName == null) {
-            return null;
+        lock.readLock().lock();
+        String tableName;
+        try {
+            tableName = servletTables.get(sessionID);
+            if (tableName == null) {
+                return null;
+            }
+            return getTable(tableName);
+        } finally {
+            lock.readLock().unlock();
         }
-        return getTable(tableName);
     }
 
     public boolean deleteTableByID(int sessionID) {
-        return servletTables.remove(sessionID) != null;
+        lock.writeLock().lock();
+        try {
+            return servletTables.remove(sessionID) != null;
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public boolean existsTable(String name) {

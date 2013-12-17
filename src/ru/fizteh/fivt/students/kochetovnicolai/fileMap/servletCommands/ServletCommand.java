@@ -33,6 +33,7 @@ public abstract class ServletCommand extends HttpServlet {
         DistributedTable table = manager.getTableByID(sessionID);
         if (table == null) {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, id + ": unused tid");
+            return null;
         }
         return table;
     }
