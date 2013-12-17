@@ -23,7 +23,7 @@ public class ServletCommandRollback extends ServletCommand {
             return;
         }
 
-
+        /*
         int diff;
         try {
             table.useTransaction(sessionID);
@@ -34,6 +34,17 @@ public class ServletCommandRollback extends ServletCommand {
             return;
         } finally {
             manager.deleteTableByID(sessionID);
+        } */
+
+        int diff;
+        try {
+            table.useTransaction(sessionID);
+            diff = table.rollback();
+        } catch (IllegalStateException e) {
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+            return;
+        } finally {
+            table.setDefaultTransaction();
         }
 
         resp.setStatus(HttpServletResponse.SC_OK);
