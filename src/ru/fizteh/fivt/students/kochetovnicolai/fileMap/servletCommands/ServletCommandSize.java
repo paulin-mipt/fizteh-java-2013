@@ -30,9 +30,9 @@ public class ServletCommandSize extends ServletCommand {
             size = table.size();
         } catch (IllegalStateException e) {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-            if (table.closed()) {
-                manager.deleteTableByID(sessionID);
-            }
+            //if (table.closed()) {
+            //    manager.deleteTableByID(sessionID);
+            //}
             return;
         } finally {
             table.setDefaultTransaction();
