@@ -22,8 +22,11 @@ public class ServletCommandPut extends ServletCommand {
             throws ServletException, IOException {
 
         String key = getValue("key", req, resp);
+        if (key == null) {
+            return;
+        }
         String value = getValue("value", req, resp);
-        if (value == null || key == null) {
+        if (value == null) {
             return;
         }
 
