@@ -23,7 +23,7 @@ public class TableManager extends Manager {
 
     private HashMap<String, Servlet> servletCommands = null;
     private int port;
-    private HashMap<Integer, DistributedTable> servletTables;
+    private HashMap<Integer, String> servletTables;
     final int maxID = 100000;
 
     private void initialiseServletCommands() {
@@ -76,7 +76,7 @@ public class TableManager extends Manager {
             printMessage("not started");
             return false;
         }
-        //servletTables.clear();
+        servletTables.clear();
         printMessage("stopped at " + port);
         server = null;
         return true;
@@ -89,7 +89,7 @@ public class TableManager extends Manager {
         }
         for (int i = 0; i < maxID; i++) {
             if (!servletTables.containsKey(i)) {
-                servletTables.put(i, table);
+                servletTables.put(i, tableName);
                 return i;
             }
         }
@@ -97,7 +97,7 @@ public class TableManager extends Manager {
     }
 
     public DistributedTable getTableByID(int sessionID) {
-        return servletTables.get(sessionID);
+        return getTable(servletTables.get(sessionID));
     }
 
     public boolean deleteTableByID(int sessionID) {
