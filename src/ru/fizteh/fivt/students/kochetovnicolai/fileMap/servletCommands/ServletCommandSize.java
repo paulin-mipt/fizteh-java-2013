@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class ServletCommandSize extends ServletCommand {
-    TableManager manager;
 
     public ServletCommandSize(TableManager manager) {
         super(manager);
