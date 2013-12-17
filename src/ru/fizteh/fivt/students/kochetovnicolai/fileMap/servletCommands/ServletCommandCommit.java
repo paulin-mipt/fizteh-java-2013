@@ -24,7 +24,6 @@ public class ServletCommandCommit extends ServletCommand {
             return;
         }
 
-        /*
         int diff;
         try {
             table.useTransaction(sessionID);
@@ -36,8 +35,8 @@ public class ServletCommandCommit extends ServletCommand {
         } finally {
             manager.deleteTableByID(sessionID);
         }
-        */
 
+        /*
         int diff;
         try {
             table.useTransaction(sessionID);
@@ -48,6 +47,7 @@ public class ServletCommandCommit extends ServletCommand {
         } finally {
             table.setDefaultTransaction();
         }
+        */
 
         resp.setStatus(HttpServletResponse.SC_OK);
 

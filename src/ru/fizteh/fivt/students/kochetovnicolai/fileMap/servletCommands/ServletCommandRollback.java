@@ -23,7 +23,7 @@ public class ServletCommandRollback extends ServletCommand {
             return;
         }
 
-        /*
+
         int diff;
         try {
             table.useTransaction(sessionID);
@@ -34,8 +34,8 @@ public class ServletCommandRollback extends ServletCommand {
             return;
         } finally {
             manager.deleteTableByID(sessionID);
-        } */
-
+        }
+        /*
         int diff;
         try {
             table.useTransaction(sessionID);
@@ -46,6 +46,7 @@ public class ServletCommandRollback extends ServletCommand {
         } finally {
             table.setDefaultTransaction();
         }
+        */
 
         resp.setStatus(HttpServletResponse.SC_OK);
 
