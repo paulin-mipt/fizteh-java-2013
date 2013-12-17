@@ -36,19 +36,6 @@ public class ServletCommandCommit extends ServletCommand {
             manager.deleteTableByID(sessionID);
         }
 
-        /*
-        int diff;
-        try {
-            table.useTransaction(sessionID);
-            diff = table.commit();
-        } catch (IOException|IllegalStateException e) {
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-            return;
-        } finally {
-            table.setDefaultTransaction();
-        }
-        */
-
         resp.setStatus(HttpServletResponse.SC_OK);
 
         resp.setContentType("text/plain");
