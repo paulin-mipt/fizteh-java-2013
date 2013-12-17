@@ -46,7 +46,7 @@ public class ServletCommandGet extends ServletCommand {
             table.setDefaultTransaction();
         }
         if (value == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, key + ": no such key");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, key + ": no such key");
             return;
         }
 
