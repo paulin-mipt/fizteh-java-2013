@@ -76,7 +76,7 @@ public class TableManager extends Manager {
             printMessage("not started");
             return false;
         }
-        servletTables.clear();
+        //servletTables.clear();
         printMessage("stopped at " + port);
         server = null;
         return true;
