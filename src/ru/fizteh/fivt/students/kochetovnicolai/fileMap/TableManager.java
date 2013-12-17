@@ -97,7 +97,11 @@ public class TableManager extends Manager {
     }
 
     public DistributedTable getTableByID(int sessionID) {
-        return getTable(servletTables.get(sessionID));
+        String tableName = servletTables.get(sessionID);
+        if (tableName == null) {
+            return null;
+        }
+        return getTable(tableName);
     }
 
     public boolean deleteTableByID(int sessionID) {
