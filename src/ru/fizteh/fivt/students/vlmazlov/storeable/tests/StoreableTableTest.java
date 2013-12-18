@@ -8,6 +8,7 @@ import ru.fizteh.fivt.students.vlmazlov.utils.FileUtils;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 
 import java.io.File;
+import java.util.Scanner;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -240,6 +241,41 @@ public class StoreableTableTest {
     @Test
     public void columnsCountIsCorrect() {
         Assert.assertEquals("Incorrect columns count", 3, table.getColumnsCount());
+    }
+
+    private int readSizeTsv() throws IOException {
+
+        File sizeTsv = new File(new File(provider.getRoot(), table.getName()), "size.tsv");
+
+        Scanner scanner = new Scanner(sizeTsv);
+
+        try {
+            return scanner.nextInt();
+        } finally {
+            scanner.close();
+        }
+    }
+
+    @Test
+    public void putCommitSizeTsv() throws IOException {
+        table.put("key2", val2);
+
+        int size = table.size();
+
+        table.commit();
+
+        int sizeTsv = readSizeTsv();
+        
+        Assert.assertEquals("Size from size.tsv should be equal size from table.size()", size, sizeTsv);
+
+        // Это обычный put
+        table.put("key1", val1);
+
+        // Это обычный коммит
+        table.commit();
+
+        Assert.assertEquals("size.tsv should be bigger after commit", sizeTsv + 1, readSizeTsv());
+
     }
 
     //IndexOutOfBounds tests

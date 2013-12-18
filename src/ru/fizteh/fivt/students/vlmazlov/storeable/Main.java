@@ -1,6 +1,5 @@
 package ru.fizteh.fivt.students.vlmazlov.storeable;
 
-import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.students.vlmazlov.storeable.commands.*;
 import ru.fizteh.fivt.students.vlmazlov.shell.*;
 import ru.fizteh.fivt.students.vlmazlov.storeable.commands.CreateStoreableCommand;
