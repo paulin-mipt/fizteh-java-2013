@@ -81,7 +81,7 @@ public class Shell {
                 }
             }
             if (command == null && !name.equals("")) {
-                writer.printf("No such command %s\n", name);
+                writer.printf("No such command %s%s", name, System.lineSeparator());
                 return -1;
             }
         }

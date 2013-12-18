@@ -87,7 +87,7 @@ public class ShellServerDatabaseHandler {
                 @Override
                 public int execute(Shell shell, ArrayList<String> args) {
                     if (args.size() > 0) {
-                        System.err.println("stop: Too many arguments");
+                        shell.writer.println("stop: Too many arguments");
                         return -1;
                     }
                     if (!server.isStarted()) {

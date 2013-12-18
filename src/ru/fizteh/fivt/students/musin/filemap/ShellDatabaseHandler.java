@@ -315,8 +315,7 @@ public class ShellDatabaseHandler {
                     }
                     Storeable value = current.remove(args.get(0));
                     if (value != null) {
-                        shell.writer.printf("removed%s%s%s",
-                                System.lineSeparator(), database.serialize(current, value), System.lineSeparator());
+                        shell.writer.printf("removed%s", System.lineSeparator());
                     } else {
                         shell.writer.println("not found");
                     }

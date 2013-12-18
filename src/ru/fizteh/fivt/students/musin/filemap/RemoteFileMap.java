@@ -198,19 +198,26 @@ public class RemoteFileMap implements Table, AutoCloseable {
         if (!active) {
             provider.activate(this);
         }
-        writer.println(String.format("remove %s", key));
+        writer.println(String.format("get %s", key));
         String message = null;
         try {
             message = StringUtils.readLine(reader);
             if (message.equals("not found")) {
                 return null;
             }
-            if (message.equals("removed")) {
+            if (message.equals("found")) {
                 message = StringUtils.readLine(reader);
             } else {
                 throw new RuntimeException(String.format("Server side exception: %s", message));
             }
-            return provider.deserialize(this, message);
+            Storeable result = provider.deserialize(this, message);
+            writer.println(String.format("remove %s", key));
+            message = StringUtils.readLine(reader);
+            if (message.equals("removed") || message.equals("not found")) {
+                return result;
+            } else {
+                throw new RuntimeException(String.format("Server side exception: %s", message));
+            }
         } catch (IOException e) {
             throw new RuntimeException("Error reading from socket: ", e);
         } catch (ParseException e) {
