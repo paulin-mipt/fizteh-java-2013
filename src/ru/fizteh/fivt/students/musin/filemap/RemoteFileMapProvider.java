@@ -241,6 +241,12 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
             } else if (!message.equals("dropped")) {
                 throw new RuntimeException(String.format("Server side exception: %s", message));
             }
+            RemoteFileMap table = used.get(name);
+            if (table != null)
+            {
+                table.close();
+                used.remove(name);
+            }
         } catch (IOException e) {
             throw new RuntimeException("Error reading from socket: ", e);
         }
