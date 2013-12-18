@@ -359,7 +359,7 @@ public class ShellDatabaseHandler {
                             }
                             shell.writer.println();
                         } else {
-                            shell.writer.printf("not found", args.get(0), System.lineSeparator());
+                            shell.writer.println("failed");
                             return -1;
                         }
                     } catch (RuntimeException e) {

@@ -113,7 +113,7 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
             ArrayList<Class<?>> columnTypes = null;
             try {
                 String message = StringUtils.readLine(reader);
-                if (message.equals("not found")) {
+                if (message.equals("failed")) {
                     return null;
                 }
                 columnTypes = StringUtils.stringToClassList(message);
@@ -231,7 +231,9 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
         writer.println(String.format("drop %s", name));
         try {
             String message = StringUtils.readLine(reader);
-            if (!message.equals("dropped") && !message.equals(String.format("%s not exists"))) {
+            if (message.equals(String.format("%s not exists", name))) {
+                throw new IllegalStateException(String.format("%s not exists", name));
+            } else if (!message.equals("dropped")) {
                 throw new RuntimeException(String.format("Server side exception: %s", message));
             }
         } catch (IOException e) {
