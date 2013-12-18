@@ -7,7 +7,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("WordCounter needs arguments");
+            System.err.println("wordwounter needs arguments");
             System.err.println("Arguments:");
             System.err.println("Paths to files: file1.txt test/file2.txt //for example...");
             System.err.println("-o FILENAME //if you want to write results to file");

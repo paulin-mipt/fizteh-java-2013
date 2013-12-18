@@ -1,4 +1,4 @@
-package ru.fizteh.fivt.students.mazanovArtem.homeworkforlosers;
+package ru.fizteh.fivt.students.mazanovArtem.homeworkforlosers.wordwounter;
 
 import ru.fizteh.fivt.file.WordCounter;
 import ru.fizteh.fivt.file.WordCounterFactory;
@@ -40,13 +40,6 @@ public class WordMain {
         boolean standOutput = false;
         WordCounterFactory factory = new MyWordCounterFactory();
         WordCounter counter = factory.create();
-        /*args = new String[3];
-        args[0] = "-a";
-        args[1] = "-o";
-        args[2] = "/home/tema/Documents/java/3.txt";
-        args[3] = "/home/tema/Documents/java/1.txt";
-        args[4] = "/home/tema/Documents/java/2.txt";
-        args[5] = "/home/tema/Documents/java/4.txt";*/
         try {
             if (args.length == 0) {
                 throw new IllegalArgumentException("Few arguments");
@@ -88,7 +81,7 @@ public class WordMain {
         }
         try {
             if (tmp == null) {
-                output = new FileOutputStream(FileDescriptor.out);
+                output = System.out;
                 standOutput = true;
             } else {
                 if (!tmp.exists()) {
@@ -121,6 +114,7 @@ public class WordMain {
             counter.count(list, output, aggregate);
         } catch (IOException | IllegalArgumentException e) {
             System.out.println(e.getMessage());
+            System.exit(1);
         } finally {
             if ((!standOutput) && (output != null)) {
                 try {
@@ -128,7 +122,6 @@ public class WordMain {
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
                 }
-
             }
         }
     }

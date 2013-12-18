@@ -1,4 +1,4 @@
-package ru.fizteh.fivt.students.mazanovArtem.homeworkforlosers;
+package ru.fizteh.fivt.students.mazanovArtem.homeworkforlosers.wordwounter;
 
 
 import ru.fizteh.fivt.file.WordCounterFactory;
