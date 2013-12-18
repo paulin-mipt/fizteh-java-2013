@@ -113,7 +113,7 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
             ArrayList<Class<?>> columnTypes = null;
             try {
                 String message = StringUtils.readLine(reader);
-                if (message.equals("failed")) {
+                if (message.contains("failed")) {
                     return null;
                 }
                 columnTypes = StringUtils.stringToClassList(message);
