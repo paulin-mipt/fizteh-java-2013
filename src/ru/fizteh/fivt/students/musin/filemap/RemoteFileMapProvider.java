@@ -147,7 +147,7 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
             if (message.equals(String.format("using %s", table.getName()))) {
                 table.setActive(true);
                 return;
-            } else if (message.equals(String.format("%s not exists"))) {
+            } else if (message.equals(String.format("%s not exists", table.getName()))) {
                 throw new IllegalStateException("Table no longer exists");
             } else if (message.contains("unsaved changes")) {
                 throw new UnsavedChangesException(message);
@@ -233,6 +233,12 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
         if (socket.isClosed()) {
             throw new IllegalStateException("Socket is closed");
         }
+        RemoteFileMap table = used.get(name);
+        if (table != null)
+        {
+            table.close();
+            used.remove(name);
+        }
         writer.println(String.format("drop %s", name));
         try {
             String message = StringUtils.readLine(reader);
@@ -240,12 +246,6 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
                 throw new IllegalStateException(String.format("%s not exists", name));
             } else if (!message.equals("dropped")) {
                 throw new RuntimeException(String.format("Server side exception: %s", message));
-            }
-            RemoteFileMap table = used.get(name);
-            if (table != null)
-            {
-                table.close();
-                used.remove(name);
             }
         } catch (IOException e) {
             throw new RuntimeException("Error reading from socket: ", e);
