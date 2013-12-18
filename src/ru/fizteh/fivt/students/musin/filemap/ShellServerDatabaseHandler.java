@@ -66,7 +66,7 @@ public class ShellServerDatabaseHandler {
                         try {
                             newPort = Integer.parseInt(args.get(0));
                         } catch (NumberFormatException e) {
-                            printException(e, shell.writer);
+                            shell.writer.println("not started: Can't parse argument as integer");
                             return -1;
                         }
                     }

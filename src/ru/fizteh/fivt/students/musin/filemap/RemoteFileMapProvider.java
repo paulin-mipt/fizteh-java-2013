@@ -234,8 +234,7 @@ public class RemoteFileMapProvider implements RemoteTableProvider, AutoCloseable
             throw new IllegalStateException("Socket is closed");
         }
         RemoteFileMap table = used.get(name);
-        if (table != null)
-        {
+        if (table != null) {
             table.close();
             used.remove(name);
         }
