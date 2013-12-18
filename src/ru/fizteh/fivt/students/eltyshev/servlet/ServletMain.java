@@ -1,5 +1,11 @@
 package ru.fizteh.fivt.students.eltyshev.servlet;
 
+import ru.fizteh.fivt.storage.structured.Storeable;
+import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.commands.*;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.CreateCommand;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.DropCommand;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.UseCommand;
 import ru.fizteh.fivt.students.eltyshev.servlet.shell.ServletShellState;
 import ru.fizteh.fivt.students.eltyshev.servlet.shell.StartCommand;
 import ru.fizteh.fivt.students.eltyshev.servlet.shell.StopCommand;
@@ -21,6 +27,15 @@ public class ServletMain {
 
         commands.add(new StartCommand());
         commands.add(new StopCommand());
+        commands.add(new PutCommand<Table, String, Storeable, ServletShellState>());
+        commands.add(new GetCommand<Table, String, Storeable, ServletShellState>());
+        commands.add(new RemoveCommand<Table, String, Storeable, ServletShellState>());
+        commands.add(new CommitCommand<ServletShellState>());
+        commands.add(new RollbackCommand<ServletShellState>());
+        commands.add(new SizeCommand<ServletShellState>());
+        commands.add(new CreateCommand<Table, String, Storeable, ServletShellState>());
+        commands.add(new DropCommand<ServletShellState>());
+        commands.add(new UseCommand<Table, String, Storeable, ServletShellState>());
         commands.add(new ExitCommand<ServletShellState>());
         commands.add(new HelpCommand<ServletShellState>(commands));
 

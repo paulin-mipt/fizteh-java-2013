@@ -18,26 +18,26 @@ public class PutServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String transactionId = req.getParameter(ParamNames.TRANSACTION_ID.name);
+        String transactionId = req.getParameter(Constants.TRANSACTION_ID);
         if (transactionId == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Transaction id expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Transaction id expected");
             return;
         }
 
-        String key = req.getParameter(ParamNames.KEY.name);
+        String key = req.getParameter(Constants.KEY);
         if (key == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Key expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Key expected");
             return;
         }
 
-        String value = req.getParameter(ParamNames.VALUE.name);
+        String value = req.getParameter(Constants.VALUE);
         if (value == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
 
         Transaction transaction = manager.getTransaction(transactionId);
         if (transaction == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Transaction not found");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Transaction not found");
             return;
         }
 
@@ -49,8 +49,8 @@ public class PutServlet extends HttpServlet {
             resp.setCharacterEncoding("UTF8");
 
             resp.getWriter().println(oldValue);
-        } catch (IOException e) {
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         }
     }
 }

@@ -30,13 +30,13 @@ public class DatabaseServer {
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
         context.setContextPath("/");
 
-        context.addServlet(new ServletHolder(new BeginServlet(manager)), CommandNames.BEGIN.name);
-        context.addServlet(new ServletHolder(new GetServlet(manager)), CommandNames.GET.name);
-        context.addServlet(new ServletHolder(new PutServlet(manager)), CommandNames.PUT.name);
-        context.addServlet(new ServletHolder(new CommitServlet(manager)), CommandNames.COMMIT.name);
-        context.addServlet(new ServletHolder(new RollbackServlet(manager)), CommandNames.ROLLBACK.name);
-        context.addServlet(new ServletHolder(new SizeServlet(manager)), CommandNames.SIZE.name);
-        context.addServlet(new ServletHolder(new TestServlet()), CommandNames.TEST.name);
+        context.addServlet(new ServletHolder(new BeginServlet(manager)), Constants.BEGIN);
+        context.addServlet(new ServletHolder(new GetServlet(manager)), Constants.GET);
+        context.addServlet(new ServletHolder(new PutServlet(manager)), Constants.PUT);
+        context.addServlet(new ServletHolder(new CommitServlet(manager)), Constants.COMMIT);
+        context.addServlet(new ServletHolder(new RollbackServlet(manager)), Constants.ROLLBACK);
+        context.addServlet(new ServletHolder(new SizeServlet(manager)), Constants.SIZE);
+        context.addServlet(new ServletHolder(new TestServlet()), Constants.TEST);
 
         server.setHandler(context);
         server.start();

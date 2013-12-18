@@ -18,28 +18,25 @@ public class CommitServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String transactionId = req.getParameter(ParamNames.TRANSACTION_ID.name);
+        String transactionId = req.getParameter(Constants.TRANSACTION_ID);
         if (transactionId == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Transaction id expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Transaction id expected");
             return;
         }
 
         Transaction transaction = manager.getTransaction(transactionId);
         if (transaction == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Transaction not found");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Transaction not found");
             return;
         }
 
-        try {
-            int result = transaction.commit();
 
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.setContentType("text/plain");
-            resp.setCharacterEncoding("UTF8");
+        int result = transaction.commit();
 
-            resp.getWriter().println(String.format("%s=%d", ParamNames.DIFF.name, result));
-        } catch (IOException e) {
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        }
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setContentType("text/plain");
+        resp.setCharacterEncoding("UTF8");
+
+        resp.getWriter().println(String.format("%s=%d", Constants.DIFF, result));
     }
 }

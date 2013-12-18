@@ -17,9 +17,9 @@ public class BeginServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String tableName = req.getParameter(ParamNames.TABLE_NAME.name);
+        String tableName = req.getParameter(Constants.TABLE_NAME);
         if (tableName == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Table name expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Table name expected");
             return;
         }
 
@@ -29,6 +29,6 @@ public class BeginServlet extends HttpServlet {
         resp.setContentType("text/plain");
         resp.setCharacterEncoding("UTF8");
 
-        resp.getWriter().println(String.format("%s=%s", ParamNames.TRANSACTION_ID.name, transactionId));
+        resp.getWriter().println(String.format("%s=%s", Constants.TRANSACTION_ID, transactionId));
     }
 }

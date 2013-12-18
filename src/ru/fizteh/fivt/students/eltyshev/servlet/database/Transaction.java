@@ -65,7 +65,7 @@ public class Transaction {
         try {
             Storeable oldValue = table.put(key, provider.deserialize(table, value));
             if (oldValue == null) {
-                return "new";
+                throw new IllegalArgumentException("key not found");
             }
             return provider.serialize(table, oldValue);
         } catch (ParseException e) {

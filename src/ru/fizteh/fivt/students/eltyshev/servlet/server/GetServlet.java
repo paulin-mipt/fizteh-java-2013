@@ -18,21 +18,21 @@ public class GetServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String transactionId = req.getParameter(ParamNames.TRANSACTION_ID.name);
+        String transactionId = req.getParameter(Constants.TRANSACTION_ID);
         if (transactionId == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Transaction id expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Transaction id expected");
             return;
         }
 
-        String key = req.getParameter(ParamNames.KEY.name);
+        String key = req.getParameter(Constants.KEY);
         if (key == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Key expected");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Key expected");
             return;
         }
 
         Transaction transaction = manager.getTransaction(transactionId);
         if (transaction == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Transaction not found");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Transaction not found");
             return;
         }
 
@@ -46,9 +46,6 @@ public class GetServlet extends HttpServlet {
             resp.getWriter().println(value);
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (Exception e) {
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
-
     }
 }
