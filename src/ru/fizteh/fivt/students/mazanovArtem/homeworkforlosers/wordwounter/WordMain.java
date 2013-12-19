@@ -105,11 +105,7 @@ public class WordMain {
                 if (tmp.equals(outputFile)) {
                     throw new IllegalArgumentException("Output file is equals input file");
                 }
-                if (tmp.exists()) {
-                    list.add(tmp);
-                } else {
-                    throw new IllegalArgumentException(tmp.getName() + " not exists");
-                }
+                list.add(tmp);
             }
             counter.count(list, output, aggregate);
         } catch (IOException | IllegalArgumentException e) {
