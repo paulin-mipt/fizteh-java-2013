@@ -42,7 +42,7 @@ public class StoreableTableBuilder implements TableBuilder {
         } catch (ParseException e) {
             System.err.println(e.getMessage());
         }
-        table.put(key, objectValue);
+        table.rawPut(key, objectValue);
     }
 
     @Override
