@@ -1,5 +1,7 @@
-package ru.fizteh.fivt.students.kochetovnicolai.fileMap;
+package ru.fizteh.fivt.students.kochetovnicolai.fileMap.tableCommands;
 
+import ru.fizteh.fivt.students.kochetovnicolai.fileMap.DistributedTable;
+import ru.fizteh.fivt.students.kochetovnicolai.fileMap.TableManager;
 import ru.fizteh.fivt.students.kochetovnicolai.shell.Executable;
 
 public class TableCommandUse extends Executable {

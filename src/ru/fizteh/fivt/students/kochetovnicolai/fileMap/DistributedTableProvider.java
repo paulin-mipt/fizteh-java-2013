@@ -291,6 +291,9 @@ public class DistributedTableProvider implements TableProvider, AutoCloseable {
     }
 
     public static String serializeByTypesList(List<Class<?>> tableTypes, Storeable storeable) {
+        if (storeable == null) {
+            return null;
+        }
         TableRecord.checkStoreableTypes(storeable, tableTypes);
         StringWriter stringWriter = new StringWriter();
         try {
