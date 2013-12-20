@@ -1,6 +1,7 @@
 package ru.fizteh.fivt.students.vlmazlov.storeable.commands;
 
-import ru.fizteh.fivt.students.vlmazlov.storeable.StoreableDataBaseState;
+import ru.fizteh.fivt.students.vlmazlov.generics.DataBaseState;
+import ru.fizteh.fivt.students.vlmazlov.generics.commands.AbstractDataBaseCommand;
 import ru.fizteh.fivt.students.vlmazlov.shell.CommandFailException;
 import ru.fizteh.fivt.students.vlmazlov.storeable.StoreableTableProvider;
 import ru.fizteh.fivt.students.vlmazlov.utils.TypeName;
@@ -15,7 +16,7 @@ public class CreateStoreableCommand extends AbstractDataBaseCommand {
         super("create", 2);
     }
 
-    public void execute(String[] args, StoreableDataBaseState state, OutputStream out) throws CommandFailException {
+    public void execute(String[] args, DataBaseState state, OutputStream out) throws CommandFailException {
         if (!(state.getProvider() instanceof StoreableTableProvider)) {
             throw new CommandFailException("create storeable: Incorrect provider type");
         }

@@ -14,7 +14,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Arrays;
 
 public class StoreableTableProvider extends GenericTableProvider<Storeable, StoreableTable>
@@ -72,6 +71,7 @@ implements TableProvider, AutoCloseable {
         }
     }
 
+    @Override
     public StoreableTable getTable(String name) {
         checkClosed();
 
@@ -95,6 +95,16 @@ implements TableProvider, AutoCloseable {
         }
 
         return table;
+    }
+
+    public synchronized void removeTable(String name) {
+        checkClosed();
+        super.removeTable(name);
+    }
+
+    public String getRoot() {
+        checkClosed();
+        return super.getRoot();
     }
 
     private StoreableTable loadTable(String name) throws IOException, ValidityCheckFailedException {

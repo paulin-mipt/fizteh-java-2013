@@ -15,8 +15,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.text.ParseException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -42,7 +40,7 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Au
     public StoreableTable(StoreableTableProvider provider, 
         String name, boolean autoCommit, List<Class<?>> valueTypes) 
     throws ValidityCheckFailedException, IOException {
-    	super(name, autoCommit);
+        super(name, autoCommit);
 
         this.provider = provider;
 
@@ -60,23 +58,23 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Au
     }
 
     @Override
-    protected void readLock(){
-    	getCommitLock.lock();
+    protected void readLock() {
+        getCommitLock.lock();
     }
     
     @Override
     protected void readUnLock() {
-    	getCommitLock.unlock();
+        getCommitLock.unlock();
     }
     
     @Override
     protected void writeLock() {
-    	getCommitLock.lock();
+        getCommitLock.lock();
     }
     
     @Override
     protected void writeUnLock() {
-    	getCommitLock.unlock();
+        getCommitLock.unlock();
     }
 
     private void setInitialSize(StoreableTableProvider provider, String name)
@@ -119,6 +117,49 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Au
         }
 
         return commited.get(key);
+    }
+
+    @Override
+    public String getName() {
+        checkClosed();
+        return super.getName();
+    }
+
+    @Override
+    public Storeable get(String key) {
+        checkClosed();
+        return super.get(key);
+    }
+
+    @Override
+    public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        checkClosed();
+
+        try {
+            ValidityChecker.checkValueFormat(this, value);
+        } catch (ValidityCheckFailedException ex) {
+            throw new ColumnFormatException(ex.getMessage());
+        }
+
+        return super.put(key, value);
+    }
+
+    @Override
+    public Storeable remove(String key) {
+        checkClosed();
+        return super.remove(key);
+    }
+
+    @Override
+    public int commit() throws IOException {
+        checkClosed();
+        return super.commit();
+    }
+
+    @Override
+    public int rollback() {
+        checkClosed();
+        return super.rollback();
     }
 
     public int getColumnsCount() {
@@ -206,6 +247,6 @@ public class StoreableTable extends GenericTable<Storeable> implements Table, Au
     }
 
     public StoreableTable clone() {
-    	throw new RuntimeException("Cloning not supported!");
+        throw new RuntimeException("Cloning not supported!");
     }
 }

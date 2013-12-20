@@ -1,9 +1,7 @@
 package ru.fizteh.fivt.students.vlmazlov.strings;
 
-import ru.fizteh.fivt.storage.strings.TableProviderFactory;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 
-import java.io.FileNotFoundException;
 import java.io.File;
 
 public class StringTableProviderFactory implements DiffCountingTableProviderFactory  {
@@ -33,5 +31,5 @@ public class StringTableProviderFactory implements DiffCountingTableProviderFact
       } catch (ValidityCheckFailedException ex) {
         throw new IllegalArgumentException(ex.getMessage());
       }
-    }  	
+    }
 }

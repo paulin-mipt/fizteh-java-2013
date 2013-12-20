@@ -11,7 +11,6 @@ import ru.fizteh.fivt.students.vlmazlov.generics.DataBaseState;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 
 import java.io.IOException;
-import java.io.FileNotFoundException;                
 
 public class JunitMain {
         public static void main(String[] args) {
@@ -58,6 +57,7 @@ public class JunitMain {
                         System.err.println(ex.getMessage());
                         System.exit(7);
                 } catch (UserInterruptionException ex) {
+                        //Do nothing
                 }
 
                 try {
