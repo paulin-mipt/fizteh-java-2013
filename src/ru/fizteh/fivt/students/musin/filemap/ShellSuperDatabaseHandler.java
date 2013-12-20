@@ -28,6 +28,12 @@ public class ShellSuperDatabaseHandler {
         remoteProvider = null;
         remoteCurrent = null;
         local = true;
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                close();
+            }
+        }));
     }
 
     void printException(Throwable e, PrintStream errorLog) {
@@ -634,6 +640,36 @@ public class ShellSuperDatabaseHandler {
             })
     };
 
+    public void close() {
+        try {
+            if (remoteFactory != null) {
+                remoteFactory.close();
+            }
+        } catch (Exception e) {
+            //Nothing
+        }
+        try {
+            if (server != null) {
+                if (server.isStarted()) {
+                    try {
+                        server.stop();
+                    } catch (InterruptedException e) {
+                        //Exit function nothing to do
+                    }
+                }
+            }
+        } catch (Exception e) {
+            //Nothing
+        }
+        try {
+            if (provider != null) {
+                provider.close();
+            }
+        } catch (Exception e) {
+            //Nothing
+        }
+    }
+
     public void integrate(Shell shell) {
         for (int i = 0; i < commands.length; i++) {
             shell.addCommand(commands[i]);
@@ -641,19 +677,7 @@ public class ShellSuperDatabaseHandler {
         shell.addExitFunction(new Shell.ShellCommand(null, new Shell.ShellExecutable() {
             @Override
             public int execute(Shell shell, ArrayList<String> args) {
-                try {
-                    remoteFactory.close();
-                    if (server.isStarted()) {
-                        try {
-                            server.stop();
-                        } catch (InterruptedException e) {
-                            //Exit function nothing to do
-                        }
-                    }
-                    provider.close();
-                } catch (Exception e) {
-                    printException(e, shell.writer);
-                }
+                close();
                 return 0;
             }
         }));
