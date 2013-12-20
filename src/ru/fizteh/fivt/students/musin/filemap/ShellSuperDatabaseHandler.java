@@ -319,7 +319,8 @@ public class ShellSuperDatabaseHandler {
                                 shell.writer.println("no table");
                                 return 0;
                             }
-                            value = remoteCurrent.put(args.get(0), remoteProvider.deserialize(remoteCurrent, args.get(1)));
+                            value = remoteCurrent.put(
+                                    args.get(0), remoteProvider.deserialize(remoteCurrent, args.get(1)));
                         }
                         if (value == null) {
                             shell.writer.println("new");
