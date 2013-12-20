@@ -34,6 +34,32 @@ public class ProviderReader {
         }
     }
 
+    public static <V, T extends GenericTable<V>> void loadFileForKey(String key, 
+        File root, T table, GenericTableProvider<V, T> provider) {
+
+        T tableForFile = (T) table.clone();
+        String dirName = Math.abs(key.getBytes()[0]) % DIRECTORIES_QUANTITY + ".dir";
+        String fileName = Math.abs(key.getBytes()[0]) / FILES_QUANTITY % FILES_QUANTITY + ".dat";
+
+        File directory = new File(root, dirName);
+        File file = new File(directory, fileName);
+
+        if ((!directory.exists()) || (!file.exists())) {
+            return;
+        }
+
+        try {
+           TableReader.readTable(directory, file, tableForFile, provider);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex.getMessage());
+        } catch (ValidityCheckFailedException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
+
+        tableForFile.pushChanges();
+        addTablePart(tableForFile, table);
+    }
+
     //validity is to be checked in read() method of the corresponding provider
     public static <V, T extends GenericTable<V>> void readMultiTable(File root, 
         T table, GenericTableProvider<V, T> provider)
@@ -78,8 +104,7 @@ public class ProviderReader {
                 addTablePart(tableParts.get(i).get(j), table);
             }
         }
-    }
-
+    } 
 
     public static <V, T extends GenericTable<V>> List<File> getTableDirList(GenericTableProvider<V, T> provider)
             throws IOException, ValidityCheckFailedException {

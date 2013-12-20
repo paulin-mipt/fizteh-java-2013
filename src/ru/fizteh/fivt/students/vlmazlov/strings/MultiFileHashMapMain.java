@@ -1,8 +1,13 @@
 package ru.fizteh.fivt.students.vlmazlov.strings;
 
+import ru.fizteh.fivt.students.vlmazlov.shell.Shell;
+import ru.fizteh.fivt.students.vlmazlov.shell.WrongCommandException;
+import ru.fizteh.fivt.students.vlmazlov.shell.CommandFailException;
+import ru.fizteh.fivt.students.vlmazlov.shell.Command;
+import ru.fizteh.fivt.students.vlmazlov.shell.UserInterruptionException;
+import ru.fizteh.fivt.students.vlmazlov.shell.ExitCommand;
 import ru.fizteh.fivt.students.vlmazlov.generics.DataBaseState;
 import ru.fizteh.fivt.students.vlmazlov.generics.commands.*;
-import ru.fizteh.fivt.students.vlmazlov.shell.*;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 
 import java.io.IOException;
@@ -14,7 +19,7 @@ public class MultiFileHashMapMain {
         StringTableProviderFactory factory = new StringTableProviderFactory(true);
 
         try {
-            state = new DataBaseState(factory.create(System.getProperty("fizteh.db.dir")));
+            state =  new DataBaseState(factory.create(System.getProperty("fizteh.db.dir")));
         } catch (IllegalArgumentException ex) {
             System.err.println(ex.getMessage());
             System.exit(1);
@@ -31,10 +36,10 @@ public class MultiFileHashMapMain {
         }
 
         Command[] commands = {
-                new GetCommand(), new PutCommand(),
-                new RemoveCommand(), new ExitCommand(),
-                new UseCommand(), new CreateCommand(),
-                new DropCommand()
+            new GetCommand(), new PutCommand(), 
+            new RemoveCommand(), new ExitCommand(),
+            new UseCommand(), new CreateCommand(),
+            new DropCommand()
         };
 
         Shell<DataBaseState> shell = new Shell<DataBaseState>(commands, state);
@@ -51,6 +56,7 @@ public class MultiFileHashMapMain {
             System.err.println(ex.getMessage());
             System.exit(7);
         } catch (UserInterruptionException ex) {
+            //Do nothing
         }
 
         try {

@@ -99,7 +99,8 @@ public class StoreableTableParallelTest {
             throw new RuntimeException(ex.getMessage());
         }
 
-        Assert.assertEquals("value commited from another thread is not visible", val1, table.get("key2"));
+        Assert.assertEquals("value commited from another thread is not visible", 
+            provider.serialize(table, val1), provider.serialize(table, table.get("key2")));
     }
 
     @Test
@@ -137,6 +138,13 @@ public class StoreableTableParallelTest {
 
         testThread1.start();
         testThread2.start();
+
+        try {
+            testThread1.join();
+            testThread2.join();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
     }
 
     @Test
@@ -167,10 +175,19 @@ public class StoreableTableParallelTest {
 
         testThread1.start();
         testThread2.start();
+
+        try {
+            testThread1.join();
+            testThread2.join();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
     }
 
     @Test
     public void concurrentPutCommit() {
+
+        System.out.println("concurrentPutCommit");
 
         table.put("key1", val1);
         try {
@@ -184,7 +201,7 @@ public class StoreableTableParallelTest {
             public void run() {
                 table.put("key1", val2);
                 try {
-                    table.commit();
+                    table.commit(); 
                 } catch (IOException ex) {
                     throw new RuntimeException(ex.getMessage());
                 }
@@ -210,8 +227,13 @@ public class StoreableTableParallelTest {
             }
         };
 
-        testThread1.start();
+        //testThread1.start();
         testThread2.start();
+        try {
+           testThread2.join();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
     }
 
     @Test
@@ -253,5 +275,12 @@ public class StoreableTableParallelTest {
 
         testThread1.start();
         testThread2.start();
+
+        try {
+            testThread1.join();
+            testThread2.join();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
     }
 }

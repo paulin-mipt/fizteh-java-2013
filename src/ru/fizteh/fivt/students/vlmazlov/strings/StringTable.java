@@ -1,28 +1,65 @@
 package ru.fizteh.fivt.students.vlmazlov.strings;
 
-import ru.fizteh.fivt.students.vlmazlov.generics.GenericTable;
-import ru.fizteh.fivt.students.vlmazlov.utils.*;
-
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.io.File;
+import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import ru.fizteh.fivt.students.vlmazlov.utils.ProviderWriter;
+import ru.fizteh.fivt.students.vlmazlov.utils.ValidityChecker;
+import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
+import ru.fizteh.fivt.students.vlmazlov.utils.TableReader;
+import ru.fizteh.fivt.students.vlmazlov.utils.TableWriter;
+import ru.fizteh.fivt.students.vlmazlov.generics.GenericTable; 
 
 public class StringTable extends GenericTable<String> implements DiffCountingTable, Cloneable {
 
-    private StringTableProvider specificProvider;
+    private StringTableProvider provider;
+    private ReadWriteLock getCommitLock;
 
     public StringTable(StringTableProvider provider, String name) {
-        super(provider, name);
-        specificProvider = provider;
+        super(name);
+        this.provider = provider;
+
+        getCommitLock = new ReentrantReadWriteLock();
     }
 
     public StringTable(StringTableProvider provider, String name, boolean autoCommit) {
-        super(provider, name, autoCommit);
-        specificProvider = provider;
+        super(name, autoCommit);
+        this.provider = provider;
+
+        getCommitLock = new ReentrantReadWriteLock();
     }
 
-    public void read(String root, String fileName)
-            throws IOException, ValidityCheckFailedException {
+    @Override
+    protected String getCommited(String key) {
+        return commited.get(key);
+    }
+
+    @Override
+    protected void readLock() {
+        getCommitLock.readLock().lock();
+    }
+    
+    @Override
+    protected void readUnLock() {
+        getCommitLock.readLock().unlock();
+    }
+    
+    @Override
+    protected void writeLock() {
+        getCommitLock.writeLock().lock();
+    }
+    
+    @Override
+    protected void writeUnLock() {
+        getCommitLock.writeLock().unlock();
+    }
+
+    public void read(String root, String fileName) 
+    throws IOException, ValidityCheckFailedException {
         if (root == null) {
             throw new FileNotFoundException("Directory not specified");
         }
@@ -30,21 +67,21 @@ public class StringTable extends GenericTable<String> implements DiffCountingTab
         if (fileName == null) {
             throw new FileNotFoundException("File not specified");
         }
-
-        TableReader.readTable(new File(root), new File(root, fileName), this, specificProvider);
+ 
+        TableReader.readTable(new File(root), new File(root, fileName), this, provider);
     }
 
     public void write(String root, String fileName)
-            throws IOException, ValidityCheckFailedException {
+    throws IOException, ValidityCheckFailedException {
         if (root == null) {
             throw new FileNotFoundException("Directory not specified");
         }
 
         if (fileName == null) {
             throw new FileNotFoundException("File not specified");
-        }
+        } 
 
-        TableWriter.writeTable(new File(root), new File(root, fileName), this, specificProvider);
+        TableWriter.writeTable(new File(root), new File(root, fileName), this, provider);
     }
 
     @Override
@@ -58,7 +95,7 @@ public class StringTable extends GenericTable<String> implements DiffCountingTab
 
     @Override
     public StringTable clone() {
-        return new StringTable(specificProvider, getName(), autoCommit);
+        return new StringTable(provider, getName(), autoCommit);
     }
 
     @Override
@@ -68,6 +105,32 @@ public class StringTable extends GenericTable<String> implements DiffCountingTab
 
     @Override
     protected void storeOnCommit() throws IOException, ValidityCheckFailedException {
-        ProviderWriter.writeMultiTable(this, new File(specificProvider.getRoot(), getName()), specificProvider);
+        ProviderWriter.writeMultiTable(this, new File(provider.getRoot(), getName()), provider);
+    }
+
+    public int size() {
+        int size = 0;
+        readLock();
+
+        try {
+            size = commited.size();
+
+            for (Map.Entry<String, String> entry : changed.get().entrySet()) {
+                if (getCommited(entry.getKey()) == null) {
+                    ++size;
+                }
+            }
+
+            for (String entry : deleted.get()) {
+                if (getCommited(entry) != null) {
+                    --size;
+                }
+            }
+        } finally {
+            readUnLock();
+        }
+
+        return size;
+
     }
 }

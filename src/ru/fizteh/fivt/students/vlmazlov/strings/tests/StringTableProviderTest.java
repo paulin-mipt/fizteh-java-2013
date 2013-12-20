@@ -1,12 +1,12 @@
 package ru.fizteh.fivt.students.vlmazlov.strings.tests;
 
 import org.junit.*;
-import ru.fizteh.fivt.storage.strings.Table;
-import ru.fizteh.fivt.students.vlmazlov.strings.StringTableProvider;
-import ru.fizteh.fivt.students.vlmazlov.utils.FileUtils;
-import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
-
 import java.io.File;
+
+import ru.fizteh.fivt.storage.strings.Table;
+import ru.fizteh.fivt.students.vlmazlov.utils.FileUtils;
+import ru.fizteh.fivt.students.vlmazlov.strings.StringTableProvider;
+import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 
 public class StringTableProviderTest {
     private StringTableProvider provider;
@@ -64,4 +64,4 @@ public class StringTableProviderTest {
         provider.removeTable("testRemove");
         Assert.assertNull("should be null", provider.getTable("testRemove"));
     }
-} 
+}

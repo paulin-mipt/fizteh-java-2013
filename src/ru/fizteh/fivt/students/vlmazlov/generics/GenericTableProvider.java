@@ -29,16 +29,7 @@ public abstract class GenericTableProvider<V, T extends GenericTable<V>> {
 
     protected abstract T instantiateTable(String name, Object[] args);
 
-    public T getTable(String name) {
-        try {
-            ValidityChecker.checkMultiTableName(name);
-        } catch (ValidityCheckFailedException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
-
-
-        return tables.get(name);
-    }
+    public abstract T getTable(String name);
 
     public synchronized T createTable(String name, Object[] args) {
         try {
@@ -53,11 +44,11 @@ public abstract class GenericTableProvider<V, T extends GenericTable<V>> {
             return null;
         }
 
+        (new File(root, name)).mkdir();
+
         newTable = instantiateTable(name, args);
 
         tables.put(name, newTable);
-
-        (new File(root, name)).mkdir();
 
         return newTable;
     }

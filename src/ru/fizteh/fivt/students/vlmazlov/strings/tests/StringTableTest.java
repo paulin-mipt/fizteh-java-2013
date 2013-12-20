@@ -1,12 +1,12 @@
 package ru.fizteh.fivt.students.vlmazlov.strings.tests;
 
 import org.junit.*;
+import java.io.File;
+
 import ru.fizteh.fivt.students.vlmazlov.strings.StringTable;
 import ru.fizteh.fivt.students.vlmazlov.strings.StringTableProvider;
 import ru.fizteh.fivt.students.vlmazlov.utils.FileUtils;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
-
-import java.io.File;
 
 public class StringTableTest {
     private StringTable fileMap;
@@ -27,7 +27,7 @@ public class StringTableTest {
     @After
     public void tearDown() {
         provider.removeTable("testTable");
-    }
+    }    
 
     @Test(expected = IllegalArgumentException.class)
     public void puttingNullValueShouldFail() {
@@ -127,4 +127,4 @@ public class StringTableTest {
         fileMap.put("key4", "val4");
         Assert.assertEquals("Incorrect size", 4, fileMap.size());
     }
-} 
+}

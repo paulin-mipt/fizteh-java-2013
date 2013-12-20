@@ -1,6 +1,7 @@
 package ru.fizteh.fivt.students.vlmazlov.strings.tests;
 
 import org.junit.*;
+
 import ru.fizteh.fivt.students.vlmazlov.strings.StringTableProviderFactory;
 
 public class StringTableProviderFactoryTest {
@@ -15,4 +16,4 @@ public class StringTableProviderFactoryTest {
     public void creatingNullShouldFail() {
         factory.create(null);
     }
-} 
+}

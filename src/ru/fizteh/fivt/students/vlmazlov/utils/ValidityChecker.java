@@ -4,7 +4,9 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -140,13 +142,26 @@ public class ValidityChecker {
                 continue;
             }
 
+            //also allowed since Cache
+            if ((content.isFile()) && (content.getName().equals("size.tsv"))) {
+                continue;
+            }
+
             if (!content.isDirectory()) {
                 throw new ValidityCheckFailedException(root.getPath() + " contains file " + content.getName());
+            }
+
+            if (content.list().length == 0) {
+                throw new ValidityCheckFailedException(content.getName() + " is empty");
             }
 
             for (File file : content.listFiles()) {
                 if (!file.isFile()) {
                     throw new ValidityCheckFailedException(file.getName() + " doesn't denote a file");
+                }
+
+                if (file.length() == 0) {
+                    throw new ValidityCheckFailedException(file.getName() + " is empty");
                 }
             }
         }
@@ -166,9 +181,17 @@ public class ValidityChecker {
                 throw new ValidityCheckFailedException(root.getPath() + " contains file " + directory.getName());
             }
 
+            if (directory.list().length == 0) {
+                throw new ValidityCheckFailedException(directory.getName() + " is empty");
+            }
+
             for (File file : directory.listFiles()) {
                 if (!file.isFile()) {
                     throw new ValidityCheckFailedException(file.getName() + " doesn't denote a file");
+                }
+
+                if (file.length() == 0) {
+                    throw new ValidityCheckFailedException(file.getName() + " is empty");
                 }
             }
         }
@@ -218,6 +241,35 @@ public class ValidityChecker {
     public static void checkStoreableTableSignature(List<Class<?>> signature) throws ValidityCheckFailedException {
         if (signature.isEmpty()) {
             throw new ValidityCheckFailedException("Table signature not specified");
+        }
+    }
+
+    public static void checkTableSize(File sizeFile) throws ValidityCheckFailedException {
+       
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner(sizeFile);
+        } catch (FileNotFoundException ex) {
+            throw new ValidityCheckFailedException("Unable to read file: " + ex.getMessage());
+        }
+
+        try {
+
+            if (!scanner.hasNextInt()) {
+                throw new ValidityCheckFailedException("Table size not specified int the corresponding file");
+            }
+
+            int size = scanner.nextInt();
+
+            if (size < 0) {
+                throw new ValidityCheckFailedException("Table size is negative");
+            }
+
+            if (scanner.hasNext()) {
+                throw new ValidityCheckFailedException("size.tsv contains junk");
+            }
+        } finally {
+            scanner.close();
         }
     }
 }
