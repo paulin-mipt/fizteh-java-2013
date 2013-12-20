@@ -67,7 +67,7 @@ public class FileMapMain {
             System.err.println("error while processing command: " + ex.getMessage());
             System.exit(6);
         } catch (UserInterruptionException ex) {
-        	//Do nothing
+            //Do nothing
         }
 
         try {
