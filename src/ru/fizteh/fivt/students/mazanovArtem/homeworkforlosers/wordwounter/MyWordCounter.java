@@ -3,7 +3,6 @@ package ru.fizteh.fivt.students.mazanovArtem.homeworkforlosers.wordwounter;
 import ru.fizteh.fivt.file.WordCounter;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class MyWordCounter implements WordCounter {
@@ -13,24 +12,34 @@ public class MyWordCounter implements WordCounter {
     }
 
     public void count(List<File> inputFiles, OutputStream output, boolean aggregate) throws IOException {
+        if (output == null) {
+            throw new IllegalArgumentException("Output is null");
+        }
         if (inputFiles.isEmpty()) {
             throw new IllegalArgumentException("File list is empty");
         }
+        String s;
         HashMap<String, Integer> map = new HashMap<>();
         for (File file : inputFiles) {
             if (!aggregate) {
-                output.write(file.getName().getBytes(StandardCharsets.UTF_8));
-                output.write(":\n".getBytes());
+                output.write(file.getName().getBytes());
+                s = ":" + System.lineSeparator();
+                output.write(s.getBytes());
+            }
+            if (file == null) {
+                throw new IllegalArgumentException("File is null");
             }
             if (!file.exists()) {
                 if (!aggregate) {
-                    output.write("file not found\n".getBytes());
+                    s = "file not found" + System.lineSeparator();
+                    output.write(s.getBytes());
                 }
                 continue;
             }
             if (!file.canRead()) {
                 if (!aggregate) {
-                    output.write("file not available\n".getBytes());
+                    s = "file not available" + System.lineSeparator();
+                    output.write(s.getBytes());
                 }
                 continue;
             }
@@ -38,10 +47,8 @@ public class MyWordCounter implements WordCounter {
             if (input == null) {
                 throw new IOException("Can't create stream");
             }
-
             StringBuilder tmpstr = new StringBuilder();
             boolean dash = false;
-            boolean wrongWord = false;
             char k;
 
             while (true) {
@@ -52,12 +59,31 @@ public class MyWordCounter implements WordCounter {
                 for (int i = 0; i < str.length(); ++i) {
                     k = str.charAt(i);
                     if (Character.isLetterOrDigit(k)) {
-                        tmpstr.append(k);
+                        if (dash) {
+                            if (tmpstr.length() > 1) {
+                                dash = false;
+                                tmpstr.append(k);
+                            } else {
+                                tmpstr = new StringBuilder();
+                                dash = false;
+                            }
+                        } else {
+                            tmpstr.append(k);
+                        }
                     } else {
                         if (k == '-') {
                             if (dash) {
-                                wrongWord = true;
-                                tmpstr.append(k);
+                                if (tmpstr.length() > 1) {
+                                    tmpstr.delete(tmpstr.length() - 1,tmpstr.length());
+                                    if (map.containsKey(tmpstr.toString())) {
+                                        int count = map.get(tmpstr.toString()) + 1;
+                                        map.put(tmpstr.toString(), count);
+                                    } else {
+                                        map.put(tmpstr.toString(), 1);
+                                    }
+                                    dash = false;
+                                }
+                                tmpstr = new StringBuilder();
                             } else {
                                 if (!tmpstr.toString().isEmpty()) {
                                     dash = true;
@@ -65,45 +91,48 @@ public class MyWordCounter implements WordCounter {
                                 }
                             }
                         } else {
-                            if (!tmpstr.toString().isEmpty()) {
-                                if (wrongWord) {
-                                    tmpstr = new StringBuilder();
-                                    wrongWord = false;
+                            if (!tmpstr.toString().isEmpty() && !dash) {
+                                if (map.containsKey(tmpstr.toString())) {
+                                    int count = map.get(tmpstr.toString()) + 1;
+                                    map.put(tmpstr.toString(), count);
                                 } else {
-                                    if (map.containsKey(tmpstr.toString())) {
-                                        int count = map.get(tmpstr.toString()) + 1;
-                                        map.put(tmpstr.toString().toLowerCase(), count);
-                                    } else {
-                                        map.put(tmpstr.toString().toLowerCase(), 1);
-                                    }
-                                    tmpstr = new StringBuilder();
+                                    map.put(tmpstr.toString(), 1);
                                 }
                             }
+                            tmpstr = new StringBuilder();
                             dash = false;
                         }
-
                     }
                 }
-                if (wrongWord) {
-                    tmpstr = new StringBuilder();
-                    wrongWord = false;
-                } else {
-                    if (tmpstr.length() > 0) {
+                if (tmpstr.length() > 0) {
+                    if (!dash) {
                         if (map.containsKey(tmpstr.toString())) {
                             int count = map.get(tmpstr.toString()) + 1;
-                            map.put(tmpstr.toString().toLowerCase(), count);
+                            map.put(tmpstr.toString(), count);
                         } else {
-                            map.put(tmpstr.toString().toLowerCase(), 1);
+                            map.put(tmpstr.toString(), 1);
                         }
-                        tmpstr = new StringBuilder();
+                    } else {
+                        if (tmpstr.length() > 1) {
+                            tmpstr.delete(tmpstr.length() - 1,tmpstr.length());
+                            if (map.containsKey(tmpstr.toString())) {
+                                int count = map.get(tmpstr.toString()) + 1;
+                                map.put(tmpstr.toString(), count);
+                            } else {
+                                map.put(tmpstr.toString(), 1);
+                            }
+                        }
                     }
-                    dash = false;
+
+
                 }
+                tmpstr = new StringBuilder();
+                dash = false;
             }
 
             if (!aggregate) {
                 for (String str : map.keySet()) {
-                    String tmp = str + " " + map.get(str) + "\n";
+                    String tmp = str + " " + map.get(str) + System.lineSeparator();
                     output.write(tmp.getBytes());
                 }
                 map.clear();
@@ -117,7 +146,7 @@ public class MyWordCounter implements WordCounter {
         }
         if (aggregate) {
             for (String str : map.keySet()) {
-                String tmp = str + " " + map.get(str) + "\n";
+                String tmp = str + " " + map.get(str) + System.lineSeparator();
                 output.write(tmp.getBytes());
             }
         }
