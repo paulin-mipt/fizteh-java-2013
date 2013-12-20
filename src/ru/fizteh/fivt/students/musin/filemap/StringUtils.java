@@ -45,7 +45,7 @@ public class StringUtils {
             } else if (typeNames[i].equals("String")) {
                 columnTypes.add(String.class);
             } else {
-                throw new RuntimeException(String.format("Unknown type %s %s", typeNames[i], types));
+                throw new RuntimeException(String.format("Unknown type %s", typeNames[i]));
             }
         }
         return columnTypes;

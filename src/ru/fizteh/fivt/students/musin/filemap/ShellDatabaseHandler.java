@@ -359,7 +359,7 @@ public class ShellDatabaseHandler {
                             }
                             shell.writer.println();
                         } else {
-                            shell.writer.println("failed");
+                            shell.writer.println(String.format("%s not exists", args.get(0)));
                             return -1;
                         }
                     } catch (RuntimeException e) {

@@ -17,7 +17,7 @@ public class Main {
         Shell shell = new Shell(pwd, System.out);
         try {
             FileMapProvider provider = new FileMapProviderFactory().create(db);
-            ShellServerDatabaseHandler serverDatabase = new ShellServerDatabaseHandler(provider);
+            ShellSuperDatabaseHandler serverDatabase = new ShellSuperDatabaseHandler(provider);
             serverDatabase.integrate(shell);
         } catch (Exception e) {
             System.err.println(e.getMessage());
