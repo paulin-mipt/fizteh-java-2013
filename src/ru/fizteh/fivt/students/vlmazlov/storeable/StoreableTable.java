@@ -6,6 +6,8 @@ import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityCheckFailedException;
 import ru.fizteh.fivt.students.vlmazlov.utils.ValidityChecker;
 import ru.fizteh.fivt.students.vlmazlov.utils.StoreableTableFileManager;
+import ru.fizteh.fivt.students.vlmazlov.generics.GenericTable;
+
 
 import java.io.File;
 import java.io.IOException;
@@ -19,31 +21,16 @@ import java.text.ParseException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class StoreableTable implements Table, AutoCloseable {
+public class StoreableTable extends GenericTable<Storeable> implements Table, AutoCloseable {
 
     private boolean isClosed;
-    private int commitedSize;
-    private final boolean autoCommit;   
-    private final Lock getCommitLock;
-    private final String name;
 
     private final List<Class<?>> valueTypes;
-    private final Map<String, Storeable> commited;
     private final StoreableTableProvider provider;
 
-    private final ThreadLocal<HashMap<String, Storeable>> changed = new ThreadLocal<HashMap<String, Storeable>>() {
-        @Override
-        protected HashMap<String, Storeable> initialValue() {
-            return new HashMap<String, Storeable>();
-        }
-    };
+    
+    private final Lock getCommitLock;
 
-    private final ThreadLocal<HashSet<String>> deleted = new ThreadLocal<HashSet<String>>() {
-        @Override
-        protected HashSet<String> initialValue() {
-            return new HashSet<String>();
-        }
-    };
 
     public StoreableTable(StoreableTableProvider provider, 
         String name, List<Class<?>> valueTypes) 
@@ -55,13 +42,10 @@ public class StoreableTable implements Table, AutoCloseable {
     public StoreableTable(StoreableTableProvider provider, 
         String name, boolean autoCommit, List<Class<?>> valueTypes) 
     throws ValidityCheckFailedException, IOException {
+    	super(name, autoCommit);
 
-        this.name = name;
         this.provider = provider;
-        commited = new HashMap<String, Storeable>();
 
-        commitedSize = 0;
-        this.autoCommit = autoCommit;
         //fair queue
         getCommitLock = new ReentrantLock(true);
 
@@ -75,189 +59,24 @@ public class StoreableTable implements Table, AutoCloseable {
         setInitialSize(provider, name);
     }
 
-    public Storeable put(String key, Storeable value) throws ColumnFormatException {
-        checkClosed();
-
-        try {
-            ValidityChecker.checkTableKey(key);
-            ValidityChecker.checkTableValue(value);
-        } catch (ValidityCheckFailedException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
-
-        try {
-            ValidityChecker.checkValueFormat(this, value);
-        } catch (ValidityCheckFailedException ex) {
-            throw new ColumnFormatException(ex.getMessage());
-        }
-
-        Storeable returnValue = get(key);
-
-        //putting the same value as in the last commited version
-        //effectively discards any changes made to it
-        //anyway, local changes should be applied no matter what
-        changed.get().put(key, value);
-
-        //the value put back is no longer deleted
-        deleted.get().remove(key);
-
-        if (autoCommit) {
-            pushChanges();
-        }
-        return returnValue;
+    @Override
+    protected void readLock(){
+    	getCommitLock.lock();
     }
-
-    public Storeable get(String key) {
-        checkClosed();
-
-        try {
-            ValidityChecker.checkTableKey(key);
-        } catch (ValidityCheckFailedException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
-
-        if (deleted.get().contains(key)) {
-            return null;
-        }
-
-        if (changed.get().get(key) != null) {
-            return changed.get().get(key);
-        }
-
-        getCommitLock.lock();
-
-        try {
-            if (getCommited(key) != null) {
-                return getCommited(key);
-            }
-        } finally {
-            getCommitLock.unlock();
-        }
-
-        //redundant but still
-        return null;
+    
+    @Override
+    protected void readUnLock() {
+    	getCommitLock.unlock();
     }
-
-    public Storeable remove(String key) {
-        checkClosed();
-
-        try {
-            ValidityChecker.checkTableKey(key);
-        } catch (ValidityCheckFailedException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
-
-        Storeable returnValue = get(key);
-        Storeable commitedValue = null;
-
-        getCommitLock.lock();
-
-        try {
-            commitedValue = getCommited(key);
-        } finally {
-            getCommitLock.unlock();
-        }
-
-        //if present, the key should be deleted from a commited version of a table
-        if (commitedValue != null) {
-            deleted.get().add(key);
-        }
-        //it is deleted from local changes regardless
-        changed.get().remove(key);
-
-        if (autoCommit) {
-            pushChanges();
-        }
-        return returnValue;
+    
+    @Override
+    protected void writeLock() {
+    	getCommitLock.lock();
     }
-
-    public String getName() {
-        checkClosed();
-        return name;
-    }
-
-    public int commit() throws IOException {
-        checkClosed();
-
-        int diffNum;
-
-        getCommitLock.lock();
-
-        try {
-
-            diffNum = getDiffCount();
-
-            //NB: first calculate size, then push changes
-            //System.out.println(commitedSize);
-            int newSize = size();
-            storeOnCommit();
-            pushChanges();
-            
-            commitedSize = newSize;
-
-        } catch (ValidityCheckFailedException ex) {
-            throw new RuntimeException("Validity check failed: " + ex.getMessage());
-        } finally {
-            getCommitLock.unlock();
-        }
-
-        changed.get().clear();
-        deleted.get().clear();
-
-        return diffNum;
-    }
-
-    public int rollback() {
-        checkClosed();
-
-        int diffNum;
-
-        getCommitLock.lock();
-        try {
-            diffNum = getDiffCount();
-        } finally {
-            getCommitLock.unlock();
-        }
-
-        changed.get().clear();
-        deleted.get().clear();
-
-        return diffNum;
-    }
-
-    //should be locked from the outside, unless made sure that the object is thread-unique
-    //synchronized, just to be safe
-
-    public synchronized void pushChanges() {
-        for (Map.Entry<String, Storeable> entry : changed.get().entrySet()) {
-            commited.put(entry.getKey(), entry.getValue());
-        }
-
-        for (String entry : deleted.get()) {
-            commited.remove(entry);
-        }
-    }
-
-    //should be locked from the outside, unless made sure that the object is thread-unique 
-    public int getDiffCount() {
-
-        int diffCount = 0;
-
-        for (Map.Entry<String, Storeable> entry : changed.get().entrySet()) {
-
-            if ((getCommited(entry.getKey()) == null) 
-                || (!isValueEqual(entry.getValue(), getCommited(entry.getKey())))) {
-
-                ++diffCount;
-            }
-        }
-
-        for (String entry : deleted.get()) {
-            if (getCommited(entry) != null) {
-                ++diffCount;
-            }
-        }
-        return diffCount;
+    
+    @Override
+    protected void writeUnLock() {
+    	getCommitLock.unlock();
     }
 
     private void setInitialSize(StoreableTableProvider provider, String name)
@@ -325,7 +144,7 @@ public class StoreableTable implements Table, AutoCloseable {
     public int size() {
         checkClosed();
         
-        getCommitLock.lock();
+        readLock();
         
         int size = commitedSize;
 
@@ -343,7 +162,7 @@ public class StoreableTable implements Table, AutoCloseable {
                 }
             }
         } finally {
-            getCommitLock.unlock();
+            readUnLock();
         }
 
         return size;
@@ -373,6 +192,7 @@ public class StoreableTable implements Table, AutoCloseable {
         }
     }
 
+    @Override
     public String toString() {
         checkClosed();
         StringBuilder builder = new StringBuilder();
@@ -383,5 +203,9 @@ public class StoreableTable implements Table, AutoCloseable {
         builder.append("]");
 
         return builder.toString();
+    }
+
+    public StoreableTable clone() {
+    	throw new RuntimeException("Cloning not supported!");
     }
 }

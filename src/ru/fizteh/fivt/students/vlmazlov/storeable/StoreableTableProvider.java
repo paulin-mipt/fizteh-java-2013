@@ -5,6 +5,7 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.vlmazlov.utils.*;
+import ru.fizteh.fivt.students.vlmazlov.generics.GenericTableProvider;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.File;
@@ -16,26 +17,18 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Arrays;
 
-public class StoreableTableProvider implements TableProvider, AutoCloseable {
+public class StoreableTableProvider extends GenericTableProvider<Storeable, StoreableTable>
+implements TableProvider, AutoCloseable {
 
     private boolean isClosed;
-    private Map<String, StoreableTable> tables;
-    private final boolean autoCommit;
-    private final String root;
 
     public StoreableTableProvider(String root, boolean autoCommit) throws ValidityCheckFailedException {
-        if (root == null) {
-            throw new IllegalArgumentException("Directory not specified");
-        }
+        super(root, autoCommit);
 
-        ValidityChecker.checkMultiTableDataBaseRoot(root);
-
-        this.root = root;
-        tables = new HashMap<String, StoreableTable>();
-        this.autoCommit = autoCommit;
         isClosed = false;
     }
 
+    @Override
     public synchronized StoreableTable createTable(String name, List<Class<?>> columnTypes)
     throws IOException {
         
@@ -59,51 +52,19 @@ public class StoreableTableProvider implements TableProvider, AutoCloseable {
             throw new IllegalArgumentException(ex.getMessage());
         }
 
-        StoreableTable newTable = null;
+        StoreableTable table = super.createTable(name, new Object[]{columnTypes});
 
-        if (tables.get(name) != null) {
-            return null;
-        }
+        StoreableTableFileManager.writeSignature(table, this);
 
-        (new File(root, name)).mkdir();
-
-        newTable = instantiateTable(name, columnTypes);
-
-        tables.put(name, newTable);
-
-        StoreableTableFileManager.writeSignature(newTable, this);
-
-        return newTable;
+        return table;
     }
 
-    public synchronized void removeTable(String name) {
+    @Override
+    protected StoreableTable instantiateTable(String name, Object[] args) {
         checkClosed();
 
         try {
-            ValidityChecker.checkMultiTableName(name);
-        } catch (ValidityCheckFailedException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
-        }
-
-        StoreableTable oldTable = tables.remove(name);
-
-        if (oldTable == null) {
-            throw new IllegalStateException("Table " + name + " doesn't exist");
-        }
-
-        FileUtils.recursiveDelete(new File(root, name));
-    }
-
-    public String getRoot() {
-        checkClosed();
-        return root;
-    }
-
-    protected StoreableTable instantiateTable(String name, List<Class<?>> columnTypes) {
-        checkClosed();
-
-        try {
-            return new StoreableTable(this, name, autoCommit, columnTypes);
+            return new StoreableTable(this, name, autoCommit, (List) args[0]);
         } catch (ValidityCheckFailedException ex) {
             throw new RuntimeException("Validity check failed: " + ex.getMessage());
         } catch (IOException ex) {

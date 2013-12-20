@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>, Cloneable {
 
     protected Map<String, V> commited;
-    protected GenericTableProvider<V, ? extends GenericTable<V>> provider;
 
     protected final ThreadLocal<HashMap<String, V>> changed = new ThreadLocal<HashMap<String, V>>() {
         protected HashMap<String, V> initialValue() {
@@ -31,29 +30,31 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
 
     protected int commitedSize;
     protected final boolean autoCommit;   
-    protected final ReadWriteLock getCommitLock;
     private final String name;
 
-    public GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, String name) {
-        this(provider, name, true);
+    public GenericTable(String name) {
+        this(name, true);
     }
 
-    protected GenericTable(GenericTableProvider<V, ? extends GenericTable<V>> provider, 
-        String name, boolean autoCommit) {
+    protected GenericTable(String name, boolean autoCommit) {
 
             this.name = name;
-            this.provider = provider;
             commited = new HashMap<String, V>();
 
             commitedSize = 0;
             this.autoCommit = autoCommit;
-            //fair queue
-            getCommitLock = new ReentrantReadWriteLock(true);
     }
 
     public Iterator iterator() {
         return commited.entrySet().iterator();
     }
+
+    //queue must be fair
+
+    protected abstract void readLock();
+    protected abstract void readUnLock();
+    protected abstract void writeLock();
+    protected abstract void writeUnLock();
 
     protected abstract V getCommited(String key);
 
@@ -96,14 +97,14 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
             return changed.get().get(key);
         }
 
-        getCommitLock.readLock().lock();
+        readLock();
 
         try {
             if (getCommited(key) != null) {
                 return getCommited(key);
             }
         } finally {
-            getCommitLock.readLock().unlock();
+            readUnLock();
         }
 
         //redundant but still
@@ -120,12 +121,12 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
         V returnValue = get(key);
         V commitedValue = null;
 
-        getCommitLock.readLock().lock();
+        readLock();
 
         try {
             commitedValue = getCommited(key);
         } finally {
-            getCommitLock.readLock().unlock();
+            readUnLock();
         }
 
         //if present, the key should be deleted from a commited version of a table
@@ -152,24 +153,24 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
     public int commit() throws IOException {
         int diffNum;
 
-        getCommitLock.writeLock().lock();
+        writeLock();
 
         try {
 
-            getCommitLock.readLock().lock();
+            readLock();
 
             try {
                 diffNum = getDiffCount();
             } finally {
-                getCommitLock.readLock().unlock();
+                readUnLock();
             }
 
             //NB: first calculate size, then push changes
             //System.out.println(commitedSize);
             int newSize = size();
-           
-            pushChanges();
+            
             storeOnCommit();
+            pushChanges();
             
             commitedSize = newSize;
 
@@ -177,7 +178,7 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
             throw new RuntimeException("Validity check failed: " + ex.getMessage());
         } finally {
 
-            getCommitLock.writeLock().unlock();
+            writeUnLock();
         }
 
         changed.get().clear();
@@ -189,11 +190,11 @@ public abstract class GenericTable<V> implements Iterable<Map.Entry<String, V>>,
     public int rollback() {
         int diffNum;
 
-        getCommitLock.readLock().lock();
+        readLock();
         try {
             diffNum = getDiffCount();
         } finally {
-            getCommitLock.readLock().unlock();
+            readUnLock();
         }
 
         changed.get().clear();
