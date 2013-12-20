@@ -14,16 +14,15 @@ public class Main {
             System.err.println("Database file not specified");
             System.exit(-1);
         }
-        ShellServerDatabaseHandler database = null;
+        Shell shell = new Shell(pwd, System.out);
         try {
             FileMapProvider provider = new FileMapProviderFactory().create(db);
-            database = new ShellServerDatabaseHandler(provider);
+            ShellServerDatabaseHandler serverDatabase = new ShellServerDatabaseHandler(provider);
+            serverDatabase.integrate(shell);
         } catch (Exception e) {
             System.err.println(e.getMessage());
             System.exit(-1);
         }
-        Shell shell = new Shell(pwd, System.out);
-        database.integrate(shell);
         int exitCode = 0;
         if (args.length != 0) {
             exitCode = shell.runArgs(args);
