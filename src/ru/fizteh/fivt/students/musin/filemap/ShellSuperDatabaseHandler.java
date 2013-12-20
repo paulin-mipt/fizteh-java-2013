@@ -203,15 +203,15 @@ public class ShellSuperDatabaseHandler {
                         } else {
                             RemoteFileMap newTable = remoteProvider.getTable(args.get(0));
                             if (newTable != null) {
+                                try {
+                                    remoteProvider.activate(newTable);
+                                } catch (RemoteFileMapProvider.UnsavedChangesException e) {
+                                    shell.writer.println(e.getMessage());
+                                    return 0;
+                                }
                                 remoteCurrent = newTable;
                             } else {
                                 shell.writer.printf("%s not exists%s", args.get(0), System.lineSeparator());
-                                return 0;
-                            }
-                            try {
-                                remoteProvider.activate(newTable);
-                            } catch (RemoteFileMapProvider.UnsavedChangesException e) {
-                                shell.writer.println(e.getMessage());
                                 return 0;
                             }
                         }
