@@ -74,7 +74,7 @@ public class MyWordCounter implements WordCounter {
                         if (k == '-') {
                             if (dash) {
                                 if (tmpstr.length() > 1) {
-                                    tmpstr.delete(tmpstr.length() - 1,tmpstr.length());
+                                    tmpstr.delete(tmpstr.length() - 1, tmpstr.length());
                                     if (map.containsKey(tmpstr.toString())) {
                                         int count = map.get(tmpstr.toString()) + 1;
                                         map.put(tmpstr.toString(), count);
@@ -114,7 +114,7 @@ public class MyWordCounter implements WordCounter {
                         }
                     } else {
                         if (tmpstr.length() > 1) {
-                            tmpstr.delete(tmpstr.length() - 1,tmpstr.length());
+                            tmpstr.delete(tmpstr.length() - 1, tmpstr.length());
                             if (map.containsKey(tmpstr.toString())) {
                                 int count = map.get(tmpstr.toString()) + 1;
                                 map.put(tmpstr.toString(), count);
