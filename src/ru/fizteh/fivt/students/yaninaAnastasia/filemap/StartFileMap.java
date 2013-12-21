@@ -8,16 +8,15 @@ import java.util.ArrayList;
 
 public class StartFileMap {
     public static void main(String[] args) {
-        MultiDBState curState = new MultiDBState();
-        Shell shell = new Shell(curState);
         String path = System.getProperty("fizteh.db.dir");
         if (path == null) {
             System.err.println("Error with getting property");
             System.exit(1);
         }
         DatabaseTableProviderFactory factory = new DatabaseTableProviderFactory();
+        DatabaseTableProvider tempProvider = null;
         try {
-            curState.database = factory.create(path);
+            tempProvider = factory.create(path);
         } catch (IllegalArgumentException e) {
             System.err.println(e.getMessage());
             System.exit(1);
@@ -25,7 +24,14 @@ public class StartFileMap {
             System.err.println(exp.getMessage());
             System.exit(1);
         }
-        ArrayList<Command> cmdList = new ArrayList<Command>();
+
+        ServletState curState = new ServletState(tempProvider);
+        curState.database = tempProvider;
+        Shell shell = new Shell(curState);
+        ArrayList<Command> cmdList = new ArrayList<>();
+
+        cmdList.add(new CommandStartHTTP());
+        cmdList.add(new CommandStopHTTP());
         cmdList.add(new CommandPut());
         cmdList.add(new CommandGet());
         cmdList.add(new CommandRemove());
@@ -36,12 +42,10 @@ public class StartFileMap {
         cmdList.add(new CommandRollback());
         cmdList.add(new CommandSize());
         cmdList.add(new CommandExit());
+
         shell.fillHashMap(cmdList);
-        if (args.length == 0) {
-            shell.interActive();
-        } else {
-            shell.pocket(args);
-        }
+
+        shell.interActive();
     }
 }
 
