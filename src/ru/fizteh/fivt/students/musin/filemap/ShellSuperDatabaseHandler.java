@@ -7,16 +7,33 @@ import ru.fizteh.fivt.students.musin.shell.Shell;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 
-public class ShellDatabaseHandler {
-    private FileMapProvider database;
+public class ShellSuperDatabaseHandler {
+    private FileMapProvider provider;
     private MultiFileMap current;
+    private DatabaseServer server;
+    private RemoteFileMapProviderFactory remoteFactory;
+    private RemoteFileMapProvider remoteProvider;
+    private RemoteFileMap remoteCurrent;
+    private boolean local;
 
-    public ShellDatabaseHandler(FileMapProvider database) throws IOException {
-        this.database = database;
+    public ShellSuperDatabaseHandler(FileMapProvider provider) throws IOException {
+        this.provider = provider;
+        server = new DatabaseServer(provider);
         current = null;
+        remoteFactory = new RemoteFileMapProviderFactory();
+        remoteProvider = null;
+        remoteCurrent = null;
+        local = true;
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                close();
+            }
+        }));
     }
 
     void printException(Throwable e, PrintStream errorLog) {
@@ -105,7 +122,12 @@ public class ShellDatabaseHandler {
                                 return -1;
                             }
                         }
-                        Table table = database.createTable(args.get(0), columnTypes);
+                        Table table = null;
+                        if (local) {
+                            table = provider.createTable(args.get(0), columnTypes);
+                        } else {
+                            table = remoteProvider.createTable(args.get(0), columnTypes);
+                        }
                         if (table == null) {
                             shell.writer.printf("%s exists%s", args.get(0), System.lineSeparator());
                             return 0;
@@ -137,7 +159,11 @@ public class ShellDatabaseHandler {
                     }
                     boolean inUse = args.get(0).equals(current.getName());
                     try {
-                        database.removeTable(args.get(0));
+                        if (local) {
+                            provider.removeTable(args.get(0));
+                        } else {
+                            remoteProvider.removeTable(args.get(0));
+                        }
                     } catch (IllegalStateException e) {
                         shell.writer.printf("%s not exists%s", args.get(0), System.lineSeparator());
                         return 0;
@@ -146,7 +172,7 @@ public class ShellDatabaseHandler {
                         return -1;
                     } catch (IOException e) {
                         printException(e, shell.writer);
-                        return  -1;
+                        return -1;
                     }
                     if (current != null && inUse) {
                         current = null;
@@ -166,18 +192,34 @@ public class ShellDatabaseHandler {
                         shell.writer.println("use: Too few arguments");
                         return -1;
                     }
-                    if (current != null && current.uncommittedChanges() != 0) {
-                        shell.writer.printf("%d unsaved changes%s",
-                                current.uncommittedChanges(), System.lineSeparator());
-                        return 0;
-                    }
                     try {
-                        MultiFileMap newTable = database.getTable(args.get(0));
-                        if (newTable != null) {
-                            current = newTable;
+                        if (local) {
+                            if (current != null && current.uncommittedChanges() != 0) {
+                                shell.writer.printf("%d unsaved changes%s",
+                                        current.uncommittedChanges(), System.lineSeparator());
+                                return 0;
+                            }
+                            MultiFileMap newTable = provider.getTable(args.get(0));
+                            if (newTable != null) {
+                                current = newTable;
+                            } else {
+                                shell.writer.printf("%s not exists%s", args.get(0), System.lineSeparator());
+                                return 0;
+                            }
                         } else {
-                            shell.writer.printf("%s not exists%s", args.get(0), System.lineSeparator());
-                            return 0;
+                            RemoteFileMap newTable = remoteProvider.getTable(args.get(0));
+                            if (newTable != null) {
+                                try {
+                                    remoteProvider.activate(newTable);
+                                } catch (RemoteFileMapProvider.UnsavedChangesException e) {
+                                    shell.writer.println(e.getMessage());
+                                    return 0;
+                                }
+                                remoteCurrent = newTable;
+                            } else {
+                                shell.writer.printf("%s not exists%s", args.get(0), System.lineSeparator());
+                                return 0;
+                            }
                         }
                     } catch (RuntimeException e) {
                         printException(e, shell.writer);
@@ -195,7 +237,19 @@ public class ShellDatabaseHandler {
                         return -1;
                     }
                     try {
-                        shell.writer.println(current.commit());
+                        if (local) {
+                            if (current == null) {
+                                shell.writer.println("no table");
+                                return 0;
+                            }
+                            shell.writer.println(current.commit());
+                        } else {
+                            if (remoteCurrent == null) {
+                                shell.writer.println("no table");
+                                return 0;
+                            }
+                            shell.writer.println(remoteCurrent.commit());
+                        }
                     } catch (RuntimeException e) {
                         printException(e, shell.writer);
                         return -1;
@@ -214,7 +268,11 @@ public class ShellDatabaseHandler {
                         return -1;
                     }
                     try {
-                        shell.writer.println(current.rollback());
+                        if (local) {
+                            shell.writer.println(current.rollback());
+                        } else {
+                            shell.writer.println(remoteCurrent.rollback());
+                        }
                     } catch (RuntimeException e) {
                         printException(e, shell.writer);
                         return -1;
@@ -226,11 +284,15 @@ public class ShellDatabaseHandler {
                 @Override
                 public int execute(Shell shell, ArrayList<String> args) {
                     if (args.size() > 0) {
-                        shell.writer.println("rollback: Too many arguments");
+                        shell.writer.println("size: Too many arguments");
                         return -1;
                     }
                     try {
-                        shell.writer.println(current.size());
+                        if (local) {
+                            shell.writer.println(current.size());
+                        } else {
+                            shell.writer.println(remoteCurrent.size());
+                        }
                     } catch (RuntimeException e) {
                         printException(e, shell.writer);
                         return -1;
@@ -250,17 +312,33 @@ public class ShellDatabaseHandler {
                         shell.writer.println("put: Too few arguments");
                         return -1;
                     }
-                    if (current == null) {
-                        shell.writer.println("no table");
-                        return 0;
-                    }
                     try {
-                        Storeable value = current.put(args.get(0), database.deserialize(current, args.get(1)));
+                        Storeable value = null;
+                        if (local) {
+                            if (current == null) {
+                                shell.writer.println("no table");
+                                return 0;
+                            }
+                            value = current.put(args.get(0), provider.deserialize(current, args.get(1)));
+                        } else {
+                            if (remoteCurrent == null) {
+                                shell.writer.println("no table");
+                                return 0;
+                            }
+                            value = remoteCurrent.put(
+                                    args.get(0), remoteProvider.deserialize(remoteCurrent, args.get(1)));
+                        }
                         if (value == null) {
                             shell.writer.println("new");
                         } else {
+                            String answer;
+                            if (local) {
+                                answer = provider.serialize(current, value);
+                            } else {
+                                answer = remoteProvider.serialize(remoteCurrent, value);
+                            }
                             shell.writer.printf("overwrite%s%s%s",
-                                    System.lineSeparator(), database.serialize(current, value), System.lineSeparator());
+                                    System.lineSeparator(), answer, System.lineSeparator());
                         }
                     } catch (ColumnFormatException e) {
                         shell.writer.printf("wrong type (%s)%s", e.getMessage(), System.lineSeparator());
@@ -284,16 +362,31 @@ public class ShellDatabaseHandler {
                         shell.writer.println("get: Too few arguments");
                         return -1;
                     }
-                    if (current == null) {
-                        shell.writer.println("no table");
-                        return 0;
+                    Storeable value;
+                    if (local) {
+                        if (current == null) {
+                            shell.writer.println("no table");
+                            return 0;
+                        }
+                        value = current.get(args.get(0));
+                    } else {
+                        if (remoteCurrent == null) {
+                            shell.writer.println("no table");
+                            return 0;
+                        }
+                        value = remoteCurrent.get(args.get(0));
                     }
-                    Storeable value = current.get(args.get(0));
                     if (value == null) {
                         shell.writer.println("not found");
                     } else {
+                        String answer;
+                        if (local) {
+                            answer = provider.serialize(current, value);
+                        } else {
+                            answer = remoteProvider.serialize(remoteCurrent, value);
+                        }
                         shell.writer.printf("found%s%s%s",
-                                System.lineSeparator(), database.serialize(current, value), System.lineSeparator());
+                                System.lineSeparator(), answer, System.lineSeparator());
                     }
                     return 0;
                 }
@@ -309,11 +402,20 @@ public class ShellDatabaseHandler {
                         shell.writer.println("remove: Too few arguments");
                         return -1;
                     }
-                    if (current == null) {
-                        shell.writer.println("no table");
-                        return 0;
+                    Storeable value;
+                    if (local) {
+                        if (current == null) {
+                            shell.writer.println("no table");
+                            return 0;
+                        }
+                        value = current.remove(args.get(0));
+                    } else {
+                        if (remoteCurrent == null) {
+                            shell.writer.println("no table");
+                            return 0;
+                        }
+                        value = remoteCurrent.remove(args.get(0));
                     }
-                    Storeable value = current.remove(args.get(0));
                     if (value != null) {
                         shell.writer.printf("removed%s", System.lineSeparator());
                     } else {
@@ -334,7 +436,12 @@ public class ShellDatabaseHandler {
                         return -1;
                     }
                     try {
-                        MultiFileMap newTable = database.getTable(args.get(0));
+                        Table newTable;
+                        if (local) {
+                            newTable = provider.getTable(args.get(0));
+                        } else {
+                            newTable = remoteProvider.getTable(args.get(0));
+                        }
                         if (newTable != null) {
                             int columnCount = newTable.getColumnsCount();
                             for (int i = 0; i < columnCount; i++) {
@@ -368,8 +475,200 @@ public class ShellDatabaseHandler {
                     }
                     return 0;
                 }
+            }),
+            new Shell.ShellCommand("connect", new Shell.ShellExecutable() {
+                @Override
+                public int execute(Shell shell, ArrayList<String> args) {
+                    if (args.size() > 2) {
+                        shell.writer.println("connect: Too many arguments");
+                        return -1;
+                    }
+                    if (args.size() < 2) {
+                        shell.writer.println("connect: Too few arguments");
+                        return -1;
+                    }
+                    if (!local) {
+                        shell.writer.println("not connected: already connected to a server");
+                        return -1;
+                    }
+                    try {
+                        remoteProvider = remoteFactory.connect(args.get(0), Integer.parseInt(args.get(1)));
+                    } catch (UnknownHostException e) {
+                        shell.writer.print("not connected: ");
+                        shell.writer.println(String.format("Unknown hostname: %s", args.get(0)));
+                        return -1;
+                    } catch (IOException e) {
+                        shell.writer.print("not connected: ");
+                        printException(e, shell.writer);
+                        return -1;
+                    } catch (NumberFormatException e) {
+                        shell.writer.print("not connected: ");
+                        shell.writer.println("Illegal port format");
+                        return -1;
+                    } catch (IllegalArgumentException e) {
+                        shell.writer.print("not connected: ");
+                        shell.writer.println("Port out of range");
+                        return -1;
+                    } catch (RuntimeException e) {
+                        shell.writer.print("not connected: ");
+                        printException(e, shell.writer);
+                        return -1;
+                    }
+                    local = false;
+                    shell.writer.println("connected");
+                    return 0;
+                }
+            }),
+            new Shell.ShellCommand("disconnect", new Shell.ShellExecutable() {
+                @Override
+                public int execute(Shell shell, ArrayList<String> args) {
+                    if (args.size() > 0) {
+                        shell.writer.println("disconnect: Too many arguments");
+                        return -1;
+                    }
+                    if (local) {
+                        shell.writer.println("not connected");
+                        return 0;
+                    }
+                    try {
+                        remoteProvider.close();
+                        remoteProvider = null;
+                        remoteCurrent = null;
+                    } catch (IOException e) {
+                        printException(e, shell.writer);
+                        return -1;
+                    } catch (RuntimeException e) {
+                        printException(e, shell.writer);
+                        return -1;
+                    }
+                    local = true;
+                    shell.writer.println("disconnected");
+                    return 0;
+                }
+            }),
+            new Shell.ShellCommand("whereami", new Shell.ShellExecutable() {
+                @Override
+                public int execute(Shell shell, ArrayList<String> args) {
+                    if (args.size() > 0) {
+                        shell.writer.println("whereami: Too many arguments");
+                        return -1;
+                    }
+                    if (local) {
+                        shell.writer.println("local");
+                        return 0;
+                    }
+                    try {
+                        shell.writer.println(String.format("remote %s %d",
+                                remoteProvider.getHost(), remoteProvider.getPort()));
+                    } catch (RuntimeException e) {
+                        printException(e, shell.writer);
+                        return -1;
+                    }
+                    return 0;
+                }
+            }),
+            new Shell.ShellCommand("start", new Shell.ShellExecutable() {
+                @Override
+                public int execute(Shell shell, ArrayList<String> args) {
+                    if (args.size() > 1) {
+                        shell.writer.println("start: Too many arguments");
+                        return -1;
+                    }
+                    if (server.isStarted()) {
+                        shell.writer.println("already started");
+                    }
+                    int newPort = 10001;
+                    if (args.size() == 1) {
+                        try {
+                            newPort = Integer.parseInt(args.get(0));
+                        } catch (NumberFormatException e) {
+                            shell.writer.println("not started: Can't parse argument as integer");
+                            return -1;
+                        }
+                    }
+                    try {
+                        server.start(newPort);
+                    } catch (InterruptedException e) {
+                        shell.writer.println("Critical error: main thread interrupted");
+                        return -1;
+                    } catch (DatabaseServer.ServerStartException e) {
+                        shell.writer.println(String.format("not started: %s", e.getMessage()));
+                        return -1;
+                    }
+                    shell.writer.println(String.format("started at %d", newPort));
+                    return 0;
+                }
+            }),
+            new Shell.ShellCommand("stop", new Shell.ShellExecutable() {
+                @Override
+                public int execute(Shell shell, ArrayList<String> args) {
+                    if (args.size() > 0) {
+                        shell.writer.println("stop: Too many arguments");
+                        return -1;
+                    }
+                    if (!server.isStarted()) {
+                        shell.writer.println("not started");
+                        return -1;
+                    }
+                    int port;
+                    try {
+                        port = server.stop();
+                    } catch (InterruptedException e) {
+                        shell.writer.println("Critical error: main thread interrupted");
+                        return -1;
+                    }
+                    shell.writer.println(String.format("stopped at %d", port));
+                    return 0;
+                }
+            }),
+            new Shell.ShellCommand("listusers", new Shell.ShellExecutable() {
+                @Override
+                public int execute(Shell shell, ArrayList<String> args) {
+                    if (args.size() > 0) {
+                        shell.writer.println("listusers: Too many arguments");
+                        return -1;
+                    }
+                    if (!server.isStarted()) {
+                        shell.writer.println("not started");
+                        return -1;
+                    }
+                    for (String entry : server.listConnections()) {
+                        shell.writer.println(entry);
+                    }
+                    return 0;
+                }
             })
     };
+
+    public void close() {
+        try {
+            if (remoteFactory != null) {
+                remoteFactory.close();
+            }
+        } catch (Exception e) {
+            //Nothing
+        }
+        try {
+            if (server != null) {
+                if (server.isStarted()) {
+                    try {
+                        server.stop();
+                    } catch (InterruptedException e) {
+                        //Exit function nothing to do
+                    }
+                }
+            }
+        } catch (Exception e) {
+            //Nothing
+        }
+        try {
+            if (provider != null) {
+                provider.close();
+            }
+        } catch (Exception e) {
+            //Nothing
+        }
+    }
 
     public void integrate(Shell shell) {
         for (int i = 0; i < commands.length; i++) {
@@ -378,13 +677,7 @@ public class ShellDatabaseHandler {
         shell.addExitFunction(new Shell.ShellCommand(null, new Shell.ShellExecutable() {
             @Override
             public int execute(Shell shell, ArrayList<String> args) {
-                try {
-                    if (current != null) {
-                        current.rollback();
-                    }
-                } catch (Exception e) {
-                    printException(e, shell.writer);
-                }
+                close();
                 return 0;
             }
         }));

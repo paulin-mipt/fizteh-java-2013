@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class FileMapProviderFactory implements TableProviderFactory, AutoCloseable {
-    ArrayList<FileMapProvider> providers;
-    volatile boolean valid;
+    private ArrayList<FileMapProvider> providers;
+    private volatile boolean valid;
 
     public FileMapProviderFactory() {
         providers = new ArrayList<>();
@@ -44,10 +44,13 @@ public class FileMapProviderFactory implements TableProviderFactory, AutoCloseab
     }
 
     public void close() {
-        valid = false;
-        for (FileMapProvider provider : providers) {
-            provider.close();
+        try {
+            for (FileMapProvider provider : providers) {
+                provider.close();
+            }
+            providers.clear();
+        } finally {
+            valid = false;
         }
-        providers.clear();
     }
 }

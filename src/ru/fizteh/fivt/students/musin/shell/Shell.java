@@ -1,24 +1,28 @@
 package ru.fizteh.fivt.students.musin.shell;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Shell {
 
     private HashMap<String, ShellCommand> commands;
+    private ArrayList<ShellCommand> exitFunction;
     public File currentDirectory;
-    boolean exit;
+    private boolean exit;
+    public PrintStream writer;
+    private String greeting;
 
-    public void stop() {
-        exit = true;
-    }
-
-    public Shell(String startDirectory) {
-        currentDirectory = new File(startDirectory);
-        commands = new HashMap<String, ShellCommand>();
+    public Shell(String startDirectory, PrintStream writer) {
+        if (startDirectory == null) {
+            currentDirectory = null;
+        } else {
+            currentDirectory = new File(startDirectory);
+        }
+        this.writer = writer;
+        greeting = " $ ";
+        commands = new HashMap<>();
+        exitFunction = new ArrayList<>();
         commands.put("exit", new ShellCommand("exit", new ShellExecutable() {
             @Override
             public int execute(Shell shell, ArrayList<String> args) {
@@ -26,6 +30,17 @@ public class Shell {
                 return 0;
             }
         }));
+    }
+
+    public void setGreeting(String greeting) {
+        this.greeting = greeting;
+    }
+
+    public void stop() {
+        for (ShellCommand command : exitFunction) {
+            command.exec.execute(this, null);
+        }
+        exit = true;
     }
 
     private int parseString(String s) {
@@ -66,7 +81,7 @@ public class Shell {
                 }
             }
             if (command == null && !name.equals("")) {
-                System.err.printf("No such command %s\n", name);
+                writer.printf("No such command %s%s", name, System.lineSeparator());
                 return -1;
             }
         }
@@ -75,6 +90,10 @@ public class Shell {
 
     public void addCommand(ShellCommand command) {
         commands.put(command.name, command);
+    }
+
+    public void addExitFunction(ShellCommand command) {
+        exitFunction.add(command);
     }
 
     public int runArgs(String[] args) {
@@ -89,15 +108,16 @@ public class Shell {
     public int run(BufferedReader br) {
         exit = false;
         while (!exit) {
-            System.out.print(" $ ");
+            writer.print(greeting);
             try {
                 String str = br.readLine();
                 if (str == null) {
+                    stop();
                     return 0;
                 }
                 parseString(str);
             } catch (IOException e) {
-                System.err.println(e.getMessage());
+                writer.println(e.getMessage());
             }
         }
         return 0;
