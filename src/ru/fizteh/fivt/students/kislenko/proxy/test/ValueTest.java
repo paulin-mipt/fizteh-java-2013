@@ -5,9 +5,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
-import ru.fizteh.fivt.students.kislenko.proxy.MyTable;
-import ru.fizteh.fivt.students.kislenko.proxy.MyTableProvider;
-import ru.fizteh.fivt.students.kislenko.proxy.Value;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTable;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProvider;
+import ru.fizteh.fivt.students.kislenko.storeable.Value;
 
 import java.util.ArrayList;
 import java.util.List;

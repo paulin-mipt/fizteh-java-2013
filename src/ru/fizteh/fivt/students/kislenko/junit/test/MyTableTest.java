@@ -3,7 +3,7 @@ package ru.fizteh.fivt.students.kislenko.junit.test;
 import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import ru.fizteh.fivt.students.kislenko.junit.MyTable;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTable;
 
 public class MyTableTest {
     MyTable table;

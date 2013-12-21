@@ -22,4 +22,8 @@ public abstract class MultiTableFatherState extends FatherState {
     public abstract void changeTable(String tableName, AtomicReference<String> message) throws Exception;
 
     public abstract int getTableChangeCount();
+
+    public abstract boolean autoCommit();
+
+    public abstract int commitCurrentTable() throws IOException;
 }

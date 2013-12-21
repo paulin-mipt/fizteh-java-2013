@@ -76,6 +76,19 @@ public class MultiFileHashMapState extends MultiTableFatherState {
         return 0;
     }
 
+    @Override
+    public boolean autoCommit() {
+        return true;
+    }
+
+    @Override
+    public int commitCurrentTable() {
+        if (currentTable == null) {
+            return 0;
+        }
+        return currentTable.commit();
+    }
+
     public MyTable getCurrentTable() {
         return currentTable;
     }

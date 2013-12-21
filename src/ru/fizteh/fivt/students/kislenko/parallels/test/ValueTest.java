@@ -5,8 +5,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
-import ru.fizteh.fivt.students.kislenko.parallels.MyTable;
-import ru.fizteh.fivt.students.kislenko.parallels.MyTableProvider;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTable;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProvider;
 import ru.fizteh.fivt.students.kislenko.storeable.Value;
 
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class ValueTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        provider = new MyTableProvider();
+        provider = new MyTableProvider("provider");
         List<Class<?>> typelist = new ArrayList<Class<?>>();
         typelist.add(Integer.class);
         typelist.add(Long.class);

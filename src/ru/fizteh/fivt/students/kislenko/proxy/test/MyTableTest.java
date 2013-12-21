@@ -2,10 +2,10 @@ package ru.fizteh.fivt.students.kislenko.proxy.test;
 
 import org.junit.*;
 import ru.fizteh.fivt.students.kislenko.junit.test.Cleaner;
-import ru.fizteh.fivt.students.kislenko.proxy.MyTable;
-import ru.fizteh.fivt.students.kislenko.proxy.MyTableProvider;
-import ru.fizteh.fivt.students.kislenko.proxy.MyTableProviderFactory;
-import ru.fizteh.fivt.students.kislenko.proxy.Value;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTable;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProvider;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProviderFactory;
+import ru.fizteh.fivt.students.kislenko.storeable.Value;
 
 import java.io.File;
 import java.text.ParseException;

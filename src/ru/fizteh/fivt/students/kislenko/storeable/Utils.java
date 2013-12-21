@@ -86,7 +86,6 @@ public class Utils {
         int valueLength;
         String key;
         String value;
-        table.setByteSize(table.getByteSize() + datafile.length());
         while (datafile.getFilePointer() != datafile.length()) {
             keyLength = datafile.readInt();
             valueLength = datafile.readInt();
@@ -104,7 +103,6 @@ public class Utils {
         if (table == null) {
             return;
         }
-        table.setByteSize(0);
         File[] dirs = new File[16];
         Map<Integer, File> files = new TreeMap<Integer, File>();
         Map<Integer, RandomAccessFile> datafiles = new TreeMap<Integer, RandomAccessFile>();
