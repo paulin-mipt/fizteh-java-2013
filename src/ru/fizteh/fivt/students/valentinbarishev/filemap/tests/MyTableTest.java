@@ -7,19 +7,7 @@ import ru.fizteh.fivt.students.valentinbarishev.filemap.MyTableProviderFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-
 
 public class MyTableTest {
     static Table table;
@@ -215,4 +203,38 @@ public class MyTableTest {
         Assert.assertNull(table.put("abacaba", storeable));
         Assert.assertEquals(table.commit(), 0);
     }
+
+    @Test
+    public void testTableClose() throws Exception {
+        Storeable storeable = provider.createFor(table);
+        storeable.setColumnAt(0, "");
+        Assert.assertNull(table.put("abacaba", storeable));
+        ((AutoCloseable) table).close();
+        ((AutoCloseable) table).close();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testTableCloseGet() throws Exception {
+        ((AutoCloseable) table).close();
+        table.get("asdasd");
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testTableClosePut() throws Exception {
+        ((AutoCloseable) table).close();
+        table.put("asdasd", provider.createFor(table));
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testTableCloseSize() throws Exception {
+        ((AutoCloseable) table).close();
+        table.size();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testTableCloseName() throws Exception {
+        ((AutoCloseable) table).close();
+        table.getName();
+    }
+
 }

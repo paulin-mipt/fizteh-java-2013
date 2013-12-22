@@ -1,7 +1,8 @@
 package ru.fizteh.fivt.students.eltyshev.multifilemap.commands;
 
-import ru.fizteh.fivt.storage.strings.*;
-import ru.fizteh.fivt.students.eltyshev.filemap.base.commands.*;
+import ru.fizteh.fivt.storage.strings.Table;
+import ru.fizteh.fivt.storage.strings.TableProvider;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.commands.FileMapShellState;
 import ru.fizteh.fivt.students.eltyshev.shell.commands.CommandParser;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class MultifileMapShellState extends FileMapShellState implements BaseDat
     @Override
     public void dropTable(String name) {
         tableProvider.removeTable(name);
+        table = null;
     }
 
     @Override

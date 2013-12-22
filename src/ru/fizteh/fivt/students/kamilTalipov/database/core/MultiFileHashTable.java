@@ -4,7 +4,6 @@ import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.Storeable;
 
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.kamilTalipov.database.utils.FileUtils;
 import ru.fizteh.fivt.students.kamilTalipov.database.utils.JsonUtils;
 import ru.fizteh.fivt.students.kamilTalipov.database.utils.StoreableUtils;
@@ -21,7 +20,7 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class MultiFileHashTable implements Table {
+public class MultiFileHashTable implements Table, AutoCloseable {
     private final HashMap<String, Storeable>[][] table;
     private final ThreadLocal<HashMap<String, Storeable>> newValues;
 
@@ -30,9 +29,10 @@ public class MultiFileHashTable implements Table {
     private final String tableName;
     private final File tableDirectory;
 
-    private final TableProvider myTableProvider;
+    private final MultiFileHashTableProvider myTableProvider;
 
     private volatile boolean isRemoved = false;
+    private volatile boolean isClosed = false;
 
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = readWriteLock.readLock();
@@ -47,7 +47,7 @@ public class MultiFileHashTable implements Table {
     private static final String SIGNATURE_FILE_NAME = "signature.tsv";
 
     public MultiFileHashTable(String workingDirectory, String tableName,
-                              TableProvider myTableProvider,
+                              MultiFileHashTableProvider myTableProvider,
                               List<Class<?>> types) throws DatabaseException, IOException {
         if (workingDirectory == null) {
             throw new IllegalArgumentException("Working directory path must be not null");
@@ -100,8 +100,14 @@ public class MultiFileHashTable implements Table {
     }
 
     public MultiFileHashTable(String workingDirectory, String tableName,
-                              TableProvider myTableProvider) throws DatabaseException, IOException {
+                              MultiFileHashTableProvider myTableProvider) throws DatabaseException,
+                                                                                    IOException {
         this(workingDirectory, tableName, myTableProvider, getTypes(workingDirectory, tableName));
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + tableDirectory.getAbsolutePath() + "]";
     }
 
     @Override
@@ -169,7 +175,13 @@ public class MultiFileHashTable implements Table {
             throw new IllegalArgumentException("Key must be not empty");
         }
 
-        Storeable oldValue = get(key);
+        Storeable oldValue;
+        readLock.lock();
+        try {
+            oldValue = get(key);
+        } finally {
+            readLock.unlock();
+        }
         newValues.get().put(key, null);
 
         return oldValue;
@@ -277,6 +289,11 @@ public class MultiFileHashTable implements Table {
         return types.get(columnIndex);
     }
 
+    @Override
+    public void close() {
+        close(true);
+    }
+
     public int uncommittedChanges() {
         checkState();
         readLock.lock();
@@ -296,9 +313,25 @@ public class MultiFileHashTable implements Table {
         }
     }
 
+    void close(boolean needInformProvider) {
+        if (isClosed) {
+            return;
+        }
+
+        if (needInformProvider) {
+            myTableProvider.closedTable(this);
+        }
+
+        rollback();
+        isClosed = true;
+    }
+
     private void checkState() {
         if (isRemoved) {
-            throw new IllegalStateException("Table + '" + tableName + "' is removed");
+            throw new IllegalStateException("Table '" + tableName + "' is removed");
+        }
+        if (isClosed) {
+            throw new IllegalStateException("Table '" + tableName + "' is closed");
         }
     }
 

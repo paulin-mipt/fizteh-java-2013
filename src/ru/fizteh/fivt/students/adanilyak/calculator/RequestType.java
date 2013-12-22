@@ -21,7 +21,7 @@ public enum RequestType {
         typeValue = type;
     }
 
-    static public RequestType getType(String pType) {
+    public static RequestType getType(String pType) {
         for (RequestType type : RequestType.values()) {
             if (type.getTypeValue().equals(pType)) {
                 return type;

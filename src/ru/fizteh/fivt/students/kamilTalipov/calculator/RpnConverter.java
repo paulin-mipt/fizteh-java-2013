@@ -50,9 +50,11 @@ public class RpnConverter {
                         }
                         isCanBeUnaryOperator = false;
                         break;
+
+                    default:
                 }
                 ++pos;
-            } else if (Character.isWhitespace(expression.charAt (pos))) {
+            } else if (Character.isWhitespace(expression.charAt(pos))) {
                 ++pos;
             }
         }
@@ -78,7 +80,8 @@ public class RpnConverter {
                 return 4;
             case '/':
                 return 4;
+            default:
+                return 5;
         }
-        return 5;
     }
 }

@@ -175,4 +175,12 @@ public class TestFileMapStoreable {
     public void getWrongStringType() {
         stInt.getStringAt(0);
     }
+
+    @Test()
+    public void correctToString() throws IOException {
+        stIntString.setColumnAt(0, 1);
+        stIntString.setColumnAt(1, "qwe");
+        assertEquals(stIntString.toString(),
+                String.format("%s[%s]", "FileMapStoreable", "1,qwe"));
+    }
 }

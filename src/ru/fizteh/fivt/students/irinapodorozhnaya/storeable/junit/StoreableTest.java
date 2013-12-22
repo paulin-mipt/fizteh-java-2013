@@ -59,6 +59,11 @@ public class StoreableTest {
         s.setColumnAt(2, "Hello");
         s.setColumnAt(4, 4.0);
     }
+
+    @Test
+    public void toStringTest() {
+        Assert.assertEquals(s.toString(), "MyStoreable[1,false,Hello,3.0,4.0,5,6]");
+    }
     
     @Test (expected = IndexOutOfBoundsException.class)
     public void setAtIncorrectColumn() throws Exception {

@@ -16,7 +16,8 @@ public class Main {
         dispatcherMultiFileHashMapBuilder.setStorageBuilder(storageBuilder);
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerGet()));
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerPut()));
-        dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerRemove()));
+        dispatcherMultiFileHashMapBuilder.addPerformer(
+                new PerformerSafeDataBaseOperationWrapper(new PerformerRemove()));
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerCreate());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerDrop());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerUse());

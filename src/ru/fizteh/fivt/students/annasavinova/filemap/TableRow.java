@@ -116,4 +116,21 @@ public class TableRow implements Storeable {
         }
         return (String) list.get(columnIndex);
     }
+    
+    @Override
+    public String toString() {
+        StringBuffer str = new StringBuffer(getClass().getSimpleName());
+        str.append("[");
+        int size = list.size() - 1;
+        for (int i = 0; i < size; ++i) {
+            Object obj = list.get(i);
+            if (obj != null) {
+                str.append(obj.toString());
+            }
+            str.append(",");
+        }
+        str.append(list.get(size));
+        str.append("]");
+        return str.toString();        
+    }
 }

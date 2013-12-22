@@ -42,7 +42,7 @@ public class StoreableTableBuilder implements TableBuilder {
         } catch (ParseException e) {
             System.err.println(e.getMessage());
         }
-        table.put(key, objectValue);
+        table.rawPut(key, objectValue);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class StoreableTableBuilder implements TableBuilder {
 
     @Override
     public File getTableDirectory() {
-        return new File(table.getDirectory(), table.getName());
+        return new File(table.getDatabaseDirectory(), table.getName());
     }
 
     @Override

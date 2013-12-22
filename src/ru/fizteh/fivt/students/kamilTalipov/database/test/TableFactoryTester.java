@@ -23,4 +23,21 @@ public class TableFactoryTester {
         MultiFileHashTableFactory factory = new MultiFileHashTableFactory();
         MultiFileHashTableProvider provider = factory.create(null);
     }
+
+    @Test
+    public void manyClosesTest() throws IOException {
+        MultiFileHashTableFactory factory = new MultiFileHashTableFactory();
+        MultiFileHashTableProvider provider = factory.create(folder.getRoot().getAbsolutePath());
+        for (int i = 0; i < 5; ++i) {
+            factory.close();
+        }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void workAfterCloseTest() throws IOException {
+        MultiFileHashTableFactory factory = new MultiFileHashTableFactory();
+        MultiFileHashTableProvider provider = factory.create(folder.getRoot().getAbsolutePath());
+        factory.close();
+        factory.create(folder.getRoot().getAbsolutePath());
+    }
 }

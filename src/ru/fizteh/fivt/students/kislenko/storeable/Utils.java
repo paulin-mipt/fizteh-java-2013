@@ -3,6 +3,7 @@ package ru.fizteh.fivt.students.kislenko.storeable;
 import ru.fizteh.fivt.students.kislenko.multifilemap.TwoLayeredString;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,13 @@ import java.util.*;
 public class Utils {
     public static List<Class<?>> readColumnTypes(String pathToTable) throws IOException, ClassNotFoundException {
         File columnTypesFile = new File(pathToTable, "signature.tsv");
-        Scanner scanner = new Scanner(columnTypesFile);
+        Scanner scanner;
+        try {
+            scanner = new Scanner(columnTypesFile);
+        } catch (FileNotFoundException e) {
+            System.out.println("Can't find signature file.");
+            throw new FileNotFoundException("Signature file doesn't exist.");
+        }
         List<Class<?>> types = new ArrayList<Class<?>>();
         while (scanner.hasNext()) {
             String type = scanner.next();
@@ -79,7 +86,6 @@ public class Utils {
         int valueLength;
         String key;
         String value;
-        table.setByteSize(table.getByteSize() + datafile.length());
         while (datafile.getFilePointer() != datafile.length()) {
             keyLength = datafile.readInt();
             valueLength = datafile.readInt();
@@ -97,7 +103,6 @@ public class Utils {
         if (table == null) {
             return;
         }
-        table.setByteSize(0);
         File[] dirs = new File[16];
         Map<Integer, File> files = new TreeMap<Integer, File>();
         Map<Integer, RandomAccessFile> datafiles = new TreeMap<Integer, RandomAccessFile>();

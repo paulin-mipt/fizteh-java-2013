@@ -1,7 +1,5 @@
 package ru.fizteh.fivt.students.eltyshev.multifilemap;
 
-import ru.fizteh.fivt.storage.strings.Table;
-import ru.fizteh.fivt.students.eltyshev.filemap.base.AbstractStorage;
 import ru.fizteh.fivt.students.eltyshev.filemap.base.SimpleTableBuilder;
 import ru.fizteh.fivt.students.eltyshev.filemap.base.StringTable;
 
@@ -14,8 +12,13 @@ public class MultifileTable extends StringTable {
         super(directory, tableName);
     }
 
+    @Override
+    protected DatabaseFileDescriptor makeDescriptor(String key) {
+        return MultifileMapUtils.makeDescriptor(key);
+    }
+
     protected void save() throws IOException {
-        DistributedSaver.save(new SimpleTableBuilder(this));
+        DistributedSaver.save(new SimpleTableBuilder(this), getChangedFiles());
     }
 
     protected void load() throws IOException {
@@ -23,7 +26,7 @@ public class MultifileTable extends StringTable {
     }
 
     private File getTableDirectory() {
-        File tableDirectory = new File(getDirectory(), getName());
+        File tableDirectory = new File(getDatabaseDirectory(), getName());
         if (!tableDirectory.exists()) {
             tableDirectory.mkdir();
         }

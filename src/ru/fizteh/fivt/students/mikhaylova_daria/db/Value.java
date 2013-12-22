@@ -190,4 +190,18 @@ public class Value implements Storeable {
         return val;
     }
 
+    public String toString() {
+        StringBuilder strValue = new StringBuilder();
+        for (int i = 0; i < this.types.size(); ++i) {
+            Object objAtCol = this.getColumnAt(i);
+            if (objAtCol != null) {
+                strValue.append(objAtCol.toString());
+            }
+            if (i != this.types.size() - 1) {
+                strValue.append(",");
+            }
+        }
+        return this.getClass().getSimpleName() + "[" + strValue + "]";
+    }
+
 }

@@ -14,14 +14,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 
-public class TableImplementation implements Table {
+public class TableImplementation implements Table, AutoCloseable {
     private static final int DIR_NUM = 16;
     private static final int FILE_NUM = 16;
-
+    
+    private final Path databaseDirectory;
     private final String tableName;
-    private final TableProvider tableProvider;
+    private final TableProviderImplementation tableProvider;
     private final List<Class<?>> columnTypes;
     
     private final FileDatabase[][] database = new FileDatabase[DIR_NUM][FILE_NUM];
@@ -29,6 +29,8 @@ public class TableImplementation implements Table {
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     private final Lock readLock = readWriteLock.readLock();
     private final Lock writeLock = readWriteLock.writeLock();
+    
+    private volatile boolean isClosed = false;
     
     private ThreadLocal<Map<String, Storeable>[][]> putChanges = new ThreadLocal<Map<String, Storeable>[][]>() {
         @Override
@@ -55,12 +57,13 @@ public class TableImplementation implements Table {
         }
     };
     
-    public TableImplementation(TableProvider tableProvider, Path databaseDirectory, 
+    public TableImplementation(TableProviderImplementation tableProvider, Path databaseDirectory, 
             String tableName, List<Class<?>> columnTypes) throws IOException {
 
         this.tableProvider = tableProvider;
         this.tableName = tableName;
         this.columnTypes = columnTypes;
+        this.databaseDirectory = databaseDirectory;
         
         for (int nDirectory = 0; nDirectory < DIR_NUM; ++nDirectory) {
             for (int nFile = 0; nFile < FILE_NUM; ++nFile) {
@@ -72,11 +75,15 @@ public class TableImplementation implements Table {
     
     @Override
     public String getName() {
+        isClosed();
+        
         return tableName;
     }
 
     @Override
     public Storeable get(String key) {
+        isClosed();
+        
         tableExists();
         
         isValidKey(key);
@@ -100,6 +107,8 @@ public class TableImplementation implements Table {
 
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        isClosed();
+        
         tableExists();
         
         isValidKey(key);
@@ -125,6 +134,8 @@ public class TableImplementation implements Table {
 
     @Override
     public Storeable remove(String key) {
+        isClosed();
+        
         tableExists();
         
         isValidKey(key);
@@ -150,6 +161,8 @@ public class TableImplementation implements Table {
 
     @Override
     public int size() {
+        isClosed();
+        
         tableExists();
         
         int size;
@@ -168,6 +181,8 @@ public class TableImplementation implements Table {
 
     @Override
     public int commit() throws IOException {
+        isClosed();
+        
         tableExists();
         
         int changesNumber;
@@ -200,30 +215,43 @@ public class TableImplementation implements Table {
 
     @Override
     public int rollback() {
+        isClosed();
+        
         tableExists();
         
         int changesNumber = countChanges();
         
+        clearAllChanges();
+        
+        return changesNumber;
+    }
+    
+    private void clearAllChanges() {
         for (int nDirectory = 0; nDirectory < DIR_NUM; ++nDirectory) {
             for (int nFile = 0; nFile < FILE_NUM; ++nFile) {
                 putChanges.get()[nDirectory][nFile].clear();
                 removeChanges.get()[nDirectory][nFile].clear();
             }
         }
-        return changesNumber;
     }
     
     @Override
     public int getColumnsCount() {
+        isClosed();
+        
         return columnTypes.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        isClosed();
+        
         return columnTypes.get(columnIndex);
     }
     
     public int countChanges() {
+        isClosed();
+        
         int changesNumber = 0;
         
         readLock.lock();
@@ -448,5 +476,40 @@ public class TableImplementation implements Table {
             return;
         }
         throw new ColumnFormatException("Invalid value: more columns");
+    }
+    
+    @Override
+    public String toString() {
+        isClosed();
+        
+        String result = "";
+        result += this.getClass().getSimpleName();
+        result += "[" + databaseDirectory.resolve(tableName).normalize() + "]";
+        return result;
+    }
+
+    @Override
+    public void close() throws Exception {
+        clearAllChanges();
+        
+        if (!isClosed) {
+            writeLock.lock();
+            try {
+                if (!isClosed) {
+                    tableProvider.reinitialize(tableName);
+                }
+            } finally {
+                writeLock.unlock();
+            }
+            
+            isClosed = true;
+        }
+        
+    }
+    
+    private void isClosed() {
+        if (isClosed) {
+            throw new IllegalStateException("Table object is closed");
+        }
     }
 }

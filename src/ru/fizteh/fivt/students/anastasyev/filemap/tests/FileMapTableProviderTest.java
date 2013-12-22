@@ -6,6 +6,8 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.storage.structured.TableProviderFactory;
+import ru.fizteh.fivt.students.anastasyev.filemap.FileMapTable;
+import ru.fizteh.fivt.students.anastasyev.filemap.FileMapTableProvider;
 import ru.fizteh.fivt.students.anastasyev.filemap.FileMapTableProviderFactory;
 import ru.fizteh.fivt.students.anastasyev.filemap.MyStoreable;
 
@@ -18,6 +20,7 @@ import static junit.framework.Assert.*;
 
 public class FileMapTableProviderTest {
     TableProviderFactory tableProviderFactory;
+    String path;
     TableProvider tableProvider;
     List<Class<?>> types;
     List<Class<?>> classes;
@@ -32,7 +35,8 @@ public class FileMapTableProviderTest {
     @Before
     public void setTableProvider() throws IOException {
         tableProviderFactory = new FileMapTableProviderFactory();
-        tableProvider = tableProviderFactory.create(folder.newFolder().toString());
+        path = folder.newFolder().toString();
+        tableProvider = tableProviderFactory.create(path);
         assertNotNull(tableProvider);
         classes = new ArrayList<Class<?>>();
         classes.add(Integer.class);
@@ -290,6 +294,62 @@ public class FileMapTableProviderTest {
         assertEquals(secondParallelTable, tableProvider.getTable("table"));
         assertEquals(firstParallelTable.getName(), secondParallelTable.getName());
         tableProvider.removeTable("table");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetTableAfterClose() throws IOException {
+        FileMapTableProvider fileMapTableProvider = (FileMapTableProvider) tableProvider;
+        assertNotNull(fileMapTableProvider.createTable("ClosingTable", types));
+        fileMapTableProvider.close();
+        fileMapTableProvider.getTable("ClosingTable");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCreateTableAfterClose() throws IOException {
+        FileMapTableProvider fileMapTableProvider = (FileMapTableProvider) tableProvider;
+        assertNotNull(fileMapTableProvider.createTable("ClosingTable", types));
+        fileMapTableProvider.close();
+        fileMapTableProvider.getTable("ClosingTable");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testDeserializeAfterClose() throws IOException, ParseException {
+        FileMapTableProvider fileMapTableProvider = (FileMapTableProvider) tableProvider;
+        Table table = fileMapTableProvider.createTable("ClosingTable", types);
+        fileMapTableProvider.close();
+        fileMapTableProvider.deserialize(table, "[\"not valide string\"]");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testPutAfterClose() throws IOException, ParseException {
+        FileMapTableProvider fileMapTableProvider = (FileMapTableProvider) tableProvider;
+        Table table = fileMapTableProvider.createTable("ClosingTable", types);
+        Storeable storeable = fileMapTableProvider.deserialize(table, "[1,2,3,4,5,\"str\"]");
+        fileMapTableProvider.close();
+        table.put("key", storeable);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testSerializeAfterClose() throws IOException, ParseException {
+        FileMapTableProvider fileMapTableProvider = (FileMapTableProvider) tableProvider;
+        Table table = fileMapTableProvider.createTable("ClosingTable", types);
+        Storeable storeable = fileMapTableProvider.deserialize(table, "[1,2,3,4,5,\"str\"]");
+        fileMapTableProvider.close();
+        fileMapTableProvider.serialize(table, storeable);
+    }
+
+    @Test
+    public void testToString() {
+        String str = tableProvider.toString();
+        assertEquals(str, "FileMapTableProvider[" + path + "]");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testClosingOfTablesInProvider() throws IOException {
+        FileMapTableProvider fileMapTableProvider = (FileMapTableProvider) tableProvider;
+        FileMapTable table1 = (FileMapTable) fileMapTableProvider.createTable("newTable1", types);
+        fileMapTableProvider.close();
+        table1.get("key");
     }
 }
 

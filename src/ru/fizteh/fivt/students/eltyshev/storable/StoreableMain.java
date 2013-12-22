@@ -3,7 +3,9 @@ package ru.fizteh.fivt.students.eltyshev.storable;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.eltyshev.filemap.base.commands.*;
-import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.*;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.CreateCommand;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.DropCommand;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.UseCommand;
 import ru.fizteh.fivt.students.eltyshev.shell.Shell;
 import ru.fizteh.fivt.students.eltyshev.shell.commands.Command;
 import ru.fizteh.fivt.students.eltyshev.shell.commands.HelpCommand;
@@ -26,6 +28,7 @@ public class StoreableMain {
         commands.add(new CommitCommand<StoreableShellState>());
         commands.add(new RollbackCommand<StoreableShellState>());
         commands.add(new ExitCommand<StoreableShellState>());
+        commands.add(new SizeCommand<StoreableShellState>());
         commands.add(new CreateCommand<Table, String, Storeable, StoreableShellState>());
         commands.add(new DropCommand<StoreableShellState>());
         commands.add(new UseCommand<Table, String, Storeable, StoreableShellState>());
@@ -44,7 +47,7 @@ public class StoreableMain {
             StoreableShellState shellState = new StoreableShellState(factory.create(databaseDirectory));
             shell.setShellState(shellState);
         } catch (IOException e) {
-            System.err.println("some error occurred during loading");
+            System.err.println("some error occurred during loading: " + e.getMessage());
             System.exit(1);
         } catch (IllegalArgumentException e) {
             System.err.println("error while loading: " + e.getMessage());

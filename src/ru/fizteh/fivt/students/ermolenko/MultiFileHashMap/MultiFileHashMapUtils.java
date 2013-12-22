@@ -3,8 +3,7 @@ package ru.fizteh.fivt.students.ermolenko.multifilehashmap;
 import ru.fizteh.fivt.students.ermolenko.filemap.FileMapState;
 import ru.fizteh.fivt.students.ermolenko.filemap.FileMapUtils;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +11,13 @@ import java.util.Map;
 public class MultiFileHashMapUtils {
 
     public static void read(File currentDir, Map<String, String> currentMap) throws IOException {
+
+        if (!currentDir.exists()) {
+            throw new IOException("directory doesn't exist");
+        }
+        if (!currentDir.isDirectory()) {
+            throw new IOException("'" + currentDir.getName() + "' is not a directory");
+        }
 
         for (int directNumber = 0; directNumber < 16; ++directNumber) {
             File subDir = new File(currentDir, directNumber + ".dir");
@@ -21,15 +27,21 @@ public class MultiFileHashMapUtils {
             if (!subDir.isDirectory()) {
                 throw new IOException(subDir.getName() + "isn't directory");
             }
+            if (!(subDir.list().length > 0)) {
+                throw new IOException("empty dir");
+            }
 
             for (int fileNumber = 0; fileNumber < 16; ++fileNumber) {
                 File currentFile = new File(subDir, fileNumber + ".dat");
                 if (!currentFile.exists()) {
                     continue;
                 }
+                if (!(currentFile.length() > 0)) {
+                    throw new IOException("empty file");
+                }
                 FileMapState state = new FileMapState(currentFile);
                 state.setDataBase(currentMap);
-                FileMapUtils.readDataBase(state);
+                FileMapUtils.readAndCheckDataBase(state, directNumber, fileNumber);
             }
         }
     }

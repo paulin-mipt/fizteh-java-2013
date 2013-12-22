@@ -12,4 +12,6 @@ public interface Database {
     Storeable remove(String key);
 
     int size();
+
+    String serialize(Storeable storeable);
 }

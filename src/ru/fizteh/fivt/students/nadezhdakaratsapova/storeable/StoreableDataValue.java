@@ -89,4 +89,17 @@ public class StoreableDataValue implements Storeable {
         }
     }
 
+    public String toString() {
+        StringBuilder values = new StringBuilder();
+        for (Object value : columnValues) {
+            if (value != null) {
+                values.append(value.toString() + ",");
+            } else {
+                values.append(",");
+            }
+        }
+        values.deleteCharAt(values.length() - 1);
+        return new String(this.getClass().getSimpleName() + "[" + values + "]");
+    }
+
 }

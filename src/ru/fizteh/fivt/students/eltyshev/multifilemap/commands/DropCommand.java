@@ -14,17 +14,17 @@ public class DropCommand<State extends BaseDatabaseShellState> extends AbstractC
     public void executeCommand(String params, State shellState) {
         ArrayList<String> parameters = CommandParser.parseParams(params);
         if (parameters.size() > 1) {
-            throw new IllegalArgumentException("too many arguments!");
+            throw new IllegalArgumentException("wrong type (too many arguments)");
         }
         if (parameters.size() < 1) {
-            throw new IllegalArgumentException("argument missing");
+            throw new IllegalArgumentException("wrong type (argument missing)");
         }
 
         try {
             shellState.dropTable(parameters.get(0));
             System.out.println("dropped");
         } catch (IOException | IllegalStateException e) {
-            System.err.println(e.getMessage());
+            System.err.println(String.format("%s", e.getMessage()));
         }
     }
 }

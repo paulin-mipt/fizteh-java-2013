@@ -15,6 +15,7 @@ import org.w3c.dom.Node;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
+import java.util.concurrent.locks.*;
 
 public class StructuredTableDirectory implements StructuredTableProviderInterface {
 
@@ -22,6 +23,7 @@ public class StructuredTableDirectory implements StructuredTableProviderInterfac
 	private final HashMap<String, StructuredTableInterface> tables = new HashMap<String, StructuredTableInterface>();
 	private static final String VALID_TABLENAME_REGEXP = "[A-Za-zА-Яа-я0-9\\._-]+";
 	private static Map<String, Class<?>> allowedTypes = new HashMap();
+	private final Lock tablesLock = new ReentrantLock();
 	static {
 		allowedTypes.put("int", Integer.class);
 		allowedTypes.put("long", Long.class);
@@ -60,8 +62,10 @@ public class StructuredTableDirectory implements StructuredTableProviderInterfac
 		if (name == null || !name.matches(VALID_TABLENAME_REGEXP)) {
 			throw new IllegalArgumentException();
 		}
+		tablesLock.lock();
 		File table = new File(dbDirectory, name);
 		if (!table.isDirectory()) {
+			tablesLock.unlock();
 			return null;
 		}
 		try {
@@ -75,6 +79,9 @@ public class StructuredTableDirectory implements StructuredTableProviderInterfac
 		catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
+		finally {
+			tablesLock.unlock();
+		}
 	}
 
 	public StructuredTableInterface createTable (String name, List<Class<?>> columnTypes) throws IOException {
@@ -86,11 +93,14 @@ public class StructuredTableDirectory implements StructuredTableProviderInterfac
 				throw new IllegalArgumentException();
 			}
 		}
+		tablesLock.lock();
 		if (tables.get(name) != null) {
+			tablesLock.unlock();
 			return null;
 		}
 		File table = new File(dbDirectory, name);
 		if (table.isFile()) {
+			tablesLock.unlock();
 			throw new IllegalArgumentException();
 		}
 		try {
@@ -101,6 +111,9 @@ public class StructuredTableDirectory implements StructuredTableProviderInterfac
 		}
 		catch (IOException e) {
 			throw new IllegalArgumentException(e);
+		}
+		finally {
+			tablesLock.unlock();
 		}
 	}
 
@@ -124,14 +137,18 @@ public class StructuredTableDirectory implements StructuredTableProviderInterfac
 		if (name == null || name.isEmpty()) {
 			throw new IllegalArgumentException();
 		}
+		tablesLock.lock();
 		File table = new File(dbDirectory, name);
 		if (!table.isDirectory()) {
+			tablesLock.unlock();
 			throw new IllegalStateException(name + " not exists");
 		}
 		if (!delete(dbDirectory, name)) {
+			tablesLock.unlock();
 			throw new IllegalArgumentException();
 		}
 		tables.remove(name);
+		tablesLock.unlock();
 	}
 
 	public Storeable deserialize (Table table, String value) throws ParseException {

@@ -134,21 +134,27 @@ public class DatabaseStoreable implements Storeable {
         }
     }
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
+    public static String join(List<?> list, boolean nameNulls, String delimiter) {
+        StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (final Object column : columns) {
+        for (final Object listEntry : list) {
             if (!first) {
-                builder.append(" ");
+                sb.append(delimiter);
             }
             first = false;
-            if (column == null) {
-                builder.append("null");
+            if (listEntry == null) {
+                if (nameNulls) {
+                    sb.append("null");
+                }
             } else {
-                builder.append(column.toString());
+                sb.append(listEntry.toString());
             }
         }
-        return builder.toString();
+        return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s[%s]", getClass().getSimpleName(), join(columns, false, ","));
     }
 }

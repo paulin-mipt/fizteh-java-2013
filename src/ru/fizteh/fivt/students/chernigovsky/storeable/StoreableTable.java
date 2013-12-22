@@ -8,14 +8,16 @@ import java.util.List;
 
 public class StoreableTable extends AbstractTable<Storeable> implements ExtendedStoreableTable {
     List<Class<?>> columnTypeList;
+    ExtendedStoreableTableProvider tableProvider;
 
     public void setColumnTypeList(List<Class<?>> newColumnTypeList) {
         columnTypeList = newColumnTypeList;
     }
 
-    public StoreableTable(String name, boolean flag, List<Class<?>> newColumnTypeList) {
+    public StoreableTable(String name, boolean flag, List<Class<?>> newColumnTypeList, ExtendedStoreableTableProvider newTableProvider) {
         super(name, flag);
         columnTypeList = newColumnTypeList;
+        tableProvider = newTableProvider;
     }
 
     public int getColumnsCount() {
@@ -43,4 +45,12 @@ public class StoreableTable extends AbstractTable<Storeable> implements Extended
         }
         return super.put(key, value);
     }
+
+
+    public boolean valuesEqual(Storeable firstValue, Storeable secondValue) {
+        return tableProvider.serialize(this, firstValue).equals(tableProvider.serialize(this, secondValue));
+    }
+
+
+
 }

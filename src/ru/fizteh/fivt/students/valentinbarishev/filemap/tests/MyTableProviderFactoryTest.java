@@ -28,4 +28,11 @@ public class MyTableProviderFactoryTest {
         TableProviderFactory factory = new MyTableProviderFactory();
         Assert.assertNotNull(factory.create(""));
     }
+
+    @Test (expected = IllegalStateException.class)
+    public void testClose() throws Exception {
+        TableProviderFactory factory = new MyTableProviderFactory();
+        ((AutoCloseable) factory).close();
+        factory.create("asdasd");
+    }
 }

@@ -4,7 +4,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import ru.fizteh.fivt.students.kislenko.junit.test.Cleaner;
-import ru.fizteh.fivt.students.kislenko.parallels.MyTableProviderFactory;
+import ru.fizteh.fivt.students.kislenko.storeable.MyTableProviderFactory;
 
 import java.io.File;
 import java.io.IOException;

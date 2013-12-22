@@ -1,8 +1,8 @@
 package ru.fizteh.fivt.students.eltyshev.multifilemap;
 
-import ru.fizteh.fivt.storage.strings.*;
+import ru.fizteh.fivt.storage.strings.Table;
+import ru.fizteh.fivt.storage.strings.TableProvider;
 
-import javax.swing.plaf.multi.MultiInternalFrameUI;
 import java.io.File;
 import java.util.HashMap;
 import java.util.regex.Matcher;

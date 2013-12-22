@@ -9,16 +9,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 
 
-public final class DataBase implements Table {
+public final class DataBase implements Table, AutoCloseable {
 
     private String name;
     private String dataBaseDirectory;
     private DataBaseFile[] files;
-    private TableProvider provider;
+    private DataBaseTable provider;
     private List<Class<?>> types;
+
+    public ClassState state = new ClassState(this);
 
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     public Lock readLock = readWriteLock.readLock();
@@ -52,7 +53,7 @@ public final class DataBase implements Table {
         }
     }
 
-    public DataBase(final String dbDirectory, final TableProvider newProvider, final List<Class<?>> newTypes)
+    public DataBase(final String dbDirectory, final DataBaseTable newProvider, final List<Class<?>> newTypes)
                 throws IOException {
         name = new File(dbDirectory).getName();
         dataBaseDirectory = dbDirectory;
@@ -181,11 +182,13 @@ public final class DataBase implements Table {
 
     @Override
     public String getName() {
+        state.check();
         return name;
     }
 
     @Override
     public Storeable put(final String keyStr, final Storeable storeableValue) {
+        state.check();
         checkKey(keyStr);
         if (storeableValue == null) {
             throw new IllegalArgumentException("Wrong put value = null!");
@@ -201,6 +204,7 @@ public final class DataBase implements Table {
 
     @Override
     public Storeable get(final String keyStr) {
+        state.check();
         checkKey(keyStr);
         DirFile node = new DirFile(keyStr.getBytes()[0]);
 
@@ -211,6 +215,7 @@ public final class DataBase implements Table {
 
     @Override
     public Storeable remove(final String keyStr) {
+        state.check();
         checkKey(keyStr);
         DirFile node = new DirFile(keyStr.getBytes()[0]);
         DataBaseFile file = files[node.getId()];
@@ -222,10 +227,12 @@ public final class DataBase implements Table {
 
     @Override
     public int commit() {
+        state.check();
         int allNew = 0;
         writeLock.lock();
         try {
-            for (int i = 0; i < 256; ++i) {
+            state.check();
+            for (int i = 0; i < files.length; ++i) {
                 allNew += files[i].getNewKeys();
                 files[i].commit();
             }
@@ -237,17 +244,21 @@ public final class DataBase implements Table {
 
     @Override
     public int size() {
+        state.check();
         int allSize = 0;
-        for (int i = 0; i < 256; ++i) {
-                allSize += files[i].getSize();
+        for (int i = 0; i < files.length; ++i) {
+            state.check();
+            allSize += files[i].getSize();
         }
         return allSize;
     }
 
     @Override
     public int rollback() {
+        state.check();
         int allCanceled = 0;
-        for (int i = 0; i < 256; ++i) {
+        for (int i = 0; i < files.length; ++i) {
+            state.check();
             allCanceled += files[i].getNewKeys();
             files[i].rollback();
         }
@@ -256,12 +267,14 @@ public final class DataBase implements Table {
 
     @Override
     public int getColumnsCount() {
+        state.check();
         return types.size();
     }
 
     public int getNewKeys() {
         int allNewSize = 0;
-        for (int i = 0; i < 256; ++i) {
+        for (int i = 0; i < files.length; ++i) {
+            state.check();
             allNewSize += files[i].getNewKeys();
         }
         return allNewSize;
@@ -269,10 +282,34 @@ public final class DataBase implements Table {
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        state.check();
         if ((columnIndex < 0) || (columnIndex >= types.size())) {
             throw new IndexOutOfBoundsException("getColumnType: IOOBE");
         }
         return types.get(columnIndex);
+    }
+
+    @Override
+    public String toString() {
+        state.check();
+        return String.format("%s[%s]", getClass().getSimpleName(), dataBaseDirectory);
+    }
+
+    @Override
+    public void close() {
+        if (state.isClosed()) {
+            return;
+        }
+        writeLock.lock();
+        try {
+            state.close();
+            provider.removeFromHashTable(name);
+            for (int i = 0; i < files.length; ++i) {
+                files[i].close();
+            }
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     public Storeable putStoreable(String keyStr, String valueStr) throws ParseException {

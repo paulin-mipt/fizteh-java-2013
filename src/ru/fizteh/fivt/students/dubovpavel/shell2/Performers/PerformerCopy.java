@@ -21,7 +21,7 @@ public class PerformerCopy extends PerformerShell {
     }
 
     private void copyFile(String source, String destination) throws PerformerCopyException {
-        if(source.equals(destination)) {
+        if (source.equals(destination)) {
             throw new PerformerCopyException(String.format("Attempt to copy '%s' in itself", source));
         }
         try {
@@ -40,14 +40,15 @@ public class PerformerCopy extends PerformerShell {
     }
 
     private void copyFolder(String source, String destination) throws PerformerCopyException {
-        File sourceFolder = new File(source), destinationFolder = new File(destination);
-        if(!destinationFolder.mkdir()) {
+        File sourceFolder = new File(source);
+        File destinationFolder = new File(destination);
+        if (!destinationFolder.mkdir()) {
             throw new PerformerCopyException(String.format("Can not create '%s'", destinationFolder));
         }
-        for(File object: sourceFolder.listFiles()) {
-            if(object.isFile()) {
+        for (File object : sourceFolder.listFiles()) {
+            if (object.isFile()) {
                 copyFile(object.getPath(), new File(destinationFolder, object.getName()).getPath());
-            } else if(object.isDirectory()) {
+            } else if (object.isDirectory()) {
                 copyFolder(object.getPath(), new File(destinationFolder, object.getName()).getPath());
             }
         }
@@ -55,15 +56,16 @@ public class PerformerCopy extends PerformerShell {
 
     public void execute(Dispatcher dispatcher, Command command) throws PerformerException {
         File object = getCanonicalFile(command.getArgument(0));
-        String canonicalSource = object.getPath(), canonicalDestination = getCanonicalFile(command.getArgument(1)).getPath();
-        if(!object.exists()) {
+        String canonicalSource = object.getPath();
+        String canonicalDestination = getCanonicalFile(command.getArgument(1)).getPath();
+        if (!object.exists()) {
             throw new PerformerException(dispatcher.callbackWriter(Dispatcher.MessageType.ERROR,
                     String.format("%s. cp: '%s' does not exist", command.getDescription(), canonicalSource)));
         }
         try {
-            if(object.isFile()) {
+            if (object.isFile()) {
                 copyFile(canonicalSource, canonicalDestination);
-            } else if(object.isDirectory()) {
+            } else if (object.isDirectory()) {
                 copyFolder(canonicalSource, canonicalDestination);
             }
         } catch (PerformerCopyException e) {

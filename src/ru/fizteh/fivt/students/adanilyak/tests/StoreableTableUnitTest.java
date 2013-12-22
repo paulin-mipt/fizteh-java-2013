@@ -1,12 +1,12 @@
+
 package ru.fizteh.fivt.students.adanilyak.tests;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TemporaryFolder;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
+import ru.fizteh.fivt.students.adanilyak.storeable.StoreableTable;
 import ru.fizteh.fivt.students.adanilyak.storeable.StoreableTableProvider;
 import ru.fizteh.fivt.students.adanilyak.tools.DeleteDirectory;
 import ru.fizteh.fivt.students.adanilyak.tools.WorkWithStoreableDataBase;
@@ -26,15 +26,20 @@ public class StoreableTableUnitTest {
     TableProvider tableProvider;
     Table testTableEng;
     Table testTableRus;
-    File sandBoxDirectory = new File("/Users/Alexander/Documents/JavaDataBase/Tests");
+    List<Class<?>> typesTestListOne;
+    List<Class<?>> typesTestListTwo;
+    File sandBoxDirectory;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Before
     public void setUpTestObject() throws IOException {
+        sandBoxDirectory = folder.newFolder();
         tableProvider = new StoreableTableProvider(sandBoxDirectory);
 
-        List<Class<?>> typesTestListOne = WorkWithStoreableDataBase.createListOfTypesFromString("int int int");
-        List<Class<?>> typesTestListTwo =
-                WorkWithStoreableDataBase.createListOfTypesFromString("int double boolean String");
+        typesTestListOne = WorkWithStoreableDataBase.createListOfTypesFromString("int int int");
+        typesTestListTwo = WorkWithStoreableDataBase.createListOfTypesFromString("int double boolean String");
 
         testTableEng = tableProvider.createTable("testTable20", typesTestListOne);
         testTableRus = tableProvider.createTable("тестоваяТаблица21", typesTestListTwo);
@@ -42,8 +47,8 @@ public class StoreableTableUnitTest {
 
     @After
     public void tearDownTestObject() throws IOException {
-        tableProvider.removeTable("testTable20");
-        tableProvider.removeTable("тестоваяТаблица21");
+        //tableProvider.removeTable("testTable20");
+        //tableProvider.removeTable("тестоваяТаблица21");
         DeleteDirectory.rm(sandBoxDirectory);
     }
 
@@ -100,6 +105,11 @@ public class StoreableTableUnitTest {
     @Test
     public void putTest() throws IOException, ParseException {
         Assert.assertNull(testTableEng.put("key", tableProvider.deserialize(testTableEng, "[1, 2, 3]")));
+        testTableEng.commit();
+
+        ((StoreableTable) testTableEng).close();
+        testTableEng = tableProvider.createTable("testTable20", typesTestListOne);
+
         Assert.assertEquals("[1,2,3]", tableProvider.serialize(testTableEng, testTableEng.put("key",
                 tableProvider.deserialize(testTableEng, "[1, 2, 3]"))));
         Assert.assertEquals("[1,2,3]", tableProvider.serialize(testTableEng, testTableEng.put("key",
@@ -306,5 +316,85 @@ public class StoreableTableUnitTest {
     @Test
     public void getColumnsType2Test() {
         Assert.assertEquals(Boolean.class, testTableRus.getColumnType(2));
+    }
+
+    /**
+     * TEST BLOCK
+     * CLOSE TESTS
+     */
+
+    @Test
+    public void doubleCloseTest() throws IOException {
+        ((StoreableTable) testTableEng).close();
+        ((StoreableTable) testTableEng).close();
+        testTableEng = tableProvider.createTable("testTable20", typesTestListOne);
+        Assert.assertNotNull(testTableEng);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.get("key");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void putAfterCloseTest() throws ParseException {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.put("key", tableProvider.deserialize(testTableEng, "[1, 2, 3]"));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void removeAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.remove("key");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getNameAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.getName();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void rollbackAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.rollback();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void commitAfterCloseTest() throws IOException {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.commit();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getColumnTypeAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.getColumnType(0);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getColumnsCountAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.getColumnsCount();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void toStringAfterCloseTest() {
+        ((StoreableTable) testTableEng).close();
+        testTableEng.toString();
+    }
+
+    /**
+     * TEST BLOCK
+     * TO STRING TESTS
+     */
+
+    @Test
+    public void toStringTest() {
+        Assert.assertEquals("StoreableTable[" + sandBoxDirectory.getAbsolutePath() + "/testTable20]",
+                testTableEng.toString());
+        Assert.assertEquals("StoreableTable[" + sandBoxDirectory.getAbsolutePath() + "/тестоваяТаблица21]",
+                testTableRus.toString());
     }
 }

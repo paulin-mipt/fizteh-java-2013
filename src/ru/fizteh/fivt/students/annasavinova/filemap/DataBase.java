@@ -17,7 +17,7 @@ import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 
-public class DataBase implements Table {
+public class DataBase implements Table, AutoCloseable {
     protected ThreadLocal<HashMap<String, Storeable>> dataMap = new ThreadLocal<HashMap<String, Storeable>>() {
         @Override
         public HashMap<String, Storeable> initialValue() {
@@ -34,10 +34,16 @@ public class DataBase implements Table {
 
     private String currTable = "";
     private static String rootDir = "";
-    private boolean removed = false;
+    private volatile boolean closed = false;
 
     public void setRemoved() {
-        removed = true;
+        closed = true;
+    }
+
+    private void checkClosed() {
+        if (closed) {
+            throw new IllegalStateException("table is closed");
+        }
     }
 
     public DataBase(String tableName, String root, TableProvider prov) {
@@ -181,9 +187,7 @@ public class DataBase implements Table {
 
     @Override
     public String getName() {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         return currTable;
     }
 
@@ -201,9 +205,7 @@ public class DataBase implements Table {
 
     @Override
     public Storeable get(String key) {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         checkKey(key);
         Storeable val = null;
         if (dataMap.get().containsKey(key)) {
@@ -221,9 +223,7 @@ public class DataBase implements Table {
 
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         checkKey(key);
         if (value == null) {
             throw new IllegalArgumentException("Value is null");
@@ -246,9 +246,7 @@ public class DataBase implements Table {
 
     @Override
     public Storeable remove(String key) throws IllegalArgumentException {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         checkKey(key);
         Storeable val = null;
         if (dataMap.get().containsKey(key)) {
@@ -269,9 +267,7 @@ public class DataBase implements Table {
 
     @Override
     public int size() {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         int size = 0;
         read.lock();
         try {
@@ -294,9 +290,7 @@ public class DataBase implements Table {
 
     @Override
     public int commit() throws IOException {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         int changesCount = countChanges();
         mergeMaps();
         dataMap.get().clear();
@@ -328,9 +322,7 @@ public class DataBase implements Table {
 
     @Override
     public int rollback() {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         int changesCount = countChanges();
         dataMap.get().clear();
         return changesCount;
@@ -338,20 +330,34 @@ public class DataBase implements Table {
 
     @Override
     public int getColumnsCount() {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         return typesList.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
-        if (removed) {
-            throw new IllegalStateException("table not exists");
-        }
+        checkClosed();
         if (columnIndex < 0 || columnIndex >= typesList.size()) {
             throw new IndexOutOfBoundsException("Incorrect index " + columnIndex);
         }
         return typesList.get(columnIndex);
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (!closed) {
+            rollback();
+            closed = true;
+        }
+        provider.closeTable(currTable);
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer str = new StringBuffer(getClass().getSimpleName());
+        str.append("[");
+        str.append(rootDir + currTable);
+        str.append("]");
+        return str.toString();
     }
 }

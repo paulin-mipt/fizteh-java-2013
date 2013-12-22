@@ -23,7 +23,8 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
     
     private final List<Class<?>> columnType;
     private final ExtendProvider provider;
-    
+    private volatile boolean isClosed = false;
+
     public MyTable(String name, File rootDir, ExtendProvider provider) throws IOException {
         super(name, rootDir);
         columnType = readSignature();
@@ -37,11 +38,31 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
         this.provider = provider;
     }
 
+    private void checkClosed() {
+        if (isClosed) {
+            throw new IllegalStateException("call for closed object");
+        }
+    }
+
+    @Override
+    public void close() {
+        if (!isClosed) {
+            rollback();
+            isClosed = true;
+        }
+    }
+
+    public boolean isClosed() {
+        return isClosed;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + tableDirectory.getAbsolutePath() + "]";
+    }
+
     private List<Class<?>> readSignature() throws IOException {
-
         List<Class<?>> columns = new ArrayList<>();
-
-
         try (Scanner sc = new Scanner(new File(tableDirectory, "signature.tsv"))) {
             while (sc.hasNext()) {
                 columns.add(Types.getTypeByName(sc.next()));
@@ -58,8 +79,38 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
 
     @Override
     public int commit() throws IOException {
-        loadOldDatabase();
+        checkClosed();
+        //loadOldDatabase();
         return super.commit();
+    }
+
+    public int rollback() {
+        checkClosed();
+        return super.rollback();
+    }
+
+    @Override
+    public Storeable get(String key) {
+        checkClosed();
+        return super.get(key);
+    }
+
+    @Override
+    public String getName() {
+        checkClosed();
+        return super.getName();
+    }
+
+    @Override
+    public Storeable remove(String key) {
+        checkClosed();
+        return super.remove(key);
+    }
+
+    @Override
+    public int size() {
+        checkClosed();
+        return super.size();
     }
 
     @Override
@@ -73,7 +124,7 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
 
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
-        
+        checkClosed();
         if (value == null || key == null || key.trim().isEmpty()) {
             throw new IllegalArgumentException("null argument in put");
         }
@@ -101,16 +152,19 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
 
     @Override
     public int getColumnsCount() {
+        checkClosed();
         return columnType.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkClosed();
         return columnType.get(columnIndex);
     }
 
     @Override
     protected Map<String, String> serialize(Map<String, Storeable> values) {
+        checkClosed();
         if (values == null) {
             return null;
         }
@@ -124,6 +178,7 @@ public class MyTable extends GenericTable<Storeable> implements ExtendTable {
 
     @Override
     protected Map<String, Storeable> deserialize(Map<String, String> values) throws IOException {
+        checkClosed();
         if (values == null) {
             return null;
         }

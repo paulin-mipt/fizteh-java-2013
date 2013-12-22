@@ -19,7 +19,7 @@ public class StoreableTableProvider extends AbstractTableProvider<ExtendedStorea
         super(newDbDirectory, flag);
         if (newDbDirectory != null) {
             for (String string : newDbDirectory.list()) {
-                ExtendedStoreableTable newTable = new StoreableTable(string, flag, null);
+                ExtendedStoreableTable newTable = new StoreableTable(string, flag, null, this);
                 tableHashMap.put(string, newTable);
                 try {
                     StoreableUtils.readTable(newTable, this);
@@ -45,8 +45,13 @@ public class StoreableTableProvider extends AbstractTableProvider<ExtendedStorea
             throw new IllegalArgumentException("wrong table name");
         }
 
-        if (tableHashMap.get(name) != null) {
-            return null;
+        try {
+            tableProviderLock.readLock().lock();
+            if (tableHashMap.get(name) != null) {
+                return null;
+            }
+        } finally {
+            tableProviderLock.readLock().unlock();
         }
 
         if (columnTypes == null) {
@@ -58,50 +63,55 @@ public class StoreableTableProvider extends AbstractTableProvider<ExtendedStorea
         }
 
 
-
-        File tableDirectory = new File(getDbDirectory(), name);
-        if (!tableDirectory.mkdir()) {
-            throw new IllegalArgumentException("directory making error");
-        }
-
-        File signature = new File(tableDirectory, "signature.tsv");
-        if (!signature.createNewFile()) {
-            throw new IllegalArgumentException("signature making error");
-        }
-
-        FileOutputStream fileOutputStream = new FileOutputStream(signature);
-        fileOutputStream.getChannel().truncate(0); // Clear file
-        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-        DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
-
-        StringBuilder stringBuilder = new StringBuilder();
-
-        for (Class<?> type : columnTypes) {
-            if (type == null) {
-                throw new IllegalArgumentException("wrong column type");
-            }
-            TypeEnum typesEnum = TypeEnum.getByClass(type);
-            if (typesEnum == null) {
-                throw new IllegalArgumentException("wrong column type");
-            }
-            stringBuilder.append(TypeEnum.getByClass(type).getSignature());
-            stringBuilder.append(' ');
-        }
-
-        String typeString = stringBuilder.toString();
-
-        typeString = typeString.substring(0, typeString.length() - 1);
-
         try {
-            dataOutputStream.write(typeString.getBytes("UTF-8"));
+            tableProviderLock.writeLock().lock();
+            File tableDirectory = new File(getDbDirectory(), name);
+            if (!tableDirectory.mkdir()) {
+                throw new IllegalArgumentException("directory making error");
+            }
+
+            File signature = new File(tableDirectory, "signature.tsv");
+            if (!signature.createNewFile()) {
+                throw new IllegalArgumentException("signature making error");
+            }
+
+            FileOutputStream fileOutputStream = new FileOutputStream(signature);
+            fileOutputStream.getChannel().truncate(0); // Clear file
+            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+            DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
+
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for (Class<?> type : columnTypes) {
+                if (type == null) {
+                    throw new IllegalArgumentException("wrong column type");
+                }
+                TypeEnum typesEnum = TypeEnum.getByClass(type);
+                if (typesEnum == null) {
+                    throw new IllegalArgumentException("wrong column type");
+                }
+                stringBuilder.append(TypeEnum.getByClass(type).getSignature());
+                stringBuilder.append(' ');
+            }
+
+            String typeString = stringBuilder.toString();
+
+            typeString = typeString.substring(0, typeString.length() - 1);
+
+            try {
+                dataOutputStream.write(typeString.getBytes("UTF-8"));
+            } finally {
+                dataOutputStream.close();
+            }
+
+            ExtendedStoreableTable newTable = new StoreableTable(name, autoCommit, columnTypes, this);
+
+            tableHashMap.put(name, newTable);
+
+            return newTable;
         } finally {
-            dataOutputStream.close();
+            tableProviderLock.writeLock().unlock();
         }
-
-        ExtendedStoreableTable newTable = new StoreableTable(name, autoCommit, columnTypes);
-
-        tableHashMap.put(name, newTable);
-        return newTable;
     }
 
     /**

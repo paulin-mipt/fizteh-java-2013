@@ -23,7 +23,7 @@ public class StoreableTableTest {
 
     @After
     public void clear() {
-        if(path.exists()) {
+        if (path.exists()) {
             try {
                 Utils.remover(path, "test", false);
             } catch (Exception e) {
@@ -111,6 +111,12 @@ public class StoreableTableTest {
         assertEquals(table.getColumnType(0), Integer.class);
         assertEquals(table.getColumnType(1), Boolean.class);
         assertEquals(table.getColumnType(2), String.class);
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose() throws IllegalStateException, IllegalArgumentException, IOException {
+        this.table.close();
+        this.table.size();
     }
 
 }

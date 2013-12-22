@@ -13,8 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class MyTableTests {
 
@@ -130,6 +129,93 @@ public class MyTableTests {
         assertEquals(table.commit(), 0);
         assertNotNull(table.remove("keyNew"));
         assertEquals(table.rollback(), 1);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseGetPutRemove() {
+        Storeable st = new MyStoreable(table);
+        st.setColumnAt(0, 1);
+        st.setColumnAt(1, "string");
+        st.setColumnAt(2, 2.5);
+        table.put("key1", st);
+        MyTable oldTable = (MyTable) table;
+        oldTable.close();
+        table.get("key1");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testClosePut() {
+        Storeable st = new MyStoreable(table);
+        st.setColumnAt(0, 1);
+        st.setColumnAt(1, "string");
+        st.setColumnAt(2, 2.5);
+        table.put("key1", st);
+        MyTable oldTable = (MyTable) table;
+        oldTable.close();
+        table.put("newKey", st);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseRemove() throws IOException {
+        Storeable st = new MyStoreable(table);
+        st.setColumnAt(0, 1);
+        st.setColumnAt(1, "string");
+        st.setColumnAt(2, 2.5);
+        table.put("key1", st);
+        st.setColumnAt(0, 2);
+        st.setColumnAt(1, "string2");
+        st.setColumnAt(2, 4.5);
+        table.put("key2", st);
+        MyTable oldTable = (MyTable) table;
+        oldTable.close();
+        table.remove("key2");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseCommit() throws IOException {
+        Storeable st = new MyStoreable(table);
+        st.setColumnAt(0, 1);
+        st.setColumnAt(1, "string");
+        st.setColumnAt(2, 2.5);
+        table.put("key1", st);
+        st.setColumnAt(0, 2);
+        st.setColumnAt(1, "string2");
+        st.setColumnAt(2, 4.5);
+        table.put("key2", st);
+        MyTable oldTable = (MyTable) table;
+        oldTable.close();
+        table.commit();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseRollback() throws IOException {
+        Storeable st = new MyStoreable(table);
+        st.setColumnAt(0, 1);
+        st.setColumnAt(1, "string");
+        st.setColumnAt(2, 2.5);
+        table.put("key1", st);
+        st.setColumnAt(0, 2);
+        st.setColumnAt(1, "string2");
+        st.setColumnAt(2, 4.5);
+        table.put("key2", st);
+        MyTable oldTable = (MyTable) table;
+        oldTable.close();
+        table.rollback();
+    }
+
+    @Test
+    public void testGetClosedTable() throws IOException {
+        Storeable st = new MyStoreable(table);
+        st.setColumnAt(0, 1);
+        st.setColumnAt(1, "string");
+        st.setColumnAt(2, 2.5);
+        table.put("succes", st);
+        table.commit();
+        MyTable oldTable = (MyTable) table;
+        oldTable.close();
+        Table newTable = provider.getTable("testTable");
+        assertNotEquals(oldTable, newTable);
+        assertNotEquals(newTable.get("succes"), null);
     }
 
 }

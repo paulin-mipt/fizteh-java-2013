@@ -17,5 +17,11 @@ public class StoreableTableProviderFactoryTest {
     public void testCreate() throws IOException {
         tableProviderFactory.create(null);
     }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose() throws IllegalStateException, IllegalArgumentException, IOException {
+        this.tableProviderFactory.close();
+        this.tableProviderFactory.create(".");
+    }
 
 }

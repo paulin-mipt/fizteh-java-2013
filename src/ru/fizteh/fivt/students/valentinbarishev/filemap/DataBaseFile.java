@@ -11,9 +11,8 @@ import java.io.RandomAccessFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class DataBaseFile {
+public class DataBaseFile implements AutoCloseable {
 
     protected final String fileName;
     protected File file;
@@ -22,6 +21,8 @@ public class DataBaseFile {
     private int direcotryNumber;
     private DataBase table;
     private TableProvider provider;
+
+    private ClassState state = new ClassState(this);
 
     private ThreadLocal<HashMap<String, String>> diff = new ThreadLocal<HashMap<String, String>>() {
         @Override
@@ -180,6 +181,7 @@ public class DataBaseFile {
     }
 
     public String put(final String key, final String value) {
+        state.check();
         String result = null;
 
         if (diff.get().containsKey(key)) {
@@ -206,6 +208,7 @@ public class DataBaseFile {
     }
 
     public String get(final String key) {
+        state.check();
         if (deleted.get().contains(key)) {
             return null;
         }
@@ -227,6 +230,7 @@ public class DataBaseFile {
     }
 
     public String remove(final String key) {
+        state.check();
         if (deleted.get().contains(key)) {
             return null;
         }
@@ -254,6 +258,7 @@ public class DataBaseFile {
     }
 
     private void normalize() {
+        state.check();
         Set<String> newDeleted = new HashSet<>();
         newDeleted.addAll(deleted.get());
 
@@ -278,6 +283,7 @@ public class DataBaseFile {
     }
 
     public int getNewKeys() {
+        state.check();
         readLock.lock();
         try {
             normalize();
@@ -288,6 +294,7 @@ public class DataBaseFile {
     }
 
     public int getSize() {
+        state.check();
         readLock.lock();
         try {
             normalize();
@@ -304,6 +311,7 @@ public class DataBaseFile {
     }
 
     public void commit() {
+        state.check();
         normalize();
 
         if (diff.get().size() == 0 && deleted.get().size() == 0) {
@@ -326,7 +334,24 @@ public class DataBaseFile {
     }
 
     public void rollback() {
+        state.check();
         diff.get().clear();
         deleted.get().clear();
+    }
+
+    @Override
+    public void close() {
+        if (state.isClosed()) {
+            return;
+        }
+        rollback();
+        old.clear();
+        state.close();
+    }
+
+    @Override
+    public String toString() {
+        state.check();
+        return String.format("%s[%s]", getClass().getSimpleName(), fileName);
     }
 }

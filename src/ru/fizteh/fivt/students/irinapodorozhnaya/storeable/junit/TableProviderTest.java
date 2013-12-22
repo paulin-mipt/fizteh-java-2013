@@ -11,16 +11,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.irinapodorozhnaya.shell.CommandRemove;
 import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.MyTableProviderFactory;
+import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.extend.ExtendProvider;
+import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.extend.ExtendTable;
 import ru.fizteh.fivt.students.irinapodorozhnaya.utils.Types;
 
 public class TableProviderTest {
     
     private static final String DATA_BASE_DIR = "./src/ru/fizteh/fivt/students/irinapodorozhnaya/test";
     private final File curDir = new File(DATA_BASE_DIR);
-    private TableProvider provider;
+    private ExtendProvider provider;
     private List<Class<?>> list;
     
     @Before
@@ -121,4 +122,46 @@ public class TableProviderTest {
         provider.removeTable("notExistingTable");
     }
 
+
+    @Test
+    public void toStringTest() {
+        Assert.assertEquals(provider.toString(), "MyTableProvider[" + curDir.getAbsolutePath() + "]");
+    }
+
+    @Test
+    public void doubleClose() throws Exception {
+        provider.close();
+        provider.close();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void createTableAfterClose() throws Exception {
+        provider.close();
+        provider.createTable("", null);
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void getAfterClose() throws Exception {
+        provider.close();
+        provider.getTable("");
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void removeAfterClose() throws Exception {
+        provider.close();
+        provider.removeTable("");
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void createForAfterClose() throws Exception {
+        provider.close();
+        provider.createFor(null);
+    }
+
+    @Test
+    public void getClosedTableShouldReturnNewTable() throws Exception {
+        ExtendTable table = provider.createTable("table", list);
+        table.close();
+        Assert.assertNotSame(table, provider.getTable("table"));
+    }
 }

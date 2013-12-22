@@ -16,13 +16,15 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class MultiFileHashTableProvider implements TableProvider {
+public class MultiFileHashTableProvider implements TableProvider, AutoCloseable {
     private final File databaseDirectory;
     private final ArrayList<MultiFileHashTable> tables;
 
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = readWriteLock.readLock();
     private final Lock writeLock = readWriteLock.writeLock();
+
+    private volatile boolean isClosed = false;
 
     public MultiFileHashTableProvider(String databaseDirectory) throws IOException,
             DatabaseException {
@@ -31,17 +33,24 @@ public class MultiFileHashTableProvider implements TableProvider {
         }
 
         try {
-            this.databaseDirectory = FileUtils.makeDir(databaseDirectory);
+            this.databaseDirectory = FileUtils.makeDirs(databaseDirectory);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("File: " + databaseDirectory + " not a directory");
         }
 
         tables = new ArrayList<>();
+
         loadTables();
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + databaseDirectory.getAbsolutePath() + "]";
+    }
+
+    @Override
     public MultiFileHashTable getTable(String name) throws IllegalArgumentException {
+        checkState();
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Table name must be not null");
         }
@@ -52,14 +61,28 @@ public class MultiFileHashTableProvider implements TableProvider {
             throw new IllegalArgumentException("Table name must be correct file name");
         }
 
-        readLock.lock();
+        writeLock.lock();
         try {
             int tableIndex = indexOfTable(name);
             if (tableIndex != -1) {
                 return tables.get(tableIndex);
             }
+            File tableDirectory = new File(databaseDirectory.getAbsoluteFile() + File.separator
+                                            + name);
+            if (tableDirectory.exists() && tableDirectory.isDirectory()) {
+                try {
+                    MultiFileHashTable table = new MultiFileHashTable(databaseDirectory.getAbsolutePath(),
+                                                                        name, this);
+                    tables.add(table);
+                    return table;
+                } catch (DatabaseException e) {
+                    throw new RuntimeException("DatabaseException", e);
+                } catch (IOException e) {
+                    throw new RuntimeException("IOException", e);
+                }
+            }
         } finally {
-            readLock.unlock();
+            writeLock.unlock();
         }
 
         return null;
@@ -69,6 +92,7 @@ public class MultiFileHashTableProvider implements TableProvider {
     @Override
     public MultiFileHashTable createTable(String name, List<Class<?>> columnTypes) throws
                                                                         IllegalArgumentException, IOException {
+        checkState();
         writeLock.lock();
         try {
             if (getTable(name) != null) {
@@ -94,6 +118,7 @@ public class MultiFileHashTableProvider implements TableProvider {
 
     @Override
     public void removeTable(String name) throws IllegalArgumentException, IllegalStateException {
+        checkState();
         if (name == null) {
             throw new IllegalArgumentException("Table name must be not null");
         }
@@ -122,6 +147,7 @@ public class MultiFileHashTableProvider implements TableProvider {
 
     @Override
     public Storeable deserialize(Table table, String value) throws ParseException {
+        checkState();
         readLock.lock();
         try {
             return JsonUtils.deserialize(value, this, table);
@@ -132,6 +158,7 @@ public class MultiFileHashTableProvider implements TableProvider {
 
     @Override
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        checkState();
         readLock.lock();
         try {
             return JsonUtils.serialize(value, table);
@@ -142,6 +169,7 @@ public class MultiFileHashTableProvider implements TableProvider {
 
     @Override
     public Storeable createFor(Table table) {
+        checkState();
         readLock.lock();
         try {
             return new TableRow(table);
@@ -153,11 +181,73 @@ public class MultiFileHashTableProvider implements TableProvider {
     @Override
     public Storeable createFor(Table table, List<?> values) throws ColumnFormatException,
                                                                     IndexOutOfBoundsException {
+        checkState();
         readLock.lock();
         try {
             return new TableRow(table, values);
         } finally {
             readLock.unlock();
+        }
+    }
+
+    @Override
+    public void close() {
+        writeLock.lock();
+        try {
+            if (isClosed) {
+                return;
+            }
+
+            isClosed = true;
+
+            for (MultiFileHashTable table : tables) {
+                table.close(false);
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    void closedTable(MultiFileHashTable table) throws IllegalArgumentException {
+        if (table == null) {
+            throw new IllegalArgumentException("Table must be not null");
+        }
+
+        writeLock.lock();
+        try {
+            int tableIndex = -1;
+            for (int i = 0; i < tables.size(); ++i) {
+                if (tables.get(i).equals(table)) {
+                    tableIndex = i;
+                    break;
+                }
+            }
+
+            if (tableIndex == -1) {
+                String tableName = null;
+                IllegalStateException exception = null;
+                try {
+                    tableName = table.getName();
+                } catch (IllegalStateException e) {
+                    exception = e;
+                }
+
+                if (exception == null) {
+                    throw new IllegalArgumentException("Table '" + tableName + "' not found");
+                } else {
+                    throw new IllegalArgumentException("Table not found", exception);
+                }
+            }
+
+            tables.remove(tableIndex);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    private void checkState() throws IllegalStateException {
+        if (isClosed) {
+            throw new IllegalStateException("Provider is closed");
         }
     }
 

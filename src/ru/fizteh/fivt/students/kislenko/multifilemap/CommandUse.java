@@ -2,39 +2,37 @@ package ru.fizteh.fivt.students.kislenko.multifilemap;
 
 import ru.fizteh.fivt.students.kislenko.shell.Command;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class CommandUse implements Command<MultiFileHashMapState> {
+public class CommandUse implements Command<MultiTableFatherState> {
+
+    @Override
     public String getName() {
         return "use";
     }
 
+    @Override
     public int getArgCount() {
         return 1;
     }
 
-    public void run(MultiFileHashMapState state, String[] args) throws IOException {
-        if (state.getWorkingPath().getFileName().toString().equals(args[0])) {
+    @Override
+    public void run(MultiTableFatherState state, String[] args) throws Exception {
+        if (!state.needToChangeTable(args[0])) {
+            System.out.println("using " + args[0]);
             return;
         }
-        MyTable table = state.getCurrentTable();
-        File newPath = state.getPath().resolve(args[0]).toFile();
-        if (newPath.exists()) {
-            if (table != null) {
-                Utils.dumpTable(table);
-            }
-            if (!state.getWorkingTableName().equals("")) {
-                if (table != null) {
-                    table.clear();
-                }
-            }
-            state.setWorkingPath(args[0]);
-            state.setCurrentTable(args[0]);
-            state.setWorkingPath(args[0]);
-            System.out.println("using " + args[0]);
-        } else {
-            System.out.println(args[0] + " not exists");
+        AtomicReference<String> message = new AtomicReference<String>();
+        if (state.isTransactional() && state.getTableChangeCount() != 0) {
+            System.out.println(state.getTableChangeCount() + " unsaved changes");
+            throw new IOException("Unsaved changes detected.");
         }
+        if (state.autoCommit()) {
+            state.commitCurrentTable();
+        }
+        state.dumpOldTable();
+        state.changeTable(args[0], message);
+        System.out.println(message);
     }
 }

@@ -161,4 +161,19 @@ public class MyStoreable implements Storeable {
     public String getStringAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
         return String.class.cast(getAt(columnIndex, String.class));
     }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(getClass().getSimpleName()).append("[");
+        for (Object type : row) {
+            if (type != null) {
+                stringBuilder.append(type.toString());
+            }
+            stringBuilder.append(",");
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+        stringBuilder.append("]");
+        return stringBuilder.toString();
+    }
 }

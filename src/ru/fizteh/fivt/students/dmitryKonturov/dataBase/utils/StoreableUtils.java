@@ -91,7 +91,6 @@ public class StoreableUtils {
     }
 
     public static void checkStoreableBelongsToTable(Table table, Storeable storeable) throws IllegalArgumentException {
-
        if (table == null) {
            throw new IllegalArgumentException("Table is null");
        }

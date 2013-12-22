@@ -2,19 +2,19 @@ package ru.fizteh.fivt.students.inaumov.multifilemap.base;
 
 import ru.fizteh.fivt.storage.strings.*;
 import ru.fizteh.fivt.students.inaumov.multifilemap.MultiFileMapUtils;
+import ru.fizteh.fivt.students.inaumov.multifilemap.MultiFileStringDatabaseTable;
 
 import java.util.HashMap;
 import java.io.File;
-import java.io.IOException;
 import java.util.regex.*;
 
 public class DatabaseTableProvider implements TableProvider {
     private static final String CORRECT_SYMBOLS = "[^0-9a-zA-Zа-яА-Я]";
     private static final Pattern PATTERN = Pattern.compile(CORRECT_SYMBOLS);
 
-    HashMap<String, MultiFileTable> tables = new HashMap<String, MultiFileTable>();
+    HashMap<String, MultiFileStringDatabaseTable> tables = new HashMap<String, MultiFileStringDatabaseTable>();
     private String dataBaseDirectoryPath;
-    private MultiFileTable currentTable = null;
+    private MultiFileStringDatabaseTable currentTable = null;
 
     public DatabaseTableProvider(String dataBaseDirectoryPath) {
         if (dataBaseDirectoryPath == null || dataBaseDirectoryPath.isEmpty()) {
@@ -29,13 +29,8 @@ public class DatabaseTableProvider implements TableProvider {
             if (tableFile.isFile()) {
                 continue;
             }
-
-            MultiFileTable table;
-            try {
-                table = new MultiFileTable(dataBaseDirectoryPath, tableFile.getName());
-            } catch (IOException exception) {
-                throw new IllegalStateException(exception.getMessage());
-            }
+            MultiFileStringDatabaseTable table;
+            table = new MultiFileStringDatabaseTable(dataBaseDirectoryPath, tableFile.getName());
 
             tables.put(table.getName(), table);
         }
@@ -48,7 +43,8 @@ public class DatabaseTableProvider implements TableProvider {
 
         checkNameValidity(name);
 
-        MultiFileTable table = tables.get(name);
+        MultiFileStringDatabaseTable table = tables.get(name);
+
         if (table == null) {
             return table;
         }
@@ -73,14 +69,12 @@ public class DatabaseTableProvider implements TableProvider {
 
         checkNameValidity(name);
 
-        MultiFileTable table;
-
-        try {
-            table = new MultiFileTable(dataBaseDirectoryPath, name);
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception.getMessage());
+        File tableDirectory = new File(dataBaseDirectoryPath, name);
+        if (!tableDirectory.exists()) {
+            tableDirectory.mkdir();
         }
 
+        MultiFileStringDatabaseTable table = new MultiFileStringDatabaseTable(dataBaseDirectoryPath, name);
         tables.put(name, table);
 
         return table;

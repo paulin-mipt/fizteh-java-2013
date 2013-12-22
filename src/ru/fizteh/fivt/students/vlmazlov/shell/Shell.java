@@ -1,130 +1,124 @@
 package ru.fizteh.fivt.students.vlmazlov.shell;
 
-import java.io.File;
-import java.lang.Thread;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Collections;
-import java.util.Scanner;
-import java.util.Arrays;
-import java.io.OutputStream;
+import java.util.*;
 
 public class Shell<T> {
 
-	private Map<String, Command<T>> supportedCommands;
-	private static final String invitation = "$ ";
-	private T state;
+    private Map<String, Command<T>> supportedCommands;
+    private static final String INVITATION = "$ ";
+    private T state;
 
-	public Shell(Command<T>[] commands, T state) {
+    public Shell(Command<T>[] commands, T state) {
 
-		Map<String, Command<T>> _supportedCommands = new TreeMap<String, Command<T>>();
+        Map<String, Command<T>> supportedCommands = new TreeMap<String, Command<T>>();
 
-		for (Command<T> command : commands) {
-			_supportedCommands.put(command.getName(), command);
-		}
-			
-		supportedCommands = Collections.unmodifiableMap(_supportedCommands);
+        for (Command<T> command : commands) {
+            supportedCommands.put(command.getName(), command);
+        }
 
-		this.state = state;
-	}
-	
+        this.supportedCommands = Collections.unmodifiableMap(supportedCommands);
 
-	public static void main(String[] args) {
-		ShellState state = new ShellState(System.getProperty("user.dir"));
+        this.state = state;
+    }
 
 
-		Command[] commands = {
-			new RmCommand(), new CdCommand(), 
-			new MvCommand(), new MkdirCommand(), new CpCommand(), 
-			new PwdCommand(), new DirCommand(), new ExitCommand<ShellState>()
-		};
+    public static void main(String[] args) {
+        ShellState state = new ShellState(System.getProperty("user.dir"));
 
-		Shell<ShellState> shell = new Shell<ShellState>(commands, state);
 
-		try {
-			shell.process(args);
-		} catch (WrongCommandException ex) {
-			System.err.println(ex.getMessage());
-			System.exit(1);
-		} catch (CommandFailException ex) {
-			System.err.println("error while processing command: " + ex.getMessage());
-			System.exit(2);
-		} catch (UserInterruptionException ex) {
-			System.exit(0);
-		}
-		
-		System.exit(0);
-	}
+        Command[] commands = {
+                new RmCommand(), new CdCommand(),
+                new MvCommand(), new MkdirCommand(), new CpCommand(),
+                new PwdCommand(), new DirCommand(), new ExitCommand<ShellState>()
+        };
 
-	public void process(String[] args)
-	 throws WrongCommandException, CommandFailException, UserInterruptionException {
+        Shell<ShellState> shell = new Shell<ShellState>(commands, state);
 
-		if (0 != args.length) {
-			
-			String arg = StringUtils.join(Arrays.asList(args), " ");
+        try {
+            shell.process(args);
+        } catch (WrongCommandException ex) {
+            System.err.println(ex.getMessage());
+            System.exit(1);
+        } catch (CommandFailException ex) {
+            System.err.println("error while processing command: " + ex.getMessage());
+            System.exit(2);
+        } catch (UserInterruptionException ex) {
+            System.exit(0);
+        }
 
-			executeLine(arg);
-		} else {
-			interactiveMode();
-		}
-	}
+        System.exit(0);
+    }
 
-	private String[] parseLine(String commandLine) {
-		commandLine = commandLine.trim();
-		return commandLine.split("(\\s*;\\s*)", -1);
-	}
+    public void process(String[] args)
+            throws WrongCommandException, CommandFailException, UserInterruptionException {
 
-	private void executeLine(String commandLine) 
-	throws WrongCommandException, CommandFailException, UserInterruptionException {
+        if (0 != args.length) {
 
-		for (String exArg : parseLine(commandLine)) {
-			invokeCommand(exArg.split("\\s+(?![^\\(]*\\))"));
-		}
-	}
+            String arg = StringUtils.join(Arrays.asList(args), " ");
 
-	private void interactiveMode() {
-		Scanner inputScanner = new Scanner(System.in);
-		Scanner stringScanner;
+            executeLine(arg);
+        } else {
+            interactiveMode();
+        }
+    }
 
-		do {
-			//printing invitation
-			System.out.print(invitation);
+    private String[] parseLine(String commandLine) {
+        commandLine = commandLine.trim();
+        return commandLine.split("(\\s*;\\s*)", -1);
+    }
 
-			try {
-				executeLine(inputScanner.nextLine());
-			} catch (WrongCommandException ex) {
-				
-				System.err.println(ex.getMessage());
-			} catch (CommandFailException ex) {
-				
-				System.err.println(ex.getMessage());
-			} catch (UserInterruptionException ex) {
-				
-				return; 
-			}
+    private void executeLine(String commandLine)
+            throws WrongCommandException, CommandFailException, UserInterruptionException {
 
-		} while (!Thread.currentThread().isInterrupted());
-	}
+        for (String exArg : parseLine(commandLine)) {
+            invokeCommand(exArg.split("\\s+(?![^\\(]*\\))"));
+        }
+    }
 
-	private void invokeCommand(String[] toExecute) 
-	throws WrongCommandException, CommandFailException, UserInterruptionException {
-		//toExecute[0] should be the beginning of the command
-		if (0 == toExecute.length) {
-			throw new WrongCommandException("Empty command");
-		}
+    private void interactiveMode() {
+        Scanner inputScanner = new Scanner(System.in);
+        Scanner stringScanner;
 
-		if (toExecute[0].matches("\\s*")) {
-			throw new WrongCommandException("Syntax error near unexpected token ;");
-		}
+        do {
+            System.out.print(INVITATION);
 
-		Command invokedCommand = supportedCommands.get(toExecute[0]);
-		
-		if (null == invokedCommand) {
-			throw new WrongCommandException("Unknown command: " + toExecute[0]);
-		} else if ((toExecute.length - 1) != invokedCommand.getArgNum()) {
-			throw new WrongCommandException("Ivalid number of arguments for " + toExecute[0] + ": " + (toExecute.length - 1));
-		}
+            try {
+                executeLine(inputScanner.nextLine());
+            } catch (WrongCommandException ex) {
 
-		invokedCommand.execute(Arrays.copyOfRange(toExecute, 1, toExecute.length), state, System.out);
-	}
+                System.err.println(ex.getMessage());
+            } catch (CommandFailException ex) {
+
+                System.err.println(ex.getMessage());
+            } catch (UserInterruptionException ex) {
+
+                return;
+            }
+
+        } while (!Thread.currentThread().isInterrupted());
+    }
+
+    private void invokeCommand(String[] toExecute)
+            throws WrongCommandException, CommandFailException, UserInterruptionException {
+        //toExecute[0] should be the beginning of the command
+        if (0 == toExecute.length) {
+            throw new WrongCommandException("Empty command");
+        }
+
+        if (toExecute[0].matches("\\s*")) {
+            throw new WrongCommandException("Syntax error near unexpected token ;");
+        }
+
+        Command invokedCommand = supportedCommands.get(toExecute[0]);
+
+        if (null == invokedCommand) {
+            throw new WrongCommandException("Unknown command: " + toExecute[0]);
+        } else if ((toExecute.length - 1) != invokedCommand.getArgNum()) {
+            throw new WrongCommandException("Ivalid number of arguments for " 
+                + toExecute[0] + ": " + (toExecute.length - 1));
+        }
+
+        invokedCommand.execute(Arrays.copyOfRange(toExecute, 1, toExecute.length), state, System.out);
+    }
 }
+

@@ -199,4 +199,68 @@ public class DBTableTest {
         table.remove("oldWhichWillRemoved");
         table.commit();
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void getNameAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.getName();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.get("1");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void putAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        Storeable value = tableProvider.createFor(newTable);
+        ((DBTable) newTable).close();
+        newTable.put("1", value);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void removeAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.remove("1");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void sizeAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.size();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void commitAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.commit();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void rollbackAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.rollback();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getColumnsCountAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.getColumnsCount();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void getColumnsTypeAfterCloseTableShouldFail() throws IOException {
+        Table newTable = tableProvider.createTable("tableWhichWillClosed", columnTypes);
+        ((DBTable) newTable).close();
+        newTable.getColumnType(0);
+    }
 }

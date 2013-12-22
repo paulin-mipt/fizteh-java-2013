@@ -31,7 +31,7 @@ public class DataBaseGet implements CommandInterface {
             throw new IOException("get: wrong input");
         }
         String key = str.substring(spaceIndex + 1, str.length());
-        MyTable currTable = tableProvider.getTable(tableName);
+        MyTable currTable = (MyTable) tableProvider.getTable(tableName);
         Storeable value = currTable.get(key);
         if (value == null) {
             System.out.println("not found");

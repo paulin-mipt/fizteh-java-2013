@@ -32,7 +32,7 @@ public class DataBaseRemove implements CommandInterface {
             throw new IOException("remove: wrong input");
         }
         String key = str.substring(spaceIndex + 1, str.length());
-        MyTable currTable = tableProvider.getTable(tableName);
+        MyTable currTable = (MyTable) tableProvider.getTable(tableName);
         Storeable value = currTable.remove(key);
         if (value == null) {
             System.out.println("not found");

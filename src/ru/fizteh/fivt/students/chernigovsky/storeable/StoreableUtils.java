@@ -19,18 +19,7 @@ public class StoreableUtils {
         }
 
         for (int i = 0; i < table.getColumnsCount(); ++i) {
-            if (value.getColumnAt(i) == null) {
-            } else if (value.getColumnAt(i).getClass() == Integer.class && table.getColumnType(i) == Integer.class) {
-            } else if ((value.getColumnAt(i).getClass() == Long.class || value.getColumnAt(i).getClass() == Integer.class) &&
-                    table.getColumnType(i) == Long.class) {
-            } else if (value.getColumnAt(i).getClass() == Byte.class && table.getColumnType(i) == Byte.class) {
-            } else if (value.getColumnAt(i).getClass() == Integer.class && table.getColumnType(i) == Byte.class) {
-            } else if (value.getColumnAt(i).getClass() == Float.class && table.getColumnType(i) == Float.class) {
-            } else if (value.getColumnAt(i).getClass() == Float.class && table.getColumnType(i) == Double.class) {
-            } else if (value.getColumnAt(i).getClass() == Double.class && table.getColumnType(i) == Double.class) {
-            } else if (value.getColumnAt(i).getClass() == Boolean.class && table.getColumnType(i) == Boolean.class) {
-            } else if (value.getColumnAt(i).getClass() == String.class && table.getColumnType(i) == String.class) {
-            } else {
+            if (value.getColumnAt(i) != null && !table.getColumnType(i).isAssignableFrom(value.getColumnAt(i).getClass())) {
                 return false;
             }
         }

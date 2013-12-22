@@ -1,50 +1,56 @@
 package ru.fizteh.fivt.students.vlmazlov.shell;
 
+import ru.fizteh.fivt.students.vlmazlov.utils.FileOperationFailException;
+import ru.fizteh.fivt.students.vlmazlov.utils.FileUtils;
+
 import java.io.File;
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 public class MvCommand extends AbstractShellCommand {
-	public MvCommand() {
-		super("mv", 2);
-	};
+    public MvCommand() {
+        super("mv", 2);
+    }
 
-	//At this point, destination is guaranteed to be a directory,
-	//which is preserved throughout the recursive traverse
+    ;
 
-	public void execute(String[] args, ShellState state, OutputStream out) throws CommandFailException {	
-		String sourcePath = args[0], destinationPath = args[1];
+    //At this point, destination is guaranteed to be a directory,
+    //which is preserved throughout the recursive traverse
 
-		File source = FileUtils.getAbsFile(sourcePath, state.getCurDir()), 
-		destination = FileUtils.getAbsFile(destinationPath, state.getCurDir());
+    public void execute(String[] args, ShellState state, OutputStream out) throws CommandFailException {
+        String sourcePath = args[0];
+        String destinationPath = args[1];
 
-		if (!source.exists()) {
-			throw new CommandFailException("mv: " + sourcePath + " doesn't exist");
-		}
+        File source = FileUtils.getAbsFile(sourcePath, state.getCurDir());
+        File destination = FileUtils.getAbsFile(destinationPath, state.getCurDir());
 
-		//Renaming
-		try {
-			if ((source.getParentFile().getCanonicalPath().equals(destination.getParentFile().getCanonicalPath()))
-			&& (!destination.isDirectory())) {
+        if (!source.exists()) {
+            throw new CommandFailException("mv: " + sourcePath + " doesn't exist");
+        }
 
-				if (!source.renameTo(destination)) {
-					throw new CommandFailException("mv: Unable to rename " + sourcePath + " to " + destinationPath);
-				}
+        //Renaming
+        try {
+            if ((source.getParentFile().getCanonicalPath().equals(destination.getParentFile().getCanonicalPath()))
+                    && (!destination.isDirectory())) {
 
-				return;
-			}
-		} catch (IOException ex) {
-			throw new CommandFailException("mv: Unable to discern parent directories");
-		}
+                if (!source.renameTo(destination)) {
+                    throw new CommandFailException("mv: Unable to rename " + sourcePath + " to " + destinationPath);
+                }
 
-		if (!destination.isDirectory()) {
-			throw new CommandFailException("mv: " + destination + " is not a directory");
-		}
+                return;
+            }
+        } catch (IOException ex) {
+            throw new CommandFailException("mv: Unable to discern parent directories");
+        }
 
-		try {
-			FileUtils.moveToDir(source, destination);
-		} catch (FileOperationFailException ex) {
-			throw new CommandFailException("mv: " + ex.getMessage());
-		}
-	}
+        if (!destination.isDirectory()) {
+            throw new CommandFailException("mv: " + destination + " is not a directory");
+        }
+
+        try {
+            FileUtils.moveToDir(source, destination);
+        } catch (FileOperationFailException ex) {
+            throw new CommandFailException("mv: " + ex.getMessage());
+        }
+    }
 }

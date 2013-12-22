@@ -23,7 +23,7 @@ import java.nio.file.Path;
 
 import static ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapUtils.*;
 
-public class FileMap implements Table {
+public class FileMap implements Table, AutoCloseable {
 
     private final Path pathDb;
     private final CommandShell mySystem;
@@ -39,6 +39,7 @@ public class FileMap implements Table {
         }
     };
     volatile boolean tableDrop = false;
+    volatile boolean isTableClose = false;
     FileMapProvider parent;
     List<Class<?>> columnType = new ArrayList<Class<?>>();
 
@@ -269,7 +270,7 @@ public class FileMap implements Table {
     }
 
     private void refreshTableFiles(Set<String> changedKey) throws Exception {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         writeFileTsv();
@@ -360,14 +361,14 @@ public class FileMap implements Table {
     }
 
     public String getName() {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         return nameTable;
     }
 
     public int changeKey() {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         return changeTable.get().size();
@@ -378,7 +379,7 @@ public class FileMap implements Table {
         if (value == null) {
             throw new IllegalArgumentException("value can't be null");
         }
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         FileMapStoreable st = null;
@@ -465,7 +466,7 @@ public class FileMap implements Table {
 
     public Storeable get(String key) {
         checkArg(key);
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
 
@@ -492,7 +493,7 @@ public class FileMap implements Table {
 
     public Storeable remove(String key) {
         checkArg(key);
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
 
@@ -532,7 +533,7 @@ public class FileMap implements Table {
     }
 
     public int size() {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
 
@@ -570,7 +571,7 @@ public class FileMap implements Table {
     }
 
     public int commit() {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         int count = 0;
@@ -624,7 +625,7 @@ public class FileMap implements Table {
     }
 
     public int rollback() {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         int count = 0;
@@ -659,7 +660,7 @@ public class FileMap implements Table {
 
     @Override
     public int getColumnsCount() {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         return columnType.size();
@@ -667,10 +668,30 @@ public class FileMap implements Table {
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
-        if (tableDrop) {
+        if (tableDrop || isTableClose) {
             throw new IllegalStateException("table was deleted");
         }
         return columnType.get(columnIndex);
     }
 
+    public String toString() {
+        if (tableDrop || isTableClose) {
+            throw new IllegalStateException("table was deleted");
+        }
+        return String.format("%s[%s]", getClass().getSimpleName(), pathDb.resolve(nameTable).toAbsolutePath());
+    }
+
+    @Override
+    public void close() {
+        write.lock();
+        try {
+            if (!isTableClose) {
+                rollback();
+                parent.closeTable(getName());
+                isTableClose = true;
+            }
+        } finally {
+            write.unlock();
+        }
+    }
 }

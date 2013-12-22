@@ -24,6 +24,24 @@ public class FileUtils {
         return file;
     }
 
+    public static File makeDirs(String absolutePath) throws IllegalArgumentException, IOException {
+        File file = new File(absolutePath);
+        if (!file.isAbsolute()) {
+            throw new IllegalArgumentException("Path '" + absolutePath + "' not absolute");
+        }
+        if (file.exists()) {
+            if (!file.isDirectory()) {
+                throw new IllegalArgumentException("File '" + absolutePath + "' exist, but it's not directory");
+            }
+            return file;
+        }
+        if (!file.mkdirs()) {
+            throw new IOException("failed to create directory's '" + absolutePath + "'");
+        }
+
+        return file;
+    }
+
     public static File makeDir(String currentPath, String dirName) throws IllegalArgumentException {
         File file = new File(PathUtils.getPath(dirName, currentPath));
         if (file.exists()) {

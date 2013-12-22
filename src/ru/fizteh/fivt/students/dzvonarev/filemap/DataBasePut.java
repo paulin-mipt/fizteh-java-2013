@@ -45,7 +45,7 @@ public class DataBasePut implements CommandInterface {
         } catch (ParseException e) {
             throw new IOException(e);
         }
-        MyTable currTable = tableProvider.getTable(tableName);
+        MyTable currTable = (MyTable) tableProvider.getTable(tableName);
         Storeable result;
         try {
             result = currTable.put(key, valueStoreable);

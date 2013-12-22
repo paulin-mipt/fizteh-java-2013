@@ -1,5 +1,14 @@
 package ru.fizteh.fivt.students.kislenko.storeable;
 
+import ru.fizteh.fivt.students.kislenko.filemap.CommandGet;
+import ru.fizteh.fivt.students.kislenko.filemap.CommandPut;
+import ru.fizteh.fivt.students.kislenko.filemap.CommandRemove;
+import ru.fizteh.fivt.students.kislenko.junit.CommandCommit;
+import ru.fizteh.fivt.students.kislenko.junit.CommandRollback;
+import ru.fizteh.fivt.students.kislenko.junit.CommandSize;
+import ru.fizteh.fivt.students.kislenko.multifilemap.CommandCreate;
+import ru.fizteh.fivt.students.kislenko.multifilemap.CommandDrop;
+import ru.fizteh.fivt.students.kislenko.multifilemap.CommandUse;
 import ru.fizteh.fivt.students.kislenko.shell.Command;
 import ru.fizteh.fivt.students.kislenko.shell.Shell;
 
@@ -34,8 +43,8 @@ public class Main {
             Path db = dbDir.toPath();
             StoreableState state = new StoreableState(db);
             Command[] commandList = new Command[]{new CommandCommit(), new CommandCreate(), new CommandDrop(),
-                    new CommandRollback(), new CommandSize(), new CommandStorableGet(), new CommandStorableRemove(),
-                    new CommandStoreablePut(), new CommandUse()};
+                    new CommandRollback(), new CommandSize(), new CommandGet(), new CommandRemove(),
+                    new CommandPut(), new CommandUse()};
             StoreableBuilder builder = new StoreableBuilder();
             builder.build(state);
             Shell<StoreableState> shell = new Shell<StoreableState>(state, commandList);

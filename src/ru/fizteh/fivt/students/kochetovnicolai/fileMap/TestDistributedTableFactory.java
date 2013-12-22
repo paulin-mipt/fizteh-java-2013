@@ -38,6 +38,18 @@ public class TestDistributedTableFactory extends FileManager {
 
     @Test
     public void createProvider() throws IOException {
-        Assert.assertTrue("failed create provider", factory.create(folder.getRoot().getName()) != null);
+        Assert.assertTrue("failed create provider", factory.create(folder.getRoot().getPath()) != null);
+    }
+
+    @Test
+    public void doubleCloseShouldWork() throws IOException {
+        factory.close();
+        factory.close();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldThrowExceptionAfterClose() throws IOException {
+        factory.close();
+        factory.create("");
     }
 }

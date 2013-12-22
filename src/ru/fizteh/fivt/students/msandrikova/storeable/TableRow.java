@@ -12,7 +12,7 @@ public class TableRow implements Storeable {
     
     public TableRow(List<Class<?>> columnTypes) {
         this.columnTypes = columnTypes;
-        for(int i = 0; i < columnTypes.size(); ++i) {
+        for (int i = 0; i < columnTypes.size(); ++i) {
             row.add(null);
         }
     }
@@ -111,6 +111,24 @@ public class TableRow implements Storeable {
             return null;
         }
         return o.toString();
+    }
+    
+    @Override
+    public String toString() {
+        String className = this.getClass().getSimpleName();
+        String answer = className + "[";
+        boolean first = true;
+        for (Object o : this.row) {
+            if (!first) {
+                answer += ",";
+            }
+            first = false;
+            if (o != null) {
+                answer += o.toString();
+            }
+        }
+        answer += "]";
+        return answer;
     }
 
 }

@@ -11,7 +11,11 @@ public class StoreableBuilder {
         }
         if (dirCreator.listFiles() != null) {
             for (File file : dirCreator.listFiles()) {
-                state.createTable(file.getName());
+                try {
+                    state.createTable(file.getName());
+                } catch (Exception e) {
+                    // Something went wrong in creating new table. Just ignore it.
+                }
             }
         }
     }

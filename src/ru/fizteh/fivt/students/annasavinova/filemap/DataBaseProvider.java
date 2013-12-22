@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,13 +24,21 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 
-public class DataBaseProvider implements TableProvider {
+public class DataBaseProvider implements TableProvider, AutoCloseable {
     private HashMap<String, DataBase> tableBase;
-    private String rootDir = "";
+    private String rootDir;
+    private String oldPath;
+    private volatile boolean isClosed = false;
 
     DataBaseLoader loader;
 
     private Lock lock = new ReentrantLock(true);
+
+    public void checkClosed() {
+        if (isClosed) {
+            throw new IllegalStateException("TableProvider is closed");
+        }
+    }
 
     public DataBaseProvider(String dir) {
         if (dir == null || dir.isEmpty()) {
@@ -43,6 +52,7 @@ public class DataBaseProvider implements TableProvider {
         } else {
             rootDir = dir + File.separatorChar;
         }
+        oldPath = dir;
         loader = new DataBaseLoader(dir, this);
         tableBase = loader.loadBase();
     }
@@ -57,6 +67,8 @@ public class DataBaseProvider implements TableProvider {
 
     @Override
     public Table getTable(String name) throws IllegalArgumentException {
+        checkClosed();
+
         if (!checkTableName(name)) {
             throw new IllegalArgumentException("name is incorrect");
         }
@@ -65,6 +77,9 @@ public class DataBaseProvider implements TableProvider {
         lock.lock();
         try {
             getTable = tableBase.get(name);
+            if (getTable == null) {
+                getTable = loader.loadTable(new File(rootDir + name));
+            }
         } finally {
             lock.unlock();
         }
@@ -75,36 +90,37 @@ public class DataBaseProvider implements TableProvider {
     private void fillTypesFile(File types, List<Class<?>> columnTypes) throws IOException {
         FileOutputStream out = new FileOutputStream(types);
         try {
+            StringBuffer res = new StringBuffer();
             for (Class<?> type : columnTypes) {
                 String name = type.getSimpleName();
-                String res;
                 switch (name) {
                 case "Integer":
-                    res = "int ";
+                    res.append("int ");
                     break;
                 case "Long":
-                    res = "long ";
+                    res.append("long ");
                     break;
                 case "Byte":
-                    res = "byte ";
+                    res.append("byte ");
                     break;
                 case "Float":
-                    res = "float ";
+                    res.append("float ");
                     break;
                 case "Double":
-                    res = "double ";
+                    res.append("double ");
                     break;
                 case "Boolean":
-                    res = "boolean ";
+                    res.append("boolean ");
                     break;
                 case "String":
-                    res = "String ";
+                    res.append("String ");
                     break;
                 default:
                     throw new RuntimeException("Incorrect type in file " + name);
                 }
-                out.write((res).getBytes("UTF-8"));
             }
+            res.setLength(res.length() - 1);
+            out.write((res.toString()).getBytes("UTF-8"));
         } catch (IOException e) {
             throw new IOException("Cannot create file " + types.getAbsolutePath(), e);
         } finally {
@@ -147,6 +163,8 @@ public class DataBaseProvider implements TableProvider {
 
     @Override
     public Table createTable(String name, List<Class<?>> typesList) throws IOException {
+        checkClosed();
+
         if (!checkTableName(name)) {
             throw new IllegalArgumentException("name is incorrect");
         }
@@ -186,6 +204,8 @@ public class DataBaseProvider implements TableProvider {
 
     @Override
     public void removeTable(String name) throws IOException {
+        checkClosed();
+
         if (!checkTableName(name)) {
             throw new IllegalArgumentException("name is incorrect");
         }
@@ -198,6 +218,15 @@ public class DataBaseProvider implements TableProvider {
 
             doDelete(fileTable);
             tableBase.get(name).setRemoved();
+            tableBase.remove(name);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    protected void closeTable(String name) {
+        lock.lock();
+        try {
             tableBase.remove(name);
         } finally {
             lock.unlock();
@@ -266,6 +295,8 @@ public class DataBaseProvider implements TableProvider {
 
     @Override
     public Storeable deserialize(Table table, String value) throws ParseException {
+        checkClosed();
+
         TableRow row = new TableRow(table);
         XMLInputFactory xmlFactory = XMLInputFactory.newFactory();
         StringReader str = new StringReader(value);
@@ -337,6 +368,8 @@ public class DataBaseProvider implements TableProvider {
 
     @Override
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        checkClosed();
+
         checkColumns(table, value);
 
         XMLOutputFactory xmlFactory = XMLOutputFactory.newFactory();
@@ -372,11 +405,15 @@ public class DataBaseProvider implements TableProvider {
 
     @Override
     public Storeable createFor(Table table) {
+        checkClosed();
+
         return new TableRow(table);
     }
 
     @Override
     public Storeable createFor(Table table, List<?> values) throws ColumnFormatException, IndexOutOfBoundsException {
+        checkClosed();
+
         TableRow row = new TableRow(table);
         if (values.size() != table.getColumnsCount()) {
             throw new ColumnFormatException("Incorrect num of columns");
@@ -385,6 +422,25 @@ public class DataBaseProvider implements TableProvider {
             row.setColumnAt(i, values.get(i));
         }
         return row;
+    }
+
+    @Override
+    public void close() throws Exception {
+        for (Entry<String, DataBase> entry : tableBase.entrySet()) {
+            entry.getValue().close();
+        }
+        isClosed = true;
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuffer str = new StringBuffer(getClass().getSimpleName());
+        str.append("[");
+        str.append(oldPath);
+        str.append("]");
+        return str.toString();
+
     }
 
 }

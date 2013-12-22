@@ -7,8 +7,6 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -21,88 +19,102 @@ import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.extend.ExtendTable;
 import ru.fizteh.fivt.students.irinapodorozhnaya.utils.Types;
 import ru.fizteh.fivt.students.irinapodorozhnaya.utils.XMLSerializer;
 
-public class MyTableProvider implements ExtendProvider {
+public class MyTableProvider implements ExtendProvider, AutoCloseable {
 
     private final File dataBaseDir;
     private final Map<String, ExtendTable> tables = new HashMap<>();
     private static final String STRING_NAME_FORMAT = "[a-zA-Zа-яА-Я0-9_]+";
-    private ReadWriteLock lock = new ReentrantReadWriteLock();
+    private volatile boolean isClosed = false;
+
+    private void checkClosed() {
+        if (isClosed) {
+            throw new IllegalStateException("call for closed object");
+        }
+    }
 
     public MyTableProvider(File dataBaseDir) throws IOException {
         this.dataBaseDir = dataBaseDir;
-        try {
-            lock.writeLock().lock();
-            for (String tableName: dataBaseDir.list()) {
-                tables.put(tableName, new MyTable(tableName, dataBaseDir, this));
-                tables.get(tableName).loadAll();
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
+        for (String tableName: dataBaseDir.list()) {
+            tables.put(tableName, new MyTable(tableName, dataBaseDir, this));
+      }
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + dataBaseDir.getAbsolutePath() + "]";
     }
 
     @Override
-    public ExtendTable getTable(String name) {
+    public synchronized ExtendTable getTable(String name) {
+        checkClosed();
         checkCorrectName(name);
         try {
-            lock.readLock().lock();
+            ExtendTable table = tables.get(name);
+            if (table != null && table.isClosed()) {
+                ExtendTable newTable = new MyTable(name, dataBaseDir, this);
+                tables.put(name, newTable);
+            }
             return tables.get(name);
-        } finally {
-            lock.readLock().unlock();
+        } catch (IOException e)  {
+            throw new IllegalArgumentException(e);
         }
     }
 
     @Override
-    public ExtendTable createTable(String name, List<Class<?>> columnTypes)
+    public synchronized ExtendTable createTable(String name, List<Class<?>> columnTypes)
             throws IOException {
-        
+
+        checkClosed();
         checkCorrectName(name);
         if (columnTypes == null || columnTypes.isEmpty()) {
             throw new IllegalArgumentException("bad column list");
         }
-        try {
-            lock.writeLock().lock();
-            File table = new File(dataBaseDir, name);
-            if (table.isDirectory()) {
-                return null;
-            }
-            if (!table.mkdir()) {
-                throw new IllegalArgumentException("table has illegal name");
-            }
-
-            try (PrintStream signature = new PrintStream(new File(table, "signature.tsv"))) {
-                for (Class<?> s : columnTypes) {
-                    signature.print(Types.getSimpleName(s));
-                    signature.print(" ");
-                }
-            }
-            ExtendTable newTable = new MyTable(name, dataBaseDir, this, columnTypes);
-            tables.put(name, newTable);
-            return newTable;
-        } finally {
-            lock.writeLock().unlock();
+        File table = new File(dataBaseDir, name);
+        if (table.isDirectory()) {
+            return null;
         }
-    }
+        if (!table.mkdir()) {
+            throw new IllegalArgumentException("table has illegal name");
+        }
+
+        try (PrintStream signature = new PrintStream(new File(table, "signature.tsv"))) {
+            boolean isFirst = true;
+            for (Class<?> s : columnTypes) {
+                if (!isFirst) {
+                    signature.print(" ");
+                } else {
+                    isFirst = false;
+                }
+                signature.print(Types.getSimpleName(s));
+            }
+        }
+
+        try (PrintStream sizePrint = new PrintStream(new File(table, "size.tsv"))) {
+            sizePrint.print(0);
+        }
+
+            ExtendTable newTable = new MyTable(name, dataBaseDir, this, columnTypes);
+        tables.put(name, newTable);
+        return newTable;
+   }
 
     @Override
-    public void removeTable(String name) throws IOException {
-        
+    public synchronized void removeTable(String name) throws IOException {
+
+        checkClosed();
         checkCorrectName(name);
-        try {
-            lock.writeLock().lock();
-            if (tables.remove(name) == null) {
-                throw new IllegalStateException(name + " not exists");
-            }
-            File table = new File(dataBaseDir, name);
-            CommandRemove.deleteRecursivly(table);
-        } finally {
-            lock.writeLock().unlock();
+        if (tables.remove(name) == null) {
+            throw new IllegalStateException(name + " not exists");
         }
+        File table = new File(dataBaseDir, name);
+        CommandRemove.deleteRecursivly(table);
     }
 
     @Override
     public Storeable deserialize(Table table, String value) throws ParseException {
 
+        checkClosed();
         Storeable res;
         try {
             res = XMLSerializer.deserialize(table, value);
@@ -114,7 +126,8 @@ public class MyTableProvider implements ExtendProvider {
 
     @Override
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
-        
+
+        checkClosed();
         String res;
         try {            
             res = XMLSerializer.serialize(table, value);
@@ -126,6 +139,7 @@ public class MyTableProvider implements ExtendProvider {
 
     @Override
     public Storeable createFor(Table table) {
+        checkClosed();
         if (table == null) {
             throw new IllegalArgumentException("table can't be null");
         }
@@ -135,7 +149,7 @@ public class MyTableProvider implements ExtendProvider {
     @Override
     public Storeable createFor(Table table, List<?> values) 
                      throws ColumnFormatException, IndexOutOfBoundsException {
-
+        checkClosed();
         if (table == null || values == null) {
             throw new IllegalArgumentException("table and values can't be null");
         }
@@ -154,6 +168,16 @@ public class MyTableProvider implements ExtendProvider {
     public static void checkCorrectName(String name) {
         if (name == null || !name.matches(STRING_NAME_FORMAT)) {
             throw new IllegalArgumentException("table name is null or has illegal name");
+        }
+    }
+
+    @Override
+    public void close() {
+        if (!isClosed) {
+            for (ExtendTable table: tables.values()) {
+                table.close();
+            }
+            isClosed = true;
         }
     }
 }

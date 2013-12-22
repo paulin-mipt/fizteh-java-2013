@@ -12,15 +12,12 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import ru.fizteh.fivt.storage.structured.Storeable;
-import ru.fizteh.fivt.storage.structured.TableProvider;
-import ru.fizteh.fivt.storage.structured.TableProviderFactory;
-import ru.fizteh.fivt.storage.structured.Table;
 
 public class TestsForTable {
     
-    TableProviderFactory tableProviderFactory;
-    TableProvider tableProvider;
-    Table table;
+    TableProviderFactoryImplementation tableProviderFactory;
+    TableProviderImplementation tableProvider;
+    TableImplementation table;
     
     Storeable value1;
     
@@ -31,12 +28,12 @@ public class TestsForTable {
     public void createTable() throws IOException {
         File databaseDirectory = folder.newFolder("database");
         tableProviderFactory = new TableProviderFactoryImplementation();
-        tableProvider = tableProviderFactory.create(databaseDirectory.toString());
+        tableProvider = (TableProviderImplementation) tableProviderFactory.create(databaseDirectory.toString());
         List<Class<?>> columnTypes = new ArrayList<Class<?>>();
         columnTypes.add(Boolean.class);
         columnTypes.add(String.class);
         columnTypes.add(Integer.class);
-        table = tableProvider.createTable("tableName", columnTypes);
+        table = (TableImplementation) tableProvider.createTable("tableName", columnTypes);
         
         value1 = new StoreableImplementation(columnTypes);
         value1.setColumnAt(0, true);
@@ -45,8 +42,56 @@ public class TestsForTable {
     }
     
     @Test
-    public void getName() {
+    public void getName() throws Exception {
         Assert.assertEquals("tableName", table.getName());
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void tableProviderFactoryCloseAndCreate() throws Exception {
+        tableProviderFactory.close();
+        tableProviderFactory.create("smth");
+    }
+    
+    @Test
+    public void tableProviderFactoryDoubleClose() throws Exception {
+        tableProviderFactory.close();
+        tableProviderFactory.close();
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void tableProviderFactoryCloseTableProviderGetTable() throws Exception {
+        tableProviderFactory.close();
+        tableProvider.getTable("tableName");
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void tableProviderCloseTableProviderGetTable() throws Exception {
+        tableProvider.close();
+        tableProvider.getTable("tableName");
+    }
+    
+    @Test
+    public void tableProviderDoubleClose() throws Exception {
+        tableProvider.close();
+        tableProvider.close();
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void tableProviderCloseTableCommit() throws Exception {
+        tableProvider.close();
+        table.commit();
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void tableCloseTableCommit() throws Exception {
+        table.close();
+        table.commit();
+    }
+    
+    @Test
+    public void tableDoubleClose() throws Exception {
+        table.close();
+        table.close();
     }
     
     @Test

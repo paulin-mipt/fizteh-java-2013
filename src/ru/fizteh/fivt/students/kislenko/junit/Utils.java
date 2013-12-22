@@ -1,5 +1,7 @@
 package ru.fizteh.fivt.students.kislenko.junit;
 
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTable;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;

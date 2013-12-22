@@ -26,6 +26,19 @@ public class ShellIsItCommand implements ShellCommand{
     public void setNumberOfArgs(final int newNumberOfArgs) {
         numberOfArgs = newNumberOfArgs;
     }
+	public String getName() {
+		return name;
+	}
+	public String join (String[] arguments){
+		StringBuilder argsBuilder = new StringBuilder(); 
+    	for (int i = 2; i < arguments.length; ++i){
+    		argsBuilder.append(arguments[i]).append(" ");
+    	}
+    	argsBuilder.deleteCharAt(argsBuilder.length() - 1);
+    	String args = argsBuilder.toString();
+    	args = args.trim();
+    	return args;
+	}
 
 	
 

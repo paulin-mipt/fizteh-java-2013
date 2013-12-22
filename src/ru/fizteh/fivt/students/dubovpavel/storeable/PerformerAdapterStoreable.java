@@ -10,12 +10,13 @@ import java.text.ParseException;
 
 public class PerformerAdapterStoreable implements DataBaseHandler<String, String> {
     private Storage<TableStoreable> storage;
+
     public PerformerAdapterStoreable(Storage<TableStoreable> storage) {
         this.storage = storage;
     }
 
     private String safeSerializedReturn(TableStoreable table, Storeable obj) throws Serial.SerialException {
-        if(obj == null) {
+        if (obj == null) {
             return null;
         } else {
             return table.getTransformer().serialize(obj);
@@ -23,7 +24,7 @@ public class PerformerAdapterStoreable implements DataBaseHandler<String, String
     }
 
     public PerformerAdapterStoreable checked() {
-        if(storage.getCurrent() != null) {
+        if (storage.getCurrent() != null) {
             return this;
         } else {
             return null;
@@ -33,7 +34,7 @@ public class PerformerAdapterStoreable implements DataBaseHandler<String, String
     public String put(String key, String value) throws DataBaseException {
         TableStoreable table = storage.getCurrent();
         try {
-            Storeable old = table.putChecked(key, table.getTransformer().deserialize(value));
+            Storeable old = table.put(key, table.getTransformer().deserialize(value)); // Double check here
             return safeSerializedReturn(table, old);
         } catch (Serial.SerialException e) {
             throw new DataBaseException(String.format("SerialException: %s", e.getMessage()));
@@ -49,10 +50,11 @@ public class PerformerAdapterStoreable implements DataBaseHandler<String, String
             return safeSerializedReturn(table, value);
         } catch (Serial.SerialException e) {
             throw new DataBaseException(String.format("SerialException: %s", e.getMessage()));
-        } catch(ColumnFormatException e) {
+        } catch (ColumnFormatException e) {
             throw new DataBaseException(String.format("ColumnFormatException: %s", e.getMessage()));
         }
     }
+
     public void save() throws DataBaseException {
         storage.getCurrent().save();
     }
@@ -60,6 +62,7 @@ public class PerformerAdapterStoreable implements DataBaseHandler<String, String
     public void open() throws DataBaseException {
         storage.getCurrent().open();
     }
+
     public String remove(String key) throws DataBaseException {
         TableStoreable table = storage.getCurrent();
         try {
@@ -67,7 +70,7 @@ public class PerformerAdapterStoreable implements DataBaseHandler<String, String
             return safeSerializedReturn(table, value);
         } catch (Serial.SerialException e) {
             throw new DataBaseException(String.format("SerialException: %s", e.getMessage()));
-        } catch(ColumnFormatException e) {
+        } catch (ColumnFormatException e) {
             throw new DataBaseException(String.format("ColumnFormatException: %s", e.getMessage()));
         }
     }

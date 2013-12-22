@@ -47,7 +47,24 @@ public class DBTableProviderTest {
         provider.removeTable("tmp");
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void getTableAfterClosing() throws IOException {
+        List<Class<?>> columnTypes = new ArrayList<Class<?>>();
+        columnTypes.add(Integer.class);
+        provider.createTable("tmp123", columnTypes);
+        ((DBTableProvider) provider).close();
+        provider.getTable("tmp123");
+    }
+
     //------Tests for createTable
+    @Test(expected = IllegalStateException.class)
+    public void createTableAfterClosing() throws IOException {
+        List<Class<?>> columnTypes = new ArrayList<Class<?>>();
+        columnTypes.add(Integer.class);
+        ((DBTableProvider) provider).close();
+        provider.createTable("tmp123", columnTypes);
+    }
+
     @Test
     public void createTableForExistingTableReturnsNull() throws IOException {
         List<Class<?>> columnTypes = new ArrayList<Class<?>>();
@@ -103,6 +120,15 @@ public class DBTableProviderTest {
     }
 
     //-------Tests for removeTable
+    @Test(expected = IllegalStateException.class)
+    public void removeTableAfterClosing() throws IOException {
+        List<Class<?>> columnTypes = new ArrayList<Class<?>>();
+        columnTypes.add(Integer.class);
+        provider.createTable("tmp123", columnTypes);
+        ((DBTableProvider) provider).close();
+        provider.removeTable("tmp123");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void removeTableNullNameTable() throws IOException {
         provider.removeTable(null);
@@ -119,6 +145,15 @@ public class DBTableProviderTest {
     }
 
     //----Tests for deserialize
+    @Test(expected = IllegalStateException.class)
+    public void deserializeAfterClosing() throws IOException, ParseException {
+        List<Class<?>> columnTypes = new ArrayList<Class<?>>();
+        columnTypes.add(Integer.class);
+        Table table = provider.createTable("tmp123", columnTypes);
+        ((DBTableProvider) provider).close();
+        Storeable row = provider.deserialize(table, "[5, \"пять\"]");
+    }
+
     @Test
     public void deserializeSimpleWork() throws IOException, ParseException {
         List<Class<?>> types = new ArrayList<>();
@@ -216,6 +251,4 @@ public class DBTableProviderTest {
         Assert.assertEquals(s, row.getStringAt(6));
         provider.removeTable("tmp");
     }
-
-
 }

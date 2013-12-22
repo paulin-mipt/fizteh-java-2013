@@ -12,16 +12,16 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
-import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.irinapodorozhnaya.shell.CommandRemove;
 import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.MyTableProviderFactory;
+import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.extend.ExtendProvider;
+import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.extend.ExtendTable;
 
 public class TableTest {
 
     private File f;
-    private Table testTable;
-    private TableProvider provider;
+    private ExtendTable testTable;
+    private ExtendProvider provider;
     private List<Class<?>> columnType = new ArrayList<>();
     private Storeable val1;
     private Storeable val2;
@@ -162,7 +162,7 @@ public class TableTest {
         list.add(5);
         list.add(4.0);
         list.add("String");
-        Table t = provider.createTable("table2", columnType);
+        ExtendTable t = provider.createTable("table2", columnType);
         Storeable s = provider.createFor(t, list);
         provider.removeTable("table2");
         testTable.put("key", s);
@@ -173,7 +173,7 @@ public class TableTest {
         List<Object> list = new ArrayList<>();
         columnType.remove(1);
         list.add(5);
-        Table t = provider.createTable("table2", columnType);
+        ExtendTable t = provider.createTable("table2", columnType);
         Storeable s = provider.createFor(t, list);
         provider.removeTable("table2");
         testTable.put("key", s);
@@ -185,9 +185,75 @@ public class TableTest {
         columnType.set(1, String.class);
         list.add(5);
         list.add("String");
-        Table t = provider.createTable("table2", columnType);
+        ExtendTable t = provider.createTable("table2", columnType);
         Storeable s = provider.createFor(t, list);
         provider.removeTable("table2");
         testTable.put("key", s);
+    }
+
+    @Test
+    public void toStringTest() {
+        File tableDir = new File(f, "table");
+        Assert.assertEquals(testTable.toString(), "MyTable[" + tableDir.getAbsolutePath() + "]");
+    }
+
+    @Test
+    public void doubleClose() {
+        testTable.close();
+        testTable.close();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void getNameAfterClose() throws Exception {
+        testTable.close();
+        testTable.getName();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void getAfterClose() throws Exception {
+        testTable.close();
+        testTable.get("key");
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void putAfterClose() throws Exception {
+        testTable.close();
+        testTable.put("key", provider.createFor(testTable));
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void removeAfterClose() throws Exception {
+        testTable.close();
+        testTable.remove("key");
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void rollbackAfterClose() throws Exception {
+        testTable.close();
+        testTable.rollback();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void commitAfterClose() throws Exception {
+        testTable.close();
+        testTable.commit();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void getColumnTypeAfterClose() throws Exception {
+        testTable.close();
+        testTable.getColumnType(0);
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void getColumnCountAfterClose() throws Exception {
+        testTable.close();
+        testTable.getColumnsCount();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void sizeAfterClose() throws Exception {
+        testTable.close();
+        testTable.size();
     }
 }

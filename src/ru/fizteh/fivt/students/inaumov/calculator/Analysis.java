@@ -13,23 +13,26 @@ public class Analysis  {
     private Stack<Character> operationStack;
     private String inputData;
 
-    public Analysis(String inputData) {
-        this.inputData = inputData;
+    public Analysis(final String inputString) {
+        this.inputData = inputString;
         integerStack = new Stack<Integer>();
         operationStack = new Stack<Character>();
     }
+
     private int getIntegerFromStack() throws IOException {
         if (integerStack.isEmpty()) {
             throw new IOException();
         }
         return integerStack.pop();
     }
+
     private char getOperationFromStack() throws IOException {
         if (operationStack.isEmpty()) {
             throw new IOException();
         }
         return operationStack.pop();
     }
+
     public static int getPriority(char c) {
         switch (c) {
             case '(':
@@ -46,15 +49,18 @@ public class Analysis  {
                 return -1;
         }
     }
+
     public static boolean isOperation(char c) {
         if (c == '+' || c == '-' || c == '*' || c == '/') {
             return true;
         }
         return false;
     }
+
     public int calculateExpression() throws IOException {
         char nextOperation = getOperationFromStack();
-        int secondOperand = getIntegerFromStack(), firstOperand = getIntegerFromStack();
+        int secondOperand = getIntegerFromStack();
+        int firstOperand = getIntegerFromStack();
         int result = 0;
         if (nextOperation == '+') {
             if (secondOperand <= 0 && firstOperand >= 0
@@ -89,7 +95,8 @@ public class Analysis  {
         }
         return result;
     }
-    public int calculateAnswer()  throws IOException, NumberFormatException {
+
+    public int calculateAnswer()  throws IOException {
         InputStream inputStream = new ByteArrayInputStream(inputData.getBytes());
         BufferedReader bufReader = new BufferedReader(new InputStreamReader(inputStream));
         Character nextChar = 0;
@@ -98,7 +105,7 @@ public class Analysis  {
         while (true) {
             int bufReaderRetVal = bufReader.read();
             if (bufReaderRetVal == -1) {
-                if ( !integerInString.isEmpty() ) {
+                if (!integerInString.isEmpty()) {
                     integerStack.push(Integer.parseInt(integerInString, RADIX));
                     integerInString = "";
                 }
@@ -110,7 +117,7 @@ public class Analysis  {
                 || nextChar >= 'A' && nextChar <= 'A' + RADIX - 11) {
                 integerInString += nextChar;
             } else {
-                if ( !integerInString.isEmpty() ) {
+                if (!integerInString.isEmpty()) {
                     integerStack.push(Integer.parseInt(integerInString, RADIX));
                     integerInString = "";
                 }
@@ -121,7 +128,7 @@ public class Analysis  {
                         result = calculateExpression();
                         integerStack.push(result);
                     }
-                    if ( !operationStack.empty() && operationStack.peek() == '(') {
+                    if (!operationStack.empty() && operationStack.peek() == '(') {
                         operationStack.pop();
                     } else {
                         throw new IOException();
@@ -134,23 +141,21 @@ public class Analysis  {
                             integerStack.push(result);
                         }
                         operationStack.push(nextChar);
-                    }
-                    else if (nextChar != ' ') {
+                    } else if (nextChar != ' ') {
                         throw new IOException();
                     }
                 }
             }
         }
-        while ( !operationStack.empty() ) {
+        while (!operationStack.empty()) {
             result = calculateExpression();
             integerStack.push(result);
         }
-        if ( integerStack.empty() || integerStack.size() > 1 ) {
+        if (integerStack.empty() || integerStack.size() > 1) {
             throw new IOException();
         } else {
             result = integerStack.pop();
         }
         return result;
     }
-
 }

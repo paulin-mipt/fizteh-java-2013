@@ -3,7 +3,6 @@ package ru.fizteh.fivt.students.nlevashov.factory;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.nlevashov.shell.Shell;
 
 import java.io.BufferedInputStream;
@@ -25,13 +24,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * Данный интерфейс не является потокобезопасным.
  */
-public class MyTable implements Table {
+public class MyTable implements Table, AutoCloseable {
 
     Path addr;
     HashMap<String, Storeable> map;
     String tableName;
     List<Class<?>> types;
-    TableProvider provider;
+    MyTableProvider provider;
+    volatile boolean isClosed;
 
     ThreadLocal<HashMap<String, Storeable>> rewritings;
     ThreadLocal<HashSet<String>> removings;
@@ -50,10 +50,11 @@ public class MyTable implements Table {
      * @throws ru.fizteh.fivt.storage.structured.ColumnFormatException -
      *                                                          В файле "signature.tsv" встречается неразрешенный тип.
      */
-    public MyTable(Path address, TableProvider selfProvider) throws ColumnFormatException, IOException {
+    public MyTable(Path address, MyTableProvider selfProvider) throws ColumnFormatException, IOException {
         addr = address;
         tableName = addr.getFileName().toString();
         provider = selfProvider;
+        isClosed = false;
 
         String s;
         try (BufferedInputStream i = new BufferedInputStream(Files.newInputStream(addr.resolve("signature.tsv")))) {
@@ -201,6 +202,7 @@ public class MyTable implements Table {
      */
     @Override
     public String getName() {
+        checkClose();
         return tableName;
     }
 
@@ -214,6 +216,7 @@ public class MyTable implements Table {
      */
     @Override
     public Storeable get(String key) {
+        checkClose();
         if ((key == null) || key.trim().isEmpty() || key.matches(".*[\\s\\t\\n].*")) {
             throw new IllegalArgumentException("Table.get: key is null or consists illegal symbol/symbols");
         }
@@ -249,6 +252,7 @@ public class MyTable implements Table {
      */
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        checkClose();
         if ((key == null) || key.trim().isEmpty() || key.matches(".*[\\s\\t\\n].*")) {
             throw new IllegalArgumentException("Table.put: key is null or consists illegal symbol/symbols");
         }
@@ -325,6 +329,7 @@ public class MyTable implements Table {
      */
     @Override
     public Storeable remove(String key) {
+        checkClose();
         if ((key == null) || key.trim().isEmpty() || key.matches(".*[\\s\\t\\n].*")) {
             throw new IllegalArgumentException("Table.remove: key is null or consists illegal symbol/symbols");
         }
@@ -359,6 +364,7 @@ public class MyTable implements Table {
      */
     @Override
     public int size() {
+        checkClose();
         int mapSize;
         int inserts = 0;
         readLocker.lock();
@@ -384,6 +390,7 @@ public class MyTable implements Table {
      */
     @Override
     public int commit() throws IOException {
+        checkClose();
         int difference;
         writeLocker.lock();
         try {
@@ -408,6 +415,7 @@ public class MyTable implements Table {
      */
     @Override
     public int rollback() {
+        checkClose();
         int difference;
         readLocker.lock();
         try {
@@ -427,6 +435,7 @@ public class MyTable implements Table {
      */
     @Override
     public int getColumnsCount() {
+        checkClose();
         return types.size();
     }
 
@@ -440,10 +449,31 @@ public class MyTable implements Table {
      */
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkClose();
         if ((columnIndex < 0) || (columnIndex >= types.size())) {
             throw new IndexOutOfBoundsException("Storable.getColumnAt: Incorrect index");
         }
         return types.get(columnIndex);
+    }
+
+    @Override
+    public void close() {
+        if (!isClosed) {
+            rollback();
+            isClosed = true;
+        }
+    }
+
+    private void checkClose() {
+        if (isClosed) {
+            throw new IllegalStateException("TableProvider: provider closed");
+        }
+    }
+
+    @Override
+    public String toString() {
+        checkClose();
+        return getClass().getSimpleName() + "[" + addr.toAbsolutePath().toString() + "]";
     }
 
     /**
@@ -451,6 +481,7 @@ public class MyTable implements Table {
      * Подсчет ведется с помощью функции diff(). Потокобезопасна.
      */
     public int threadSafeDifference() {
+        checkClose();
         readLocker.lock();
         try {
             return diff();

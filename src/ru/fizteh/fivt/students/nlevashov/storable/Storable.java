@@ -205,5 +205,19 @@ public class Storable implements Storeable {
         }
         return values.get(columnIndex);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getClass().getSimpleName() + "[");
+        for (Object o : values) {
+            if (o != null) {
+                sb.append(o.toString());
+            }
+            sb.append(',');
+        }
+        sb.setCharAt(sb.length() - 1, ']');
+        return sb.toString();
+    }
 }
 

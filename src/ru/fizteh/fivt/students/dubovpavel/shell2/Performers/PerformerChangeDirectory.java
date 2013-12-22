@@ -13,7 +13,7 @@ public class PerformerChangeDirectory extends PerformerShell {
 
     public void execute(Dispatcher dispatcher, Command command) throws PerformerException {
         File directory = getCanonicalFile(command.getArgument(0));
-        if(directory.isDirectory()) {
+        if (directory.isDirectory()) {
             System.setProperty("user.dir", directory.getPath());
         } else {
             throw new PerformerException(dispatcher.callbackWriter(Dispatcher.MessageType.ERROR,

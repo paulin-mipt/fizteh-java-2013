@@ -22,7 +22,7 @@ public class DataBaseRollback implements CommandInterface {
         if (tableName == null) {
             throw new IOException("no table");
         }
-        MyTable currTable = tableProvider.getTable(tableName);
+        MyTable currTable = (MyTable) tableProvider.getTable(tableName);
         int changes;
         try {
             changes = currTable.rollback();

@@ -9,17 +9,18 @@ import java.io.File;
 
 public class TableProviderStorageExtendedFactory implements TableProviderFactory {
     public static void check(String dir) {
-        if(dir == null || dir.isEmpty()) {
+        if (dir == null || dir.isEmpty()) {
             throw new IllegalArgumentException();
         }
         File corresponding = new File(dir);
-        if(corresponding.isFile()) {
+        if (corresponding.isFile()) {
             throw new IllegalArgumentException();
         }
-        if(!corresponding.isDirectory()) {
+        if (!corresponding.isDirectory()) {
             throw new RuntimeException();
         }
     }
+
     public TableProvider create(String dir) {
         check(dir);
         StorageBuilder storageBuilder = new StorageBuilder();

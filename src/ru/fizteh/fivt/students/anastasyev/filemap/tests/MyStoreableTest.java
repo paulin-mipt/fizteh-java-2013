@@ -188,4 +188,18 @@ public class MyStoreableTest {
     public void testGetStringAtWrongIndex() throws Exception {
         storeableWithValues.getStringAt(2);
     }
+
+    @Test
+    public void toStringTest() {
+        storeableWithValues.setColumnAt(0, 0);
+        storeableWithValues.setColumnAt(1, 1L);
+        storeableWithValues.setColumnAt(2, null);
+        storeableWithValues.setColumnAt(3, null);
+        storeableWithValues.setColumnAt(4, null);
+        storeableWithValues.setColumnAt(5, true);
+        storeableWithValues.setColumnAt(6, "string");
+        storeableWithValues.setColumnAt(7, 7);
+        storeableWithValues.setColumnAt(8, "string");
+        assertEquals("MyStoreable[0,1,,,,true,string,7,string]", storeableWithValues.toString());
+    }
 }

@@ -1,3 +1,4 @@
+
 package ru.fizteh.fivt.students.adanilyak.shell;
 
 public enum RequestCommandType {
@@ -17,7 +18,7 @@ public enum RequestCommandType {
         typeValue = type;
     }
 
-    static public RequestCommandType getType(String pType) {
+    public static RequestCommandType getType(String pType) {
         for (RequestCommandType type : RequestCommandType.values()) {
             if (type.getTypeValue().equals(pType)) {
                 return type;

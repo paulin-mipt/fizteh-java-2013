@@ -21,11 +21,6 @@ public class ExecuteCmd extends Shell {
 
     @Override
     public void exitWithError() {
-        try {
-            mp.saveChanges();
-        } catch (RuntimeException e) {
-            System.err.println(e.getMessage());
-        }
         System.exit(1);
     }
 

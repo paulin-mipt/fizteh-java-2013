@@ -32,8 +32,7 @@ public class MultifileMapUtils {
         throw new IllegalArgumentException("incorrect bucket name");
     }
 
-    public static int parseCurrentFileNumber(File file)
-    {
+    public static int parseCurrentFileNumber(File file) {
         String name = file.getName();
         Matcher matcher = FILE_PATTERN.matcher(name);
         if (matcher.matches()) {
@@ -54,21 +53,22 @@ public class MultifileMapUtils {
         return firstSymbol / DistributedSaver.BUCKET_COUNT % DistributedSaver.FILES_PER_DIR;
     }
 
-    public static void checkKeyPlacement(String key, int currentBucket, int currentFile)
-    {
+    public static void checkKeyPlacement(String key, int currentBucket, int currentFile) {
         if (currentBucket != getDirNumber(key)
                 || currentFile != getFileNumber(key)) {
             throw new IllegalArgumentException("invalid key placement");
         }
     }
 
-    public static String parseTableName(String params)
-    {
+    public static String parseTableName(String params) {
         int index = params.indexOf(' ');
-        if (index == -1)
-        {
+        if (index == -1) {
             return params;
         }
         return params.substring(0, index);
+    }
+
+    public static DatabaseFileDescriptor makeDescriptor(String key) {
+        return new DatabaseFileDescriptor(getDirNumber(key), getFileNumber(key));
     }
 }

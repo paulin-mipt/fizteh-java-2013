@@ -11,4 +11,8 @@ public class MultiFileHashMapTable extends AbstractTable<String> implements Exte
         }
         return super.put(key, value);
     }
+
+    public boolean valuesEqual(String firstValue, String secondValue) {
+        return firstValue.equals(secondValue);
+    }
 }

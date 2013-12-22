@@ -6,6 +6,7 @@ import ru.fizteh.fivt.students.dubovpavel.executor.DispatcherBuilder;
 
 public class DispatcherFileMapBuilder extends DispatcherBuilder {
     private String repo;
+
     public Dispatcher construct() {
         return setPerformers(new DispatcherFileMap(forwarding, repo));
     }

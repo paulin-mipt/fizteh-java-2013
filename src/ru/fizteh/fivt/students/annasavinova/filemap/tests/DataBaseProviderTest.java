@@ -11,18 +11,20 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import ru.fizteh.fivt.students.annasavinova.filemap.DBaseProviderFactory;
+import ru.fizteh.fivt.students.annasavinova.filemap.DataBase;
 import ru.fizteh.fivt.students.annasavinova.filemap.DataBaseProvider;
 
 public class DataBaseProviderTest {
     DataBaseProvider test;
     ArrayList<Class<?>> list;
+    DBaseProviderFactory fact;
 
     @Rule
     public TemporaryFolder root = new TemporaryFolder();
 
     @Before
     public void initialize() throws IOException {
-        DBaseProviderFactory fact = new DBaseProviderFactory();
+        fact = new DBaseProviderFactory();
         test = (DataBaseProvider) fact.create(root.newFolder().toString());
         list = new ArrayList<>();
         list.add(int.class);
@@ -92,5 +94,24 @@ public class DataBaseProviderTest {
         test.createTable("table_for_removing", list);
         test.removeTable("table_for_removing");
         assertNull(test.getTable("table_for_removing"));
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose1() throws Exception {
+        DBaseProviderFactory tmpFactory = new DBaseProviderFactory();
+        DataBaseProvider tmp = (DataBaseProvider) tmpFactory.create(root.newFolder().toString());
+        tmp.close();
+        tmp.createTable("aa", null);
+        tmpFactory.close();
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose2() throws Exception {
+        DBaseProviderFactory tmpFactory = new DBaseProviderFactory();
+        DataBaseProvider tmp = (DataBaseProvider) tmpFactory.create(root.newFolder().toString());
+        DataBase tmpTable = (DataBase) tmp.createTable("test", list);
+        tmp.close();
+        tmpTable.size();
+        tmpFactory.close();
     }
 }

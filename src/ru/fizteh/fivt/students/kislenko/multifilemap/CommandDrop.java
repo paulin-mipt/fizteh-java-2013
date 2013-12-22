@@ -5,20 +5,28 @@ import ru.fizteh.fivt.students.kislenko.shell.Command;
 import java.io.File;
 import java.io.IOException;
 
-public class CommandDrop implements Command<MultiFileHashMapState> {
+public class CommandDrop implements Command<MultiTableFatherState> {
+    @Override
     public String getName() {
         return "drop";
     }
 
+    @Override
     public int getArgCount() {
         return 1;
     }
 
-    public void run(MultiFileHashMapState state, String[] args) throws IOException {
+    @Override
+    public void run(MultiTableFatherState state, String[] args) throws Exception {
         File db = state.getPath().resolve(args[0]).toFile();
         if (!db.exists()) {
             System.out.println(args[0] + " not exists");
         } else {
+            try {
+                state.deleteTable(args[0]);
+            } catch (Exception e) {
+                throw new IOException("Can't drop - it's not table.");
+            }
             if (db.listFiles() != null) {
                 for (File dbDir : db.listFiles()) {
                     if (dbDir.listFiles() != null) {
@@ -29,13 +37,7 @@ public class CommandDrop implements Command<MultiFileHashMapState> {
                     dbDir.delete();
                 }
             }
-            if (args[0].equals(state.getWorkingTableName())) {
-                state.getCurrentTable().clear();
-                state.setCurrentTable("");
-                state.setWorkingPath("");
-            }
             db.delete();
-            state.deleteTable(args[0]);
             System.out.println("dropped");
         }
     }

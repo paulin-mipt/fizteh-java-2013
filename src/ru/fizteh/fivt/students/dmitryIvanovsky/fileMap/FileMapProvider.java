@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapUtils.*;
 
-public class FileMapProvider implements CommandAbstract, TableProvider {
+public class FileMapProvider implements CommandAbstract, TableProvider, AutoCloseable {
 
     private final Path pathDb;
     private final CommandShell mySystem;
@@ -43,6 +43,7 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
     Set<String> setDirTable;
     FileMap dbData;
     boolean out;
+    boolean isProviderClose;
     Map<String, FileMap> mapFileMap = new HashMap<>();
 
     final HashSet allowType = new HashSet(){ {
@@ -77,6 +78,7 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
         this.mySystem = new CommandShell(pathDb, false, false);
         this.dbData = null;
         this.setDirTable = new HashSet<>();
+        this.isProviderClose = false;
 
         try {
             checkBdDir(this.pathDb);
@@ -206,6 +208,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
     }
 
     public void multiCreate(String[] args) throws Exception {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         List<String> argsParse = parsingForCreate(args);
         String nameTable = argsParse.get(1);
         List<Class<?>> colType = new ArrayList<>();
@@ -229,6 +234,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
 
 
     public Table createTable(String name, List<Class<?>> columnType) throws IOException {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         if (name == null || name.equals("")) {
             throw new IllegalArgumentException("name is clear");
         }
@@ -268,6 +276,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
     }
 
     public Table getTable(String name) {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         if (name == null || name.equals("")) {
             throw new IllegalArgumentException("name is clear");
         }
@@ -306,6 +317,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
     }
 
     public void removeTable(String name) {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         if (name == null || name.equals("")) {
             throw new IllegalArgumentException("name is clear");
         }
@@ -337,6 +351,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
 
     @Override
     public Storeable deserialize(Table table, String value) throws ParseException {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         try {
             List<Class<?>> columnTypes = new ArrayList<>();
             for (int i = 0; i < table.getColumnsCount(); i++) {
@@ -397,6 +414,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
 
     @Override
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         List<Class<?>> columnType = new ArrayList<>();
         for (int i = 0; i < table.getColumnsCount(); i++) {
             columnType.add(table.getColumnType(i));
@@ -431,6 +451,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
 
     @Override
     public Storeable createFor(Table table) {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         List<Class<?>> colType = new ArrayList<>();
         for (int i = 0; i < table.getColumnsCount(); i++) {
             colType.add(table.getColumnType(i));
@@ -440,6 +463,9 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
 
     @Override
     public Storeable createFor(Table table, List<?> values) throws ColumnFormatException, IndexOutOfBoundsException {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
         List<Class<?>> columnTypes = new ArrayList<>();
         for (int i = 0; i < table.getColumnsCount(); i++) {
             columnTypes.add(table.getColumnType(i));
@@ -451,6 +477,30 @@ public class FileMapProvider implements CommandAbstract, TableProvider {
             ++columnIndex;
         }
         return storeable;
+    }
+
+    public String toString() {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
+        return String.format("%s[%s]", getClass().getSimpleName(), pathDb.toAbsolutePath());
+    }
+
+    public void closeTable(String table) {
+        if (isProviderClose) {
+            throw new IllegalStateException("provider is closed");
+        }
+        mapFileMap.remove(table);
+    }
+
+    public void close() {
+        if (!isProviderClose) {
+            for (FileMap table: mapFileMap.values()) {
+                table.close();
+            }
+            mapFileMap.clear();
+            isProviderClose = true;
+        }
     }
 
     private void outPrint(String message) {

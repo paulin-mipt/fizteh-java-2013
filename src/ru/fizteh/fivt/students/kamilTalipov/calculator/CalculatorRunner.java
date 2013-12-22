@@ -17,7 +17,7 @@ public class CalculatorRunner {
             stringBuilder.append(" ");
         }
         String expression = stringBuilder.toString();
-        
+
         try {
             System.out.println(Long.toString(Calculator.calculate(expression), Calculator.BASE));
         } catch (Exception e) {

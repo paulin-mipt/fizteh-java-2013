@@ -1,5 +1,11 @@
 package ru.fizteh.fivt.students.kislenko.junit;
 
+import ru.fizteh.fivt.students.kislenko.filemap.CommandGet;
+import ru.fizteh.fivt.students.kislenko.filemap.CommandPut;
+import ru.fizteh.fivt.students.kislenko.filemap.CommandRemove;
+import ru.fizteh.fivt.students.kislenko.multifilemap.CommandCreate;
+import ru.fizteh.fivt.students.kislenko.multifilemap.CommandDrop;
+import ru.fizteh.fivt.students.kislenko.multifilemap.CommandUse;
 import ru.fizteh.fivt.students.kislenko.shell.Command;
 import ru.fizteh.fivt.students.kislenko.shell.Shell;
 
@@ -30,13 +36,13 @@ public class Main {
                 }
             }
             Path db = dbDir.toPath();
-            MultiFileHashMapState state = new MultiFileHashMapState(db);
-            Command[] commandList = new Command[]{new CommandMultiRemove(), new CommandMultiPut(), new CommandCreate(),
-                    new CommandDrop(), new CommandMultiGet(), new CommandUse(), new CommandSize(),
+            JUnitState state = new JUnitState(db);
+            Command[] commandList = new Command[]{new CommandRemove(), new CommandPut(), new CommandCreate(),
+                    new CommandDrop(), new CommandGet(), new CommandUse(), new CommandSize(),
                     new CommandCommit(), new CommandRollback()};
             MultiFilemapBuilder builder = new MultiFilemapBuilder();
             builder.build(state);
-            Shell<MultiFileHashMapState> shell = new Shell<MultiFileHashMapState>(state, commandList);
+            Shell<JUnitState> shell = new Shell<JUnitState>(state, commandList);
             if (args.length == 0) {
                 shell.interactiveMode();
             } else {

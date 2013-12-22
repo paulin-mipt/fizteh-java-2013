@@ -8,6 +8,8 @@ public interface Serial<T> {
             super(msg);
         }
     }
-    public String serialize(T obj) throws SerialException;
-    public T deserialize(String obj) throws SerialException, ParseException;
+
+    String serialize(T obj) throws SerialException;
+
+    T deserialize(String obj) throws SerialException, ParseException;
 }

@@ -291,4 +291,24 @@ public class TestsDatabaseProvider {
         second.join();
         Assert.assertEquals(1, counter.get());
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseRemove() throws Exception {
+        table = provider.createTable("testCloseTable", columnTypes);
+        provider.close();
+        provider.removeTable("testCloseTable");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseGet() throws Exception {
+        table = provider.createTable("testCloseTable", columnTypes);
+        provider.close();
+        provider.getTable("testCloseTable");
+    }
+
+    @Test
+    public void testToString() throws Exception {
+        Assert.assertEquals(provider.toString(),
+                String.format("DatabaseTableProvider[%s]", folder.getRoot().getPath()));
+    }
 }

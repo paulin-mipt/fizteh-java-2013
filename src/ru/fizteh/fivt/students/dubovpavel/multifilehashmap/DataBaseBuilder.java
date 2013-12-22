@@ -6,6 +6,7 @@ import java.io.File;
 
 public abstract class DataBaseBuilder<DB extends DataBaseHandler> {
     protected File dir = null;
+
     public void setPath(File folder) {
         dir = folder;
     }

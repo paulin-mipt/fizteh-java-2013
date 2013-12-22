@@ -7,6 +7,7 @@ import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.storage.structured.TableProviderFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -454,23 +455,29 @@ public class TestsDatabaseTable {
         }
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testClosePutGet() throws Exception {
+        DatabaseTable testTable = (DatabaseTable) table;
+        testTable.put("key", makeStoreable(5));
+        testTable.close();
+        testTable.get("key");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloseCommit() throws Exception {
+        DatabaseTable testTable = (DatabaseTable) table;
+        testTable.put("key1", makeStoreable(1));
+        testTable.put("key2", makeStoreable(2));
+        testTable.put("key3", makeStoreable(3));
+        testTable.close();
+        testTable.get("key1");
+        testTable.get("key1");
+        testTable.get("key1");
+    }
+
     @Test
-    public void multiThreadPerfomanceTest() throws Exception {
-        List<Future<Storeable>> futures = new ArrayList<>(10);
-        for (int i = 0; i < 1000; i++) {
-            final String newKey = String.format("key%d", i);
-            Future<Storeable> future = executor.submit(new Callable<Storeable>() {
-                @Override
-                public Storeable call() throws Exception {
-                    Storeable result = table.put(newKey, makeStoreable((int) (Math.random())));
-                    table.commit();
-                    return result;
-                }
-            });
-            futures.add(future);
-        }
-        for (int i = 0; i < 1000; i++) {
-            Assert.assertNull(futures.get(i).get());
-        }
+    public void testToString() throws Exception {
+        Assert.assertEquals(table.toString(), String.format("DatabaseTable[%s]", (folder.getRoot().getPath()
+                + File.separator + SINGLE_COLUMN_TABLE_NAME)));
     }
 }

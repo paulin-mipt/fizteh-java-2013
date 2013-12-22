@@ -25,11 +25,11 @@ public class TestStoreable {
     private File goodTableSign;
     private File badTableEmpty;
     private File badTableEmptySign;
-    private ru.fizteh.fivt.storage.structured.TableProviderFactory factory;
+    private TableManagerFactory factory;
     private ArrayList<Class<?>> goodTypeList;
     private ArrayList<Object> goodValueList;
     private ArrayList<Object> wrongValueList;
-    private TableProvider provider;
+    private TableManager provider;
     private Table table;
     private Storeable st;
     private final String goodStrVal
@@ -106,6 +106,7 @@ public class TestStoreable {
 
     @After
     public void after() {
+        factory.close();
         folder.delete();
     }
 

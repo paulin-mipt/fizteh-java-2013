@@ -6,6 +6,7 @@ import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.adanilyak.tools.CheckOnCorrect;
 import ru.fizteh.fivt.students.adanilyak.tools.CountingTools;
+import ru.fizteh.fivt.students.adanilyak.tools.WorkStatus;
 import ru.fizteh.fivt.students.adanilyak.tools.WorkWithStoreableDataBase;
 
 import java.io.File;
@@ -23,7 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Date: 03.11.13
  * Time: 16:49
  */
-public class StoreableTable implements Table {
+public class StoreableTable implements Table, AutoCloseable {
     /**
      * GENERIC DATA
      */
@@ -35,6 +36,7 @@ public class StoreableTable implements Table {
     /**
      * THREAD LOCAL DATA
      */
+    private ThreadLocal<WorkStatus> status = new ThreadLocal<>();
     private ThreadLocal<HashMap<String, Storeable>> changes;
     private ThreadLocal<HashSet<String>> removedKeys;
     private ThreadLocal<Integer> amountOfChanges;
@@ -43,6 +45,7 @@ public class StoreableTable implements Table {
 
     public StoreableTable(File dataDirectory, TableProvider givenProvider) throws IOException {
         data = new HashMap<>();
+        status.set(WorkStatus.NOT_INITIALIZED);
         changes = new ThreadLocal<HashMap<String, Storeable>>() {
             @Override
             public HashMap<String, Storeable> initialValue() {
@@ -64,13 +67,13 @@ public class StoreableTable implements Table {
             }
         };
 
-
         if (givenProvider == null) {
             throw new IOException("storeable table: create failed, provider is not set");
         }
         provider = givenProvider;
         tableStorageDirectory = dataDirectory;
         try {
+            status.set(WorkStatus.WORKING);
             WorkWithStoreableDataBase.readIntoDataBase(tableStorageDirectory, data, this, provider);
         } catch (IOException | ParseException exc) {
             throw new IllegalArgumentException("Read from file failed", exc);
@@ -88,6 +91,7 @@ public class StoreableTable implements Table {
         }
 
         data = new HashMap<>();
+        status.set(WorkStatus.NOT_INITIALIZED);
         changes = new ThreadLocal<HashMap<String, Storeable>>() {
             @Override
             public HashMap<String, Storeable> initialValue() {
@@ -112,16 +116,19 @@ public class StoreableTable implements Table {
         provider = givenProvider;
         tableStorageDirectory = dataDirectory;
         columnTypes = givenTypes;
+        status.set(WorkStatus.WORKING);
         WorkWithStoreableDataBase.createSignatureFile(tableStorageDirectory, this);
     }
 
     @Override
     public String getName() {
+        status.get().isOkForOperations();
         return tableStorageDirectory.getName();
     }
 
     @Override
     public Storeable get(String key) {
+        status.get().isOkForOperations();
         if (!CheckOnCorrect.goodArg(key)) {
             throw new IllegalArgumentException("get: key is bad");
         }
@@ -130,8 +137,8 @@ public class StoreableTable implements Table {
             if (removedKeys.get().contains(key)) {
                 return null;
             }
+            transactionLock.lock();
             try {
-                transactionLock.lock();
                 resultOfGet = data.get(key);
             } finally {
                 transactionLock.unlock();
@@ -142,6 +149,7 @@ public class StoreableTable implements Table {
 
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        status.get().isOkForOperations();
         if (!CheckOnCorrect.goodArg(key)) {
             throw new IllegalArgumentException("put: key is bad");
         }
@@ -149,8 +157,8 @@ public class StoreableTable implements Table {
             throw new ColumnFormatException("put: value not suitable for this table");
         }
         Storeable valueInData;
+        transactionLock.lock();
         try {
-            transactionLock.lock();
             valueInData = data.get(key);
         } finally {
             transactionLock.unlock();
@@ -171,14 +179,14 @@ public class StoreableTable implements Table {
 
     @Override
     public Storeable remove(String key) {
+        status.get().isOkForOperations();
         if (!CheckOnCorrect.goodArg(key)) {
             throw new IllegalArgumentException("remove: key is bad");
         }
-
         Storeable resultOfRemove = changes.get().get(key);
         if (resultOfRemove == null && !removedKeys.get().contains(key)) {
+            transactionLock.lock();
             try {
-                transactionLock.lock();
                 resultOfRemove = data.get(key);
             } finally {
                 transactionLock.unlock();
@@ -187,8 +195,8 @@ public class StoreableTable implements Table {
         if (changes.get().containsKey(key)) {
             amountOfChanges.set(amountOfChanges.get() - 1);
             changes.get().remove(key);
+            transactionLock.lock();
             try {
-                transactionLock.lock();
                 if (data.containsKey(key)) {
                     removedKeys.get().add(key);
                 }
@@ -196,8 +204,8 @@ public class StoreableTable implements Table {
                 transactionLock.unlock();
             }
         } else {
+            transactionLock.lock();
             try {
-                transactionLock.lock();
                 if (data.containsKey(key) && !removedKeys.get().contains(key)) {
                     removedKeys.get().add(key);
                     amountOfChanges.set(amountOfChanges.get() + 1);
@@ -211,8 +219,9 @@ public class StoreableTable implements Table {
 
     @Override
     public int size() {
+        status.get().isOkForOperations();
+        transactionLock.lock();
         try {
-            transactionLock.lock();
             return CountingTools.correctCountingOfSize(data, changes.get(), removedKeys.get());
         } finally {
             transactionLock.unlock();
@@ -221,9 +230,10 @@ public class StoreableTable implements Table {
 
     @Override
     public int commit() {
+        status.get().isOkForOperations();
         int result = -1;
+        transactionLock.lock();
         try {
-            transactionLock.lock();
             result = CountingTools.correctCountingOfChangesInStoreable(this, data, changes.get(), removedKeys.get());
             for (String key : removedKeys.get()) {
                 data.remove(key);
@@ -243,9 +253,10 @@ public class StoreableTable implements Table {
 
     @Override
     public int rollback() {
+        status.get().isOkForOperations();
         int result = -1;
+        transactionLock.lock();
         try {
-            transactionLock.lock();
             result = CountingTools.correctCountingOfChangesInStoreable(this, data, changes.get(), removedKeys.get());
         } finally {
             transactionLock.unlock();
@@ -256,16 +267,38 @@ public class StoreableTable implements Table {
 
     @Override
     public int getColumnsCount() {
+        status.get().isOkForOperations();
         return columnTypes.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        status.get().isOkForOperations();
         int columnsCount = getColumnsCount();
         if (columnIndex < 0 || columnIndex > columnsCount - 1) {
             throw new IndexOutOfBoundsException("get column type: bad index");
         }
         return columnTypes.get(columnIndex);
+    }
+
+    public List<Class<?>> getColumnTypes() {
+        status.get().isOkForOperations();
+        return columnTypes;
+    }
+
+    @Override
+    public String toString() {
+        status.get().isOkForOperations();
+        return getClass().getSimpleName() + "[" + tableStorageDirectory + "]";
+    }
+
+    @Override
+    public void close() {
+        status.get().isOkForClose();
+        if (status.get() == WorkStatus.WORKING) {
+            rollback();
+        }
+        status.set(WorkStatus.CLOSED);
     }
 
     private void setDefault() {
@@ -274,7 +307,17 @@ public class StoreableTable implements Table {
         amountOfChanges.set(0);
     }
 
+    public boolean isOkForOperations() {
+        try {
+            status.get().isOkForOperations();
+        } catch (IllegalStateException exc) {
+            return false;
+        }
+        return true;
+    }
+
     public int getAmountOfChanges() {
+        status.get().isOkForOperations();
         return amountOfChanges.get();
     }
 }

@@ -1,9 +1,13 @@
 package ru.fizteh.fivt.students.eltyshev.filemap;
 
-import ru.fizteh.fivt.storage.strings.Table;
-import ru.fizteh.fivt.students.eltyshev.filemap.base.*;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.FilemapReader;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.FilemapWriter;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.SimpleTableBuilder;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.StringTable;
+import ru.fizteh.fivt.students.eltyshev.multifilemap.DatabaseFileDescriptor;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 
 public class SingleFileTable extends StringTable {
 
@@ -11,6 +15,11 @@ public class SingleFileTable extends StringTable {
 
     public SingleFileTable(String directory, String tableName) {
         super(directory, tableName);
+    }
+
+    @Override
+    protected DatabaseFileDescriptor makeDescriptor(String s) {
+        return new DatabaseFileDescriptor(-1, -1);
     }
 
     protected void load() throws IOException {
@@ -22,7 +31,7 @@ public class SingleFileTable extends StringTable {
     }
 
     private String getDatabaseFilePath() {
-        File databaseFile = new File(getDirectory(), DATABASE_FILE_NAME);
+        File databaseFile = new File(getDatabaseDirectory(), DATABASE_FILE_NAME);
         return databaseFile.getAbsolutePath();
     }
 

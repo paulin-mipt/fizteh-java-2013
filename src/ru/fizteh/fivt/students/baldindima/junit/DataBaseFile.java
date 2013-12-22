@@ -3,14 +3,23 @@ package ru.fizteh.fivt.students.baldindima.junit;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.text.ParseException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+
+import ru.fizteh.fivt.storage.structured.TableProvider;
 
 
 public class DataBaseFile {
-    protected final Map<String, Node> currentTable = new HashMap<String, Node>();
+    private final Map<String, String> oldMap;
     protected File dataBaseFile;
     protected String fileName;
+    private TableProvider provider;
+    private DataBase table;
     private int fileNumber;
     private int directoryNumber;
     static final byte OLD = 0;
@@ -18,102 +27,65 @@ public class DataBaseFile {
     static final byte DELETED = 2;
     static final byte MODIFIED = 3;
 
-    public final class Node {
-        private byte type;
-        private String value;
-        private String oldValue;
-        private boolean wasInBase;
+    private ThreadLocal<HashMap<String, String>> diffMap = new ThreadLocal<HashMap<String, String>>() {
 
-        public Node(String newValue, String newOldValue, byte newType) {
-            type = newType;
-            value = newValue;
-            oldValue = newOldValue;
-            wasInBase = false;
+        public HashMap<String, String> initialValue() {
+            return new HashMap<String, String>();
         }
+    };
 
-        public Node(byte nType) {
-            if (nType == DELETED) {
-                value = null;
-                type = nType;
-            }
+    private ThreadLocal<HashSet<String>> deletedMap = new ThreadLocal<HashSet<String>>() {
 
-
+        public HashSet<String> initialValue() {
+            return new HashSet<String>();
         }
-
-        public Node(String nValue, byte nType) {
-            type = nType;
-            if (nType == OLD) {
-                value = nValue;
-                oldValue = value;
-                wasInBase = true;
-            } else {
-                if (nType == NEW) {
-                    value = nValue;
-                    oldValue = null;
-                    wasInBase = false;
-
-                }
-            }
+    };
+    
+    private Lock readLock;
+    private Lock writeLock;
 
 
-        }
-
-        public void putValue(String nValue) {
-            type = MODIFIED;
-
-            if ((oldValue != null) && (oldValue.equals(nValue))) {
-                type = OLD;
-            }
-            value = nValue;
-        }
-
-        public void remove() {
-            value = null;
-            type = DELETED;
-        }
-
-
-    }
-
-    public DataBaseFile(String fullName, int newDirectoryNumber, int newFileNumber) throws IOException {
+    public DataBaseFile(String fullName, int nDirectoryNumber, int nFileNumber,
+                        TableProvider nProvider, DataBase nTable) throws IOException {
         fileName = fullName;
-
+        provider = nProvider;
+        table = nTable;
         dataBaseFile = new File(fileName);
-        try {
-            if (!dataBaseFile.exists()) {
-                if (!dataBaseFile.createNewFile()) {
-                    throw new IOException("Cannot create " + fileName);
-                }
-            }
-        } catch (IOException e) {
-            throw new IOException("Open file error! " + e.getMessage());
-        }
-        fileNumber = newFileNumber;
-        directoryNumber = newDirectoryNumber;
+        fileNumber = nFileNumber;
+        directoryNumber = nDirectoryNumber;
+        oldMap = new HashMap<>();
+        readLock = table.readLock;
         read();
         check();
 
     }
 
     public boolean check() throws IOException {
-        for (Map.Entry<String, Node> curPair : getCurrentTable().entrySet()) {
-            if (!((Math.abs(curPair.getKey().getBytes("UTF-8")[0]) % 16) == directoryNumber)
-                    && ((Math.abs(curPair.getKey().getBytes("UTF-8")[0] / 16) % 16 == fileNumber))) {
+        for (Map.Entry<String, String> curPair : oldMap.entrySet()) {
+            if (!(((Math.abs(curPair.getKey().getBytes("UTF-8")[0]) % 16) == directoryNumber)
+                    && ((Math.abs(curPair.getKey().getBytes("UTF-8")[0] / 16) % 16 == fileNumber)))) {
                 throw new IOException("Wrong file format key[0] =  "
                         + String.valueOf(Math.abs(curPair.getKey().getBytes("UTF-8")[0]))
                         + " in file " + fileName);
+            }
+            try {
+                provider.deserialize(table, (curPair.getValue()));
+            } catch (ParseException e) {
+                throw new IOException("Invalid file format! (parse exception error!)");
             }
         }
         return true;
     }
 
-    public Map<String, Node> getCurrentTable() {
-        return currentTable;
-    }
-
 
     public void read() throws IOException {
-        //     open(shell, fileFunctions);
+        File dataBaseDirectory = new File(dataBaseFile.getParent());
+        if (dataBaseDirectory.exists() && dataBaseDirectory.list().length == 0) {
+            throw new IOException("Empty dir!");
+        }
+        if (!dataBaseDirectory.exists() || !dataBaseFile.exists()) {
+            return;
+        }
         RandomAccessFile randomDataBaseFile = new RandomAccessFile(fileName, "rw");
         if (randomDataBaseFile.length() == 0) {
             randomDataBaseFile.close();
@@ -141,25 +113,69 @@ public class DataBaseFile {
             randomDataBaseFile.read(value);
             String keyString = new String(key, "UTF-8");
             String valueString = new String(value, "UTF-8");
-            getCurrentTable().put(keyString, new Node(valueString, OLD));
+            oldMap.put(keyString, valueString);
         }
         randomDataBaseFile.close();
+        if (oldMap.size() == 0) {
+            throw new IOException("Empty file!");
+        }
 
     }
 
+    public int realMapSize() {
+        readLock.lock();
+    	try {
+        	normalizeDataBaseFile();
+            int result = diffMap.get().size() + oldMap.size() - deletedMap.get().size();
+            for (String key : diffMap.get().keySet()) {
+                if (oldMap.containsKey(key)) {
+                    --result;
+                }
+            }
+            return result;
+       } finally {
+    	   readLock.unlock();
+       }
+    	
+    }
+
     public void write() throws IOException {
-        RandomAccessFile randomDataBaseFile = new RandomAccessFile(fileName, "rw");
-        randomDataBaseFile.getChannel().truncate(0);
-        for (Map.Entry<String, Node> curPair : getCurrentTable().entrySet()) {
-            if (curPair.getValue().type != DELETED) {
-                randomDataBaseFile.writeInt(curPair.getKey().getBytes("UTF-8").length);
-                randomDataBaseFile.writeInt(curPair.getValue().value.getBytes("UTF-8").length);
-                randomDataBaseFile.write(curPair.getKey().getBytes("UTF-8"));
-                randomDataBaseFile.write(curPair.getValue().value.getBytes("UTF-8"));
+        File dataBaseDirectory = new File(dataBaseFile.getParent());
+        if (realMapSize() == 0) {
+            if ((dataBaseFile.exists()) && (!dataBaseFile.delete())) {
+                throw new DataBaseException("Cannot delete a file!");
             }
 
+            if (dataBaseDirectory.exists() && dataBaseDirectory.list().length <= 0) {
+                if (!dataBaseDirectory.delete()) {
+                    throw new DataBaseException("Cannot delete a directory");
+                }
+            }
+        } else {
+            if (!dataBaseDirectory.exists() && !dataBaseDirectory.mkdir()) {
+                throw new DataBaseException("Cannot create a directory");
+            }
+            if (!dataBaseFile.exists()) {
+                if (!dataBaseFile.createNewFile()) {
+                    throw new DataBaseException("Cannot create a file " + fileName);
+                }
+            }
+            RandomAccessFile randomDataBaseFile = new RandomAccessFile(fileName, "rw");
+
+            randomDataBaseFile.getChannel().truncate(0);
+            for (Map.Entry<String, String> curPair : oldMap.entrySet()) {
+
+                randomDataBaseFile.writeInt(curPair.getKey().getBytes("UTF-8").length);
+                randomDataBaseFile.writeInt(curPair.getValue().getBytes("UTF-8").length);
+                randomDataBaseFile.write(curPair.getKey().getBytes("UTF-8"));
+                randomDataBaseFile.write(curPair.getValue().getBytes("UTF-8"));
+
+
+            }
+            randomDataBaseFile.close();
+
+
         }
-        randomDataBaseFile.close();
     }
 
     private void checkString(String str) {
@@ -171,86 +187,156 @@ public class DataBaseFile {
     public String put(String keyString, String valueString) {
         checkString(keyString);
         checkString(valueString);
-
-        Node search = getCurrentTable().get(keyString);
-
-        if (search == null) {
-            getCurrentTable().put(keyString, new Node(valueString, NEW));
-            return null;
+        String result = null;
+        if (diffMap.get().containsKey(keyString)) {
+            result = diffMap.get().get(keyString);
         } else {
-            String result = null;
-            int typeNode = search.type;
-
-            if (typeNode != DELETED) {
-                result = search.value;
-            }
-            getCurrentTable().get(keyString).putValue(valueString);
-            return result;
+        	readLock.lock();
+        	try {
+        		if (oldMap.containsKey(keyString)) {
+                    result = oldMap.get(keyString);
+                }
+        	} finally {
+        		readLock.unlock();
+        	}
+            
         }
 
+        if (deletedMap.get().contains(keyString)) {
+            deletedMap.get().remove(keyString);
+            result = null;
+        }
+
+        diffMap.get().put(keyString, valueString);
+        return result;
 
     }
 
 
     public String get(String keyString) {
         checkString(keyString);
-        Node search = getCurrentTable().get(keyString);
-        if (search != null) {
-            if (search.type == DELETED) {
-                return null;
-            } else {
-                return search.value;
-            }
-
-        } else {
+        if (deletedMap.get().contains(keyString)) {
             return null;
         }
+        if (diffMap.get().containsKey(keyString)) {
+            return diffMap.get().get(keyString);
+        }
 
+        readLock.lock();
+        try {
+        	if (oldMap.containsKey(keyString)) {
+                return oldMap.get(keyString);
+            }
+        } finally {
+        	readLock.unlock();
+        }
+        
+
+
+        return null;
     }
 
     public String remove(String keyString) {
+
         checkString(keyString);
-        String result;
-        Node search = getCurrentTable().get(keyString);
-        if (search == null) {
+        if (deletedMap.get().contains(keyString)) {
             return null;
-        } else {
-            result = search.value;
-            getCurrentTable().get(keyString).remove();
+        }
+        String result = null;
+        if (diffMap.get().containsKey(keyString)) {
+            result = diffMap.get().get(keyString);
+            diffMap.get().remove(keyString);
+            deletedMap.get().add(keyString);
             return result;
+        }
+        readLock.lock();
+        try {
+        	if (oldMap.containsKey(keyString)) {
+                result = oldMap.get(keyString);
+                deletedMap.get().add(keyString);
+            }
+        } finally {
+        	readLock.unlock();
+        }
+        
+
+
+        return result;
+    }
+
+    private void normalizeDataBaseFile() {
+        Set<String> newDeleted = new HashSet<>();
+        newDeleted.addAll(deletedMap.get());
+
+
+        for (String key : oldMap.keySet()) {
+            if (oldMap.get(key).equals(diffMap.get().get(key))) {
+                diffMap.get().remove(key);
+            }
+            if (newDeleted.contains(key)) {
+                newDeleted.remove(key);
+            }
+        }
+
+        for (String key : deletedMap.get()) {
+            if (diffMap.get().containsKey(key)) {
+                diffMap.get().remove(key);
+            }
+        }
+
+        for (String key : newDeleted) {
+            deletedMap.get().remove(key);
         }
     }
 
+
     public int countCommits() {
-        int count = 0;
-        for (Map.Entry<String, Node> curPair : getCurrentTable().entrySet()) {
-            if ((curPair.getValue().type == NEW) || (curPair.getValue().type == MODIFIED)
-                    || ((curPair.getValue().type == DELETED) && (curPair.getValue().wasInBase))) {
-                ++count;
-            }
+        readLock.lock();
+        try {
+        	normalizeDataBaseFile();
+            return diffMap.get().size() + deletedMap.get().size();
+        } finally {
+        	readLock.unlock();
         }
-        return count;
+    	
     }
 
     public void commit() throws IOException {
+        normalizeDataBaseFile();
+        for (Map.Entry<String, String> node : diffMap.get().entrySet()) {
+            oldMap.put(node.getKey(), node.getValue());
+        }
+
+        for (String key : deletedMap.get()) {
+            oldMap.remove(key);
+        }
+
+        diffMap.get().clear();
+        deletedMap.get().clear();
+
         write();
-        getCurrentTable().clear();
-        read();
     }
 
-    public void rollback() throws IOException {
-        getCurrentTable().clear();
-        read();
+    public void rollback() {
+        diffMap.get().clear();
+        deletedMap.get().clear();
     }
 
     public int countSize() {
-        int count = 0;
-        for (Map.Entry<String, Node> curPair : getCurrentTable().entrySet()) {
-            if (curPair.getValue().type != DELETED) {
-                ++count;
+        readLock.lock();
+        try {
+        	normalizeDataBaseFile();
+            int result = diffMap.get().size() + oldMap.size() - deletedMap.get().size();
+            for (String key : diffMap.get().keySet()) {
+                if (oldMap.containsKey(key)) {
+                    --result;
+                }
             }
+            return result;
+        } finally {
+        	readLock.unlock();
         }
-        return count;
+    	
     }
 
 

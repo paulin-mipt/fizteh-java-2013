@@ -66,4 +66,21 @@ public class MyTableProviderTest {
         Table table = provider.createTable("simple", types);
     }
 
+    @Test (expected = IllegalStateException.class)
+    public void testCloseCreate() throws Exception {
+        ((AutoCloseable) provider).close();
+        provider.createTable("asdasd", new ArrayList<Class<?>>());
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testCloseGet() throws Exception {
+        ((AutoCloseable) provider).close();
+        provider.getTable("asdasd");
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testCloseRemove() throws Exception {
+        ((AutoCloseable) provider).close();
+        provider.removeTable("asdasd");
+    }
 }

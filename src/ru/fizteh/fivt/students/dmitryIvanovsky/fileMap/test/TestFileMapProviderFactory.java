@@ -1,7 +1,6 @@
 package ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.test;
 
 import org.junit.*;
-import ru.fizteh.fivt.storage.structured.TableProviderFactory;
 import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapProviderFactory;
 import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapUtils;
 import ru.fizteh.fivt.students.dmitryIvanovsky.shell.CommandShell;
@@ -13,7 +12,7 @@ import java.nio.file.Paths;
 
 public class TestFileMapProviderFactory {
 
-    private TableProviderFactory multiMapFactory;
+    private FileMapProviderFactory multiMapFactory;
     private CommandShell mySystem;
     private Path pathTables;
 
@@ -53,8 +52,15 @@ public class TestFileMapProviderFactory {
         multiMapFactory.create(pathTables.toString());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallCreate() throws IOException {
+        multiMapFactory.close();
+        multiMapFactory.create("213");
+    }
+
     @After
     public void tearDown() {
+        multiMapFactory.close();
         try {
             mySystem.rm(new String[]{pathTables.toString()});
         } catch (Exception e) {

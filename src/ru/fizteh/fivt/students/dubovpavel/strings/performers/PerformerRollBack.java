@@ -7,12 +7,14 @@ import ru.fizteh.fivt.students.dubovpavel.multifilehashmap.Storage;
 import ru.fizteh.fivt.students.dubovpavel.multifilehashmap.StorageAccessible;
 import ru.fizteh.fivt.students.dubovpavel.strings.MindfulDataBaseMultiFileHashMap;
 
-public class PerformerRollBack<D extends Dispatcher & StorageAccessible<Storage<MindfulDataBaseMultiFileHashMap>>> extends Performer<D> {
+public class PerformerRollBack<D extends Dispatcher & StorageAccessible<Storage<MindfulDataBaseMultiFileHashMap>>>
+        extends Performer<D> {
     public boolean pertains(Command command) {
         return command.getHeader().equals("rollback") && command.argumentsCount() == 0;
     }
 
     public void execute(D dispatcher, Command command) {
-        dispatcher.callbackWriter(Dispatcher.MessageType.SUCCESS, String.valueOf(dispatcher.getStorage().getCurrent().rollback()));
+        dispatcher.callbackWriter(Dispatcher.MessageType.SUCCESS,
+                String.valueOf(dispatcher.getStorage().getCurrent().rollback()));
     }
 }

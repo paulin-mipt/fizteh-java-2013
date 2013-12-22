@@ -4,7 +4,6 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import ru.fizteh.fivt.storage.structured.*;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 
 
 import static org.junit.Assert.*;
@@ -25,12 +24,12 @@ public class TesterOfTable {
     private File goodTableSign;
     private File badTableEmpty;
     private File badTableEmptySign;
-    private ru.fizteh.fivt.storage.structured.TableProviderFactory factory;
+    private TableManagerFactory factory;
     private ArrayList<Class<?>> goodTypeList;
     private ArrayList<Object> goodValueList;
     private ArrayList<Object> wrongValueList;
-    private TableProvider provider;
-    private Table table;
+    private TableManager provider;
+    private TableData table;
     private final String goodStrVal
             = "<row><col>12</col><col>12</col><null/><col>12.2</col><col>12.2</col><col>true</col><null/></row>";
 
@@ -104,6 +103,7 @@ public class TesterOfTable {
 
     @After
     public void after() {
+        factory.close();
         folder.delete();
     }
 
@@ -131,8 +131,8 @@ public class TesterOfTable {
             assertEquals("Не работает serialize и/или deserialize", provider.serialize(table, stor), goodStrVal);
             assertNull("Не работает serialize и/или deserialize и/или put", s);
         } catch (Exception e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
     }
 
@@ -151,8 +151,8 @@ public class TesterOfTable {
             assertEquals("Не работает remove", provider.serialize(table, stor), goodStrVal);
             assertNull("Не работает get на отсутствующее значение или remove", table.get("key"));
         } catch (Exception e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
     }
 
@@ -162,8 +162,8 @@ public class TesterOfTable {
         try {
             stor = provider.deserialize(table, goodStrVal);
         } catch (Exception e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
         table.put(null, stor);
     }
@@ -179,8 +179,8 @@ public class TesterOfTable {
         try {
             stor = provider.deserialize(table, goodStrVal);
         } catch (Exception e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
         table.put("  ", stor);
     }
@@ -195,8 +195,8 @@ public class TesterOfTable {
             other = provider.createTable("other", oth);
             stor = provider.deserialize(table, goodStrVal);
         } catch (Exception e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
         other.put("key", stor);
     }
@@ -244,8 +244,8 @@ public class TesterOfTable {
                     t.put("new1", v1).getStringAt(0), "value");
             assertEquals("после добавления того же значения изменился размер таблицы", nAfter, t.size());
         } catch (IOException e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
     }
 
@@ -254,9 +254,9 @@ public class TesterOfTable {
         try {
             table.commit();
             assertEquals(table.commit(), 0);
-        } catch (IOException e) {
-            fail();
+        } catch (Exception e) {
             e.printStackTrace();
+            fail();
         }
     }
 
@@ -265,9 +265,9 @@ public class TesterOfTable {
         try {
             table.commit();
             assertEquals(table.rollback(), 0);
-        } catch (IOException e) {
-            fail();
+        } catch (Exception e) {
             e.printStackTrace();
+            fail();
         }
     }
 
@@ -291,9 +291,63 @@ public class TesterOfTable {
             assertEquals("неправильный подсчёт элементов", 3, nAfter - nBefore);
             assertEquals("неправильно работает commit", 3, commitSize);
         } catch (IOException e) {
-            fail();
             e.printStackTrace();
+            fail();
         }
     }
+
+    @Test
+    public void closeTest() throws IOException {
+        TableData t = provider.createTable("close", goodTypeList);
+        t.close();
+        try {
+            t.close();
+        } catch (Exception e) {
+            fail("Повторное закрытие не должно вызывать исключение");
+        }
+
+        try {
+            t.commit();
+            fail("Не работает close");
+        } catch (IllegalStateException e) {
+
+        }
+
+        try {
+            t.rollback();
+            fail("Не работает close");
+        } catch (IllegalStateException e) {
+
+        }
+
+        try {
+            t.getColumnsCount();
+            fail("Не работает close");
+        } catch (IllegalStateException e) {
+
+        }
+
+        try {
+            t.put("key", provider.createFor(t, goodValueList));
+            fail("Не работает close");
+        } catch (IllegalStateException e) {
+
+        }
+
+        try {
+            t.get("key");
+            fail("Не работает close");
+        } catch (IllegalStateException e) {
+
+        }
+
+        try {
+            t.remove("key");
+            fail("Не работает close");
+        } catch (IllegalStateException e) {
+
+        }
+    }
+
 
 }

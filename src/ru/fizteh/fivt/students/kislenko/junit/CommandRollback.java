@@ -4,7 +4,7 @@ import ru.fizteh.fivt.students.kislenko.shell.Command;
 
 import java.io.IOException;
 
-public class CommandRollback implements Command<MultiFileHashMapState> {
+public class CommandRollback implements Command<TransactionalFatherState> {
 
     @Override
     public String getName() {
@@ -17,11 +17,11 @@ public class CommandRollback implements Command<MultiFileHashMapState> {
     }
 
     @Override
-    public void run(MultiFileHashMapState state, String[] args) throws IOException {
-        if (state.getCurrentTable() == null) {
+    public void run(TransactionalFatherState state, String[] args) throws Exception {
+        if (!state.hasCurrentTable()) {
             System.out.println("no table");
             throw new IOException("Database haven't initialized.");
         }
-        System.out.println(state.getCurrentTable().rollback());
+        System.out.println(state.rollbackCurrentTable());
     }
 }

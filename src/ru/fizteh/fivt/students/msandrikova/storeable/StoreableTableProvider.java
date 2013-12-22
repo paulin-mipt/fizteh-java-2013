@@ -18,13 +18,15 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.msandrikova.shell.Utils;
 
-public class StoreableTableProvider implements ChangesCountingTableProvider {
+public class StoreableTableProvider implements ChangesCountingTableProvider, AutoCloseable {
+    private boolean isClosed;
     private File currentDirectory;
     private Map<String, ChangesCountingTable> mapOfTables = new HashMap<String, ChangesCountingTable>(); 
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
     
 
     public StoreableTableProvider(File dir) throws IllegalArgumentException, IOException {
+        this.isClosed = false;
         this.currentDirectory = dir;
         if (!this.currentDirectory.exists()) {
             if (!dir.mkdir()) {
@@ -52,6 +54,7 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
 
     @Override
     public void removeTable(String name) throws IOException, IllegalStateException, IllegalArgumentException {
+        this.checkIsClosed();
         if (Utils.isEmpty(name) || !Utils.testBadSymbols(name)) {
             throw new IllegalArgumentException("Table name can not be null or empty");
         }
@@ -68,7 +71,8 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
         
         try {
             Utils.remover(tablePath, "drop", false);
-            this.mapOfTables.remove(name);
+            ChangesCountingTable removed = this.mapOfTables.remove(name);
+            removed.close();
         } catch (IOException e) {
             throw e;
         } finally {
@@ -77,7 +81,8 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
     }
 
     @Override
-    public Storeable deserialize(Table table, String value) throws ParseException {
+    public Storeable deserialize(Table table, String value) throws ParseException, IllegalStateException {
+        this.checkIsClosed();
         Storeable row = this.createFor(table);
         JSONArray valueJSON = null;
         try {
@@ -116,9 +121,9 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
         return row;
     }
 
-
     @Override
-    public String serialize(Table table, Storeable value) throws ColumnFormatException {
+    public String serialize(Table table, Storeable value) throws ColumnFormatException, IllegalStateException {
+        this.checkIsClosed();
         if (value == null) {
             return null;
         }
@@ -145,7 +150,12 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
     }
 
     @Override
-    public Storeable createFor(Table table) {
+    public Storeable createFor(Table table) 
+            throws IllegalArgumentException, IllegalStateException {
+        this.checkIsClosed();
+        if (table == null) {
+            throw new IllegalArgumentException("bad argument");
+        }
         List<Class<?>> columnTypes = new ArrayList<Class<?>>();
         for (int i = 0; i < table.getColumnsCount(); ++i) {
             columnTypes.add(table.getColumnType(i));
@@ -154,7 +164,12 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
     }
 
     @Override
-    public Storeable createFor(Table table, List<?> values) throws IndexOutOfBoundsException {
+    public Storeable createFor(Table table, List<?> values) 
+            throws IllegalArgumentException, IndexOutOfBoundsException, IllegalStateException {
+        this.checkIsClosed();
+        if (values == null) {
+            throw new IllegalArgumentException("bad argument");
+        }
         Storeable row = this.createFor(table);
         for (int i = 0; i < table.getColumnsCount(); ++i) {
             row.setColumnAt(i, values.get(i));
@@ -163,7 +178,8 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
     }
 
     @Override
-    public ChangesCountingTable getTable(String name) throws IllegalArgumentException {
+    public ChangesCountingTable getTable(String name) throws IllegalArgumentException, IllegalStateException {
+        this.checkIsClosed();
         if (Utils.isEmpty(name) || !Utils.testBadSymbols(name)) {
             throw new IllegalArgumentException("Table name can not be null "
                     + "or empty or contain bad symbols");
@@ -179,7 +195,9 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
     }
 
     @Override
-    public ChangesCountingTable createTable(String name, List<Class<?>> columnTypes) throws IOException {
+    public ChangesCountingTable createTable(String name, List<Class<?>> columnTypes) 
+            throws IOException, IllegalStateException {
+        this.checkIsClosed();
         if (Utils.isEmpty(name) || !Utils.testBadSymbols(name)) {
             throw new IllegalArgumentException("Table name can not be null "
                     + "or empty or contain bad symbols");
@@ -210,4 +228,57 @@ public class StoreableTableProvider implements ChangesCountingTableProvider {
         return newTable;
     }
 
+    public void deleteTableFromProvider(String name) {
+        
+    }
+
+    private void checkIsClosed() throws IllegalStateException {
+        this.lock.readLock().lock();
+        if (this.isClosed) {
+            this.lock.readLock().unlock();
+            throw new IllegalStateException("Table provider was closed.");            
+        }
+        this.lock.readLock().unlock();
+    }
+    
+    @Override
+    public void close() throws IllegalStateException {
+        if (this.isClosed) {
+            return;
+        }
+        
+        this.lock.writeLock().lock();
+        for (ChangesCountingTable table : this.mapOfTables.values()) {
+            table.close();
+        }
+        this.isClosed = true;
+        this.lock.writeLock().unlock();
+    }
+    
+    @Override
+    public String toString() throws IllegalStateException {
+        this.checkIsClosed();
+        
+        String className = this.getClass().getSimpleName();
+        String providerPath = this.currentDirectory.getAbsolutePath();
+        
+        return className + "[" + providerPath + "]";
+    }
+
+    public void changeReference(File tablePath, String name) {
+        this.lock.writeLock().lock();
+        this.mapOfTables.remove(name);
+        ChangesCountingTable newTable = null;
+        List<Class<?>> columnTypes = null;
+        try {
+            columnTypes = Utils.getClassTypes(tablePath);
+            newTable = new StoreableTable(this.currentDirectory, 
+                    tablePath.getName(), columnTypes, this);
+        } catch (IOException e) {
+           Utils.generateAnError("input error", "closeTable", false);
+        }
+        this.mapOfTables.put(name, newTable);
+        this.lock.writeLock().unlock();
+        
+    }
 }

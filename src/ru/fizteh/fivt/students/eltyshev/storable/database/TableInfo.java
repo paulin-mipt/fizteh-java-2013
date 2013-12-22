@@ -13,6 +13,11 @@ public class TableInfo {
         this.tableName = tableName;
     }
 
+    public TableInfo(String tableName, List<Class<?>> columnTypes) {
+        this.tableName = tableName;
+        this.columnTypes = columnTypes;
+    }
+
     public void addColumn(Class<?> columnType) {
         columnTypes.add(columnType);
     }

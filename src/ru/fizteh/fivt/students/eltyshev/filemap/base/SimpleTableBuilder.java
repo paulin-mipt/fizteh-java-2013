@@ -27,7 +27,7 @@ public class SimpleTableBuilder implements TableBuilder {
 
     @Override
     public File getTableDirectory() {
-        return new File(table.getDirectory(), table.getName());
+        return new File(table.getDatabaseDirectory(), table.getName());
     }
 
     @Override

@@ -3,6 +3,8 @@ package ru.fizteh.fivt.students.adanilyak.tools;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 
+import java.io.Writer;
+import java.lang.reflect.Method;
 import java.util.List;
 
 /**
@@ -33,13 +35,13 @@ public class CheckOnCorrect {
             return false;
         }
         for (Class<?> type : givenTypes) {
-            if (type == Integer.class ||
-                    type == Long.class ||
-                    type == Byte.class ||
-                    type == Float.class ||
-                    type == Double.class ||
-                    type == Boolean.class ||
-                    type == String.class) {
+            if (type == Integer.class
+                    || type == Long.class
+                    || type == Byte.class
+                    || type == Float.class
+                    || type == Double.class
+                    || type == Boolean.class
+                    || type == String.class) {
                 continue;
             } else {
                 return false;
@@ -89,6 +91,32 @@ public class CheckOnCorrect {
         } catch (IndexOutOfBoundsException | ColumnFormatException exc) {
             return false;
         }
+    }
+
+    public static boolean goodProxyArguments(Writer writer,
+                                             Object implementation,
+                                             Class<?> interfaceClass) {
+        if (writer == null) {
+            return false;
+        }
+        if (interfaceClass == null) {
+            return false;
+        }
+        if (!interfaceClass.isInstance(implementation)) {
+            return false;
+        }
+        if (!interfaceClass.isInterface()) {
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean goodMethodForProxy(Method method) {
+        String methodName = method.getName();
+        if (methodName.equals("toString") || methodName.equals("hashCode")) {
+            return false;
+        }
+        return true;
     }
 }
 

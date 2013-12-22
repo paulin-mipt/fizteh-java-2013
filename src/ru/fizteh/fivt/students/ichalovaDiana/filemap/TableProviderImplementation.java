@@ -39,13 +39,16 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
 
-public class TableProviderImplementation implements TableProvider {
+public class TableProviderImplementation implements TableProvider, AutoCloseable {
     
     Path databaseDirectory;
-    private Map<String, Table> tables = new HashMap<String, Table>();
+    private Map<String, TableImplementation> tables = new HashMap<String, TableImplementation>();
+    
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     private final Lock readLock = readWriteLock.readLock();
     private final Lock writeLock = readWriteLock.writeLock();
+    
+    private volatile boolean isClosed = false;
     
     public TableProviderImplementation(Path databaseDirectory) throws IOException {
         this.databaseDirectory = databaseDirectory;
@@ -59,6 +62,8 @@ public class TableProviderImplementation implements TableProvider {
     
     @Override
     public Table getTable(String name) {
+        isClosed();
+        
         if (!isValidTableName(name)) {
             throw new IllegalArgumentException("Invalid table name");
         }
@@ -73,6 +78,7 @@ public class TableProviderImplementation implements TableProvider {
 
     @Override
     public Table createTable(String name, List<Class<?>> columnTypes) throws IOException {
+        isClosed();
         
         if (!isValidTableName(name)) {
             throw new IllegalArgumentException("Invalid table name");
@@ -138,6 +144,8 @@ public class TableProviderImplementation implements TableProvider {
 
     @Override
     public void removeTable(String name) throws IOException {
+        isClosed();
+        
         if (!isValidTableName(name)) {
             throw new IllegalArgumentException("Invalid table name");
         }
@@ -164,6 +172,8 @@ public class TableProviderImplementation implements TableProvider {
     
 
     public Storeable deserialize(Table table, String value) throws ParseException {
+        isClosed();
+        
         if (value == null) {
             return null;
         }
@@ -233,6 +243,8 @@ public class TableProviderImplementation implements TableProvider {
     }
         
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        isClosed();
+        
         if (value == null) {
             return null;
         }
@@ -277,10 +289,14 @@ public class TableProviderImplementation implements TableProvider {
     }
 
     public Storeable createFor(Table table) {
+        isClosed();
+        
         return new StoreableImplementation(table);
     }
 
     public Storeable createFor(Table table, List<?> values) throws ColumnFormatException, IndexOutOfBoundsException {
+        isClosed();
+        
         return new StoreableImplementation(table, values);
     }
     
@@ -354,5 +370,54 @@ public class TableProviderImplementation implements TableProvider {
         }
         
         return columnTypes;
+    }
+    
+    @Override
+    public String toString() {
+        isClosed();
+        
+        String result = "";
+        result += this.getClass().getSimpleName();
+        result += "[" + databaseDirectory.normalize() + "]";
+        return result;
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (!isClosed) {
+            writeLock.lock();
+            try {
+                if (!isClosed) {
+                    for (String tableName : tables.keySet()) {
+                        tables.get(tableName).close();
+                    }
+                    isClosed = true;
+                }
+            } finally {
+                writeLock.unlock();
+            }
+        }
+    }
+    
+    void reinitialize(String tableName) throws IOException {
+        writeLock.lock();
+        try {
+            Table prevTable = tables.remove(tableName);
+            
+            List<Class<?>> columnTypes = new ArrayList<Class<?>>();
+            for (int columnIndex = 0; columnIndex < prevTable.getColumnsCount(); ++columnIndex) {
+                columnTypes.add(prevTable.getColumnType(columnIndex));
+            }
+            
+            tables.put(tableName, new TableImplementation(this, databaseDirectory, tableName, columnTypes));
+        } finally {
+            writeLock.unlock();
+        }
+    }
+    
+    private void isClosed() {
+        if (isClosed) {
+            throw new IllegalStateException("TableProvider object is closed");
+        }
     }
 }

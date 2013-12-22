@@ -8,14 +8,17 @@ import ru.fizteh.fivt.storage.structured.Table;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MyStoreable implements Storeable{
+public class MyStoreable implements Storeable, AutoCloseable {
     private List<Class<?>> types = new ArrayList<>();
     private List<Object> values = new ArrayList<>();
+
+    ClassState state = new ClassState(this);
 
     public MyStoreable(Table table, List<?> newValues) {
         if (newValues == null) {
             throw new IndexOutOfBoundsException("list of values cannot be null");
         }
+
         if (newValues.size() != table.getColumnsCount()) {
             throw new IndexOutOfBoundsException("invalid number of values");
         }
@@ -148,7 +151,7 @@ public class MyStoreable implements Storeable{
             if (valueType == Double.class) {
                 return new Float((double) value);
             }
-            if (value == Float.class) {
+            if (valueType == Float.class) {
                 return value;
             }
             throw new ColumnFormatException("Wrong type: " + valueType + " instead of Float");
@@ -163,6 +166,7 @@ public class MyStoreable implements Storeable{
 
     @Override
     public void setColumnAt(int columnIndex, Object value) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         if (value == null || value == JSONObject.NULL) {
             value = null;
         }
@@ -176,12 +180,14 @@ public class MyStoreable implements Storeable{
 
     @Override
     public Object getColumnAt(int columnIndex) throws IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         return values.get(columnIndex);
     }
 
     @Override
     public Integer getIntAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, Integer.class);
         return (Integer) values.get(columnIndex);
@@ -189,6 +195,7 @@ public class MyStoreable implements Storeable{
 
     @Override
     public Long getLongAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, Long.class);
         return (long) values.get(columnIndex);
@@ -196,6 +203,7 @@ public class MyStoreable implements Storeable{
 
     @Override
     public Byte getByteAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, Byte.class);
         return (byte) values.get(columnIndex);
@@ -203,6 +211,7 @@ public class MyStoreable implements Storeable{
 
     @Override
     public Float getFloatAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, Float.class);
         return (float) values.get(columnIndex);
@@ -210,6 +219,7 @@ public class MyStoreable implements Storeable{
 
     @Override
     public Double getDoubleAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, Double.class);
         return (double) values.get(columnIndex);
@@ -217,6 +227,7 @@ public class MyStoreable implements Storeable{
 
     @Override
     public Boolean getBooleanAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, Boolean.class);
         return (boolean) values.get(columnIndex);
@@ -224,8 +235,38 @@ public class MyStoreable implements Storeable{
 
     @Override
     public String getStringAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
+        state.check();
         checkBounds(columnIndex);
         checkType(columnIndex, String.class);
         return (String) values.get(columnIndex);
+    }
+
+    @Override
+    public void close() {
+        if (state.isClosed()) {
+            return;
+        }
+
+        values.clear();
+        types.clear();
+
+        state.close();
+    }
+
+    @Override
+    public String toString() {
+        state.check();
+
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < values.size(); ++i) {
+            if (values.get(i) != null) {
+                builder.append(values.get(i).toString());
+            }
+            builder.append(",");
+        }
+
+        builder.deleteCharAt(builder.length() - 1);
+
+        return String.format("%s[%s]", getClass().getSimpleName(), builder.toString());
     }
 }

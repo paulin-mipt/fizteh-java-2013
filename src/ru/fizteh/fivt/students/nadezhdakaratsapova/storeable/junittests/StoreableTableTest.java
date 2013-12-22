@@ -5,9 +5,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import ru.fizteh.fivt.storage.structured.Storeable;
-import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.shell.CommandUtils;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableDataValue;
+import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableTable;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableTableProvider;
 
 import java.io.File;
@@ -19,7 +19,7 @@ import java.util.List;
 public class StoreableTableTest {
     private static final String TESTED_DIRECTORY = "JavaTests";
     private static final String TESTED_TABLE = "MyFavouriteTable";
-    private Table dataTable;
+    private StoreableTable dataTable;
     private File testedFile = new File(TESTED_DIRECTORY);
     private List<Class<?>> types;
     private StoreableTableProvider tableProvider;
@@ -186,5 +186,20 @@ public class StoreableTableTest {
         firstThread.join();
         secondThread.join();
         Assert.assertTrue(firstThreadFlag ^ secondThreadFlag);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableGetShouldFail() throws Exception {
+        dataTable.close();
+        dataTable.get("key");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTablePutValueShouldFail() throws Exception {
+        dataTable.close();
+        Storeable value = new StoreableDataValue(types);
+        value.setColumnAt(0, 5);
+        value.setColumnAt(1, "book");
+        dataTable.put("key", value);
     }
 }

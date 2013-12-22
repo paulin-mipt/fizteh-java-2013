@@ -34,7 +34,7 @@ public class MyStorableTests {
         value = new MyStoreable(provider.createTable("table", type));
         value.setColumnAt(0, -666);
         value.setColumnAt(1, "string");
-        value.setColumnAt(2, 8651230000L);
+        value.setColumnAt(2, 8L);
         value.setColumnAt(3, Byte.valueOf((byte) 5));
         value.setColumnAt(4, false);
         value.setColumnAt(5, 2.71f);
@@ -53,7 +53,7 @@ public class MyStorableTests {
 
     @Test
     public void getLongFromColumn() {
-        Assert.assertEquals(value.getLongAt(2), (Long) 8651230000L);
+        Assert.assertEquals(value.getLongAt(2), (Long) 8L);
     }
 
     @Test

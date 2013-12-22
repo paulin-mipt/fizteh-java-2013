@@ -2,14 +2,20 @@ package ru.fizteh.fivt.students.eltyshev.storable.database;
 
 import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.storage.structured.TableProviderFactory;
+import ru.fizteh.fivt.students.eltyshev.filemap.base.ContainerState;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-public class DatabaseTableProviderFactory implements TableProviderFactory {
+public class DatabaseTableProviderFactory implements TableProviderFactory, AutoCloseable {
+    private ContainerState state = ContainerState.WORKING;
+    private List<DatabaseTableProvider> providers = new ArrayList<DatabaseTableProvider>();
 
     @Override
     public synchronized TableProvider create(String directory) throws IOException {
+        state.checkOperationsAllowed();
         if (directory == null) {
             throw new IllegalArgumentException("directory cannot be null");
         }
@@ -24,10 +30,21 @@ public class DatabaseTableProviderFactory implements TableProviderFactory {
         }
 
         if (!databaseDirectory.exists()) {
-            if (!databaseDirectory.mkdir()) {
+            if (!databaseDirectory.mkdirs()) {
                 throw new IOException("provider is unavailable");
             }
         }
-        return new DatabaseTableProvider(databaseDirectory.getAbsolutePath());
+
+        DatabaseTableProvider newProvider = new DatabaseTableProvider(databaseDirectory.getAbsolutePath());
+        providers.add(newProvider);
+        return newProvider;
+    }
+
+    @Override
+    public void close() throws Exception {
+        for (DatabaseTableProvider provider : providers) {
+            provider.close();
+        }
+        state = ContainerState.CLOSED;
     }
 }

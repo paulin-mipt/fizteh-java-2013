@@ -2,7 +2,6 @@ package ru.fizteh.fivt.students.vyatkina.database.superior;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -13,7 +12,6 @@ public class SuperTable<ValueType> {
     protected volatile Map<String, Diff<ValueType>> values = new HashMap<>();
     protected final String name;
     protected final ReadWriteLock tableKeeper = new ReentrantReadWriteLock(true);
-
     public SuperTable(String name) {
         this.name = name;
     }
@@ -25,7 +23,7 @@ public class SuperTable<ValueType> {
     public ValueType get(String key) {
 
         TableChecker.keyValidCheck(key);
-        Diff<ValueType> diff = null;
+        Diff<ValueType> diff;
         try {
             tableKeeper.readLock().lock();
             diff = values.get(key);
@@ -194,14 +192,5 @@ public class SuperTable<ValueType> {
         return result;
     }
 
-    protected void removeNullValues() {
-        Iterator<Map.Entry<String, Diff<ValueType>>> it = values.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Diff<ValueType>> entry = it.next();
-            if (entry.getValue().isRemoved()) {
-                it.remove();
-            }
-        }
-    }
 
 }

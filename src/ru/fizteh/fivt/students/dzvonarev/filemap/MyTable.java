@@ -15,9 +15,10 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class MyTable implements Table {
+public class MyTable implements Table, AutoCloseable {
 
     public MyTable(File dirTable, MyTableProvider currentProvider) throws IOException, RuntimeException {
+        tableIsClosed = false;
         tableProvider = currentProvider;
         tableFile = dirTable;
         tableName = dirTable.getName();
@@ -51,6 +52,7 @@ public class MyTable implements Table {
     private List<Class<?>> type;                   // types in this table
     private Lock readLock;
     private Lock writeLock;
+    private volatile boolean tableIsClosed;
 
     public List<Class<?>> getTypeArray() {
         return type;
@@ -297,6 +299,7 @@ public class MyTable implements Table {
 
     @Override
     public String getName() {
+        checkTableIsClosed();
         return tableName.substring(tableName.lastIndexOf(File.separator) + 1, tableName.length());
     }
 
@@ -311,6 +314,7 @@ public class MyTable implements Table {
 
     @Override
     public Storeable get(String key) throws IllegalArgumentException {
+        checkTableIsClosed();
         if (key == null || key.trim().isEmpty() || containsWhitespace(key)) {
             throw new IllegalArgumentException("wrong type (key " + key + " is not valid)");
         }
@@ -337,6 +341,7 @@ public class MyTable implements Table {
 
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException, IndexOutOfBoundsException {
+        checkTableIsClosed();
         if (key == null || key.trim().isEmpty() || containsWhitespace(key) || value == null) {
             throw new IllegalArgumentException("wrong type (key " + key + " is not valid or value)");
         }
@@ -353,6 +358,7 @@ public class MyTable implements Table {
 
     @Override
     public Storeable remove(String key) throws IllegalArgumentException {
+        checkTableIsClosed();
         if (key == null || key.trim().isEmpty() || containsWhitespace(key)) {
             throw new IllegalArgumentException("wrong type (key " + key + " is not valid)");
         }
@@ -370,6 +376,7 @@ public class MyTable implements Table {
 
     @Override
     public int size() throws IndexOutOfBoundsException {
+        checkTableIsClosed();
         readLock.lock();
         try {
             return countSize() + fileMap.size();
@@ -403,6 +410,7 @@ public class MyTable implements Table {
 
     @Override
     public int commit() throws IndexOutOfBoundsException, IOException {
+        checkTableIsClosed();
         writeLock.lock();
         int count;
         try {
@@ -458,6 +466,7 @@ public class MyTable implements Table {
 
     @Override
     public int rollback() throws IndexOutOfBoundsException {
+        checkTableIsClosed();
         readLock.lock();
         int count;
         try {
@@ -471,15 +480,52 @@ public class MyTable implements Table {
 
     @Override
     public int getColumnsCount() {
+        checkTableIsClosed();
         return type.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkTableIsClosed();
         if (columnIndex < 0 || columnIndex >= getColumnsCount()) {
             throw new IndexOutOfBoundsException("wrong type (wrong column index at " + columnIndex + ")");
         }
         return type.get(columnIndex);
+    }
+
+    @Override
+    public String toString() {
+        checkTableIsClosed();
+        return MyTable.class.getSimpleName() + "[" + tableFile.getAbsolutePath() + "]";
+    }
+
+    @Override
+    public void close() throws IndexOutOfBoundsException {
+        if (tableIsClosed) {
+            return;
+        }
+        rollback();
+        tableIsClosed = true;
+        writeLock.lock();
+        try {
+            tableProvider.removeClosedTable(tableName);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public void closeFromProvider() {
+        if (tableIsClosed) {
+            return;
+        }
+        rollback();
+        tableIsClosed = true;
+    }
+
+    private void checkTableIsClosed() {
+        if (tableIsClosed) {
+            throw new IllegalStateException("table " + tableName + " is closed");
+        }
     }
 
 }

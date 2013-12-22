@@ -31,7 +31,7 @@ public class DataBaseUse implements CommandInterface {
             throw new IOException("can't use table");
         }
         if (tableProvider.getCurrentTable() != null) {
-            MyTable currTable = tableProvider.getTable(tableProvider.getCurrentTable());
+            MyTable currTable = (MyTable) tableProvider.getTable(tableProvider.getCurrentTable());
             int countOfChanges = currTable.getCountOfChanges();
             if (countOfChanges != 0) {
                 System.out.println(currTable.getCountOfChanges() + " unsaved changes");

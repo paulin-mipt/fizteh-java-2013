@@ -41,7 +41,7 @@ public class StorableMain {
             tableProvider = StorableTableProviderImp.class.cast(factory.create(location));
         }
         catch (IllegalArgumentException | IOException | WrappedIOException e) {
-            System.err.print(e.getMessage());
+            System.err.print(e);
             System.exit(-1);
         }
 
@@ -61,10 +61,20 @@ public class StorableMain {
             shell.startWork(args);
         }
         catch (TimeToFinishException e) {
-            if (e.getMessage() == (TimeToFinishException.DEATH_MESSAGE)) {
-                System.exit(-1);
-            } else {
+            if (e.getMessage() == null) {
                 System.exit(0);
+            } else {
+                System.exit(-1);
+            }
+        }
+
+        finally {
+            try {
+                factory.close();
+            }
+            catch (IOException e) {
+                System.err.print(e);
+                System.exit(-1);
             }
         }
     }

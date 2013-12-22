@@ -107,5 +107,11 @@ public class StoreableTableProviderTest {
         assertNotNull(tableProvider.createTable("tableName", columnTypes));
         assertNull(tableProvider.createTable("tableName", columnTypes));
     }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose() throws IllegalStateException, IllegalArgumentException, IOException {
+        this.tableProvider.close();
+        this.tableProvider.createTable("tableName", columnTypes);
+    }
 
 }

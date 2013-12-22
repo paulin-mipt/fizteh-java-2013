@@ -88,7 +88,7 @@ public class MultiFileMapLoaderWriter {
         }
     }
 
-    public static void writeDatabase(Path workspace, String baseName, Map<String, String> base)
+    /*public static void writeDatabase(Path workspace, String baseName, Map<String, String> base)
             throws DatabaseException, IOException {
 
         try {
@@ -104,6 +104,25 @@ public class MultiFileMapLoaderWriter {
             Path baseDir = workspace.resolve(baseName);
             for (int i = 0; i < 16; ++i) {
                 writeToSubdir(baseDir.resolve(String.format("%d.dir", i)), bases[i]);
+            }
+        } catch (IOException e) {
+            throw new IOException("Couldn't save " + baseName + " table", e);
+        } catch (Exception e) {
+            throw new DatabaseException("Couldn't save " + baseName + " table", e);
+        }
+    } */
+
+    public static void writeMultipleDatabase(Path workspace, String baseName, Map<String, String>[] bases)
+        throws DatabaseException, IOException {
+        if (bases == null) {
+            return;
+        }
+        try {
+            Path baseDir = workspace.resolve(baseName);
+            for (int i = 0; i < bases.length; ++i) {
+                if (bases[i] != null) {
+                    writeToSubdir(baseDir.resolve(String.format("%d.dir", i)), bases[i]);
+                }
             }
         } catch (IOException e) {
             throw new IOException("Couldn't save " + baseName + " table", e);

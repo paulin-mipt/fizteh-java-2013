@@ -2,13 +2,9 @@ package ru.fizteh.fivt.students.irinapodorozhnaya.storeable;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.students.irinapodorozhnaya.utils.XMLSerializer;
-
-import javax.xml.stream.XMLStreamException;
 
 public class MyStoreable implements Storeable{
 
@@ -25,11 +21,19 @@ public class MyStoreable implements Storeable{
 
     @Override
     public String toString() {
-        try {
-            return XMLSerializer.serialize(table, this);
-        } catch (XMLStreamException e) {
-            return null;
+        StringBuilder builder = new StringBuilder();
+        builder.append(getClass().getSimpleName());
+        builder.append('[');
+        for (Object v: values) {
+            if (v != null) {
+                builder.append(v.toString());
+            }
+            builder.append(',');
         }
+        builder.deleteCharAt(builder.length() - 1);
+        builder.append(']');
+
+        return  new String(builder);
     }
 
     @Override

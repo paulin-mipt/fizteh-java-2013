@@ -3,9 +3,7 @@ package ru.fizteh.fivt.students.eltyshev.storable;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.storage.structured.TableProvider;
-import ru.fizteh.fivt.students.eltyshev.filemap.base.commands.BaseFileMapShellState;
 import ru.fizteh.fivt.students.eltyshev.multifilemap.commands.BaseDatabaseShellState;
-import ru.fizteh.fivt.students.eltyshev.storable.StoreableUtils;
 import ru.fizteh.fivt.students.eltyshev.storable.database.TableInfo;
 
 import java.io.IOException;
@@ -21,13 +19,17 @@ public class StoreableShellState implements BaseDatabaseShellState<Table, String
 
     @Override
     public Table useTable(String name) {
-        table = provider.getTable(name);
-        return table;
+        Table tempTable = provider.getTable(name);
+        if (tempTable != null) {
+            table = tempTable;
+        }
+        return tempTable;
     }
 
     @Override
     public void dropTable(String name) throws IOException {
         provider.removeTable(name);
+        table = null;
     }
 
     @Override
@@ -106,7 +108,7 @@ public class StoreableShellState implements BaseDatabaseShellState<Table, String
         try {
             return provider.deserialize(table, value);
         } catch (ParseException e) {
-            return null;
+            throw new IllegalArgumentException(e);
         }
     }
 }

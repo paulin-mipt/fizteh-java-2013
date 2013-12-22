@@ -36,7 +36,7 @@ public class PutCommand extends SimpleCommand {
                 System.out.println("new");
             } else {
                 System.out.println("overwrite");
-                System.out.println(oldValue);
+                System.out.println(database.serialize(oldValue));
             }
         } catch (NoTableSelectedException e) {
             System.err.println("no table");

@@ -24,9 +24,6 @@ public class Main {
         }
         File dbDirectory = new File(dbPath);
         if (dbDirectory.exists() || !dbDirectory.isDirectory()) {
-            /*
-            System.err.println("it's not a directory");
-            System.exit(1);*/
             dbDirectory.delete();
         }
         if (!dbDirectory.exists()) {
@@ -51,35 +48,8 @@ public class Main {
         commandMap.put("rollback", new CommandRollback());
 
         if (args.length == 0) { // Interactive mode
-            interactiveMode(commandMap, storeableState);
-        } else { // Batch mode
-            StringBuilder stringBuilder = new StringBuilder();
-            for (String string : args) {
-                stringBuilder.append(string);
-                stringBuilder.append(" ");
-            }
-            String commands = stringBuilder.toString();
-            batchMode(commands, commandMap, storeableState);
-        }
-
-        try {
-            StoreableUtils.writeTable(storeableState.getCurrentTable(), storeableState.getCurrentTableProvider());
-        } catch (IOException ex) {
-            System.err.println(ex.getMessage());
-            System.exit(1);
-        }
-
-    }
-
-    private static void interactiveMode(Map<String, Command> commandMap, StoreableState storeableState) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("$ ");
-        while (scanner.hasNextLine()){
-            String string = scanner.nextLine();
             try {
-                parseCommands(string, commandMap, storeableState);
-            } catch (IOException ex) {
-                System.err.println(ex.getMessage());
+                Mods.interactiveMode(commandMap, storeableState);
             } catch (ExitException ex) {
                 if (storeableState.getCurrentTable() != null) {
                     try {
@@ -91,44 +61,28 @@ public class Main {
                 }
                 System.exit(0);
             }
-            System.out.print("$ ");
+        } else { // Batch mode
+            try {
+                Mods.batchMode(args, commandMap, storeableState);
+            } catch (ExitException ex) {
+                if (storeableState.getCurrentTable() != null) {
+                    try {
+                        StoreableUtils.writeTable(storeableState.getCurrentTable(), storeableState.getCurrentTableProvider());
+                    } catch (IOException exc) {
+                        System.err.println(exc.getMessage());
+                        System.exit(1);
+                    }
+                }
+                System.exit(0);
+            }
         }
-    }
 
-    private static void batchMode(String commands, Map<String, Command> commandMap, StoreableState storeableState) {
         try {
-            parseCommands(commands, commandMap, storeableState);
+            StoreableUtils.writeTable(storeableState.getCurrentTable(), storeableState.getCurrentTableProvider());
         } catch (IOException ex) {
             System.err.println(ex.getMessage());
-        } catch (ExitException ex) {
-            if (storeableState.getCurrentTable() != null) {
-                try {
-                    StoreableUtils.writeTable(storeableState.getCurrentTable(), storeableState.getCurrentTableProvider());
-                } catch (IOException exc) {
-                    System.err.println(exc.getMessage());
-                    System.exit(1);
-                }
-            }
-            System.exit(0);
-        }
-    }
-
-    private static void parseCommands(String commands, Map<String, Command> commandMap, StoreableState storeableState) throws IOException, ExitException {
-        String[] listOfCommand = commands.trim().split("\\s*;\\s*");
-        for (String string : listOfCommand) {
-            String[] commandArguments = string.split("\\s+", 3);
-            Command command = commandMap.get(commandArguments[0]);
-
-            if (command == null) {
-                throw new IOException("Wrong command name");
-            }
-            if (commandArguments.length != command.getArgumentsCount() + 1) {
-                throw new IOException("Wrong argument count");
-            } else {
-                command.execute(storeableState, commandArguments);
-            }
+            System.exit(1);
         }
 
     }
-
 }

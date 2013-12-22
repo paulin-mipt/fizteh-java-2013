@@ -80,6 +80,8 @@ public class Main {
                     break;
                 case exit:
                     return false;
+                default:
+                    break;
             }
         } catch (Exception exc) {
             System.err.println(cmdAndArgs + ": " + exc.getMessage());

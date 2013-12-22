@@ -1,9 +1,7 @@
 package ru.fizteh.fivt.students.adanilyak.tests;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TemporaryFolder;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
@@ -26,16 +24,22 @@ public class StoreableRowUnitTest {
     TableProvider tableProvider;
     Table testTable;
     Storeable testStoreable;
-    File sandBoxDirectory = new File("/Users/Alexander/Documents/JavaDataBase/Tests");
+    Storeable newTestStoreable;
+    File sandBoxDirectory;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Before
     public void setUpTestObject() throws IOException, ParseException {
+        sandBoxDirectory = folder.newFolder();
+
         tableProvider = new StoreableTableProvider(sandBoxDirectory);
         List<Class<?>> typesTestListOne = WorkWithStoreableDataBase.
                 createListOfTypesFromString("int long byte float double boolean String");
         testTable = tableProvider.createTable("testTable22", typesTestListOne);
         testStoreable = tableProvider.deserialize(testTable,
-                "[0, 3000000000, 0, 0.123, 1.7976931348623157E308, true, \"Hello World\"]");
+                "[0, 3000000000, 0, 0.123, 1.7976931348623157E308, true, null]");
     }
 
     @After
@@ -217,6 +221,17 @@ public class StoreableRowUnitTest {
 
     @Test
     public void getStringAtTest() {
-        Assert.assertEquals("Hello World", testStoreable.getStringAt(6));
+        Assert.assertEquals(null, testStoreable.getStringAt(6));
+    }
+
+    /**
+     * TEST BLOCK
+     * TO STRING TESTS
+     */
+
+    @Test
+    public void toStringTest() {
+        Assert.assertEquals("StoreableRow[0,3000000000,0,0.123,1.7976931348623157E308,true,]",
+                testStoreable.toString());
     }
 }

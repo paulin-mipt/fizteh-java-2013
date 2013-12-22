@@ -1,6 +1,5 @@
 package ru.fizteh.fivt.students.eltyshev.multifilemap.commands;
 
-import ru.fizteh.fivt.storage.strings.Table;
 import ru.fizteh.fivt.students.eltyshev.shell.commands.AbstractCommand;
 import ru.fizteh.fivt.students.eltyshev.shell.commands.CommandParser;
 
@@ -23,7 +22,7 @@ public class UseCommand<Table, Key, Value, State extends BaseDatabaseShellState<
         try {
             newTable = shellState.useTable(parameters.get(0));
         } catch (IllegalArgumentException e) {
-            System.err.println(e.getMessage());
+            System.err.println(String.format("wrong type (%s)", e.getMessage()));
             return;
         } catch (IllegalStateException e) {
             System.err.println(e.getMessage());

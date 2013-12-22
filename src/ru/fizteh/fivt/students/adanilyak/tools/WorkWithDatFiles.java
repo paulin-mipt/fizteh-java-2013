@@ -52,7 +52,8 @@ public class WorkWithDatFiles {
     }
 
     public static void readIntoStoreableMap(File dataBaseFile, Map<String, Storeable> map, Table table,
-                                            TableProvider provider, int indexDir, int indexDat) throws IOException, ParseException {
+                                            TableProvider provider, int indexDir, int indexDat)
+            throws IOException, ParseException {
         RandomAccessFile dataBaseFileReader = new RandomAccessFile(dataBaseFile, "rw");
         long length = dataBaseFile.length();
         byte[] buffer;

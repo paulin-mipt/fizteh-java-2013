@@ -13,7 +13,7 @@ public class PerformerCreateDirectory extends PerformerShell {
 
     public void execute(Dispatcher dispatcher, Command command) throws PerformerException {
         File directory = getCanonicalFile(command.getArgument(0));
-        if(!directory.mkdirs()) {
+        if (!directory.mkdirs()) {
             throw new PerformerException(dispatcher.callbackWriter(Dispatcher.MessageType.ERROR,
                     String.format("'%s'. mkdir: Can not create '%s'", command.getDescription(), directory.getPath())));
         }

@@ -8,12 +8,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import ru.fizteh.fivt.storage.structured.TableProviderFactory;
 import ru.fizteh.fivt.students.irinapodorozhnaya.shell.CommandRemove;
 import ru.fizteh.fivt.students.irinapodorozhnaya.storeable.MyTableProviderFactory;
 
 public class TableProviderFactoryTest {
-    private TableProviderFactory factory;
+    private MyTableProviderFactory factory;
     private static final String DATA_BASE_DIR = "./src/ru/fizteh/fivt/students/irinapodorozhnaya/test";
     private final File curDir = new File(DATA_BASE_DIR);
 
@@ -54,5 +53,17 @@ public class TableProviderFactoryTest {
     @Test
     public void testCreateLegal() throws Exception {
         Assert.assertNotNull(factory.create(DATA_BASE_DIR));
+    }
+
+    @Test
+    public void doubleClose() throws Exception {
+        factory.close();
+        factory.close();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void createAfterClose() throws Exception {
+        factory.close();
+        factory.create(DATA_BASE_DIR);
     }
 }

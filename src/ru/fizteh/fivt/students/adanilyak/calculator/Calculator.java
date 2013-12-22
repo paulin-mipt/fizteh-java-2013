@@ -104,8 +104,8 @@ class Calculator {
                         break;
                     case MULT:
                         while (!operators.empty()) {
-                            if (!operators.peek().equals("(") && !operators.peek().equals("+") &&
-                                    !operators.peek().equals("-")) {
+                            if (!operators.peek().equals("(") && !operators.peek().equals("+")
+                                    && !operators.peek().equals("-")) {
                                 reversePolishNotation.add(operators.pop());
                             } else {
                                 break;
@@ -120,8 +120,8 @@ class Calculator {
                         break;
                     case DIV:
                         while (!operators.empty()) {
-                            if (!operators.peek().equals("(") && !operators.peek().equals("+") &&
-                                    !operators.peek().equals("-")) {
+                            if (!operators.peek().equals("(") && !operators.peek().equals("+")
+                                    && !operators.peek().equals("-")) {
                                 reversePolishNotation.add(operators.pop());
                             } else {
                                 break;
@@ -159,6 +159,8 @@ class Calculator {
 
                         operators.pop();
                         break;
+                    default:
+                        break;
                 }
             }
         }
@@ -182,7 +184,8 @@ class Calculator {
             System.exit(1);
         }
         String tempToken;
-        Integer firstTerm, secondTerm;
+        Integer firstTerm;
+        Integer secondTerm;
         Stack<Integer> forCalculation = new Stack<Integer>();
 
         while (!reversePolishNotation.isEmpty()) {
@@ -222,6 +225,8 @@ class Calculator {
                             System.exit(1);
                         }
                         forCalculation.push(firstTerm / secondTerm);
+                        break;
+                    default:
                         break;
                 }
             }

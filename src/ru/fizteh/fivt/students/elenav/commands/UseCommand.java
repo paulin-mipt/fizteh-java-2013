@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import ru.fizteh.fivt.students.elenav.states.FilesystemState;
+import ru.fizteh.fivt.students.elenav.storeable.StoreableTableState;
 
 public class UseCommand extends AbstractCommand {
 
@@ -37,7 +38,7 @@ public class UseCommand extends AbstractCommand {
                 table.setWorkingDirectory(f);
                 table.setName(name);
                 table.provider.use(table);
-                table.read();
+                StoreableTableState.class.cast(table).clearTable();
                 getState().getStream().println("using " + name);
             }
         }

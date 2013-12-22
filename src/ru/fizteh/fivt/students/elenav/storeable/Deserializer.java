@@ -48,7 +48,7 @@ public class Deserializer {
             }
             reader.next();
             if (!reader.isEndElement()) {
-                throw new ParseException("parse error3", i);
+                throw new ParseException("parse error3: value: " + value, i);
             }
             
         }

@@ -1,8 +1,9 @@
 package ru.fizteh.fivt.students.inaumov.filemap.handlers;
 
 import java.io.*;
-import java.util.HashMap;
-import ru.fizteh.fivt.students.inaumov.filemap.base.AbstractTable;
+
+import ru.fizteh.fivt.students.inaumov.filemap.base.AbstractDatabaseTable;
+import ru.fizteh.fivt.students.inaumov.filemap.builders.TableBuilder;
 
 public class ReadHandler implements Closeable {
     private RandomAccessFile inputFile = null;
@@ -12,12 +13,16 @@ public class ReadHandler implements Closeable {
         try {
             inputFile = new RandomAccessFile(fileName, "r");
         } catch (FileNotFoundException exception) {
+            //
+        }
 
+        if (inputFile.length() == 0) {
+            throw new IllegalArgumentException("error: empty file: " + fileName);
         }
         this.fileName = fileName;
     }
 
-    public static void loadFromFile(String filePath, HashMap<String, String> data) throws IOException {
+    public static void loadFromFile(String filePath, TableBuilder builder) throws IOException {
         File file = new File(filePath);
         if (!file.exists()) {
             return;
@@ -32,7 +37,7 @@ public class ReadHandler implements Closeable {
             String key = reader.readString(keyLength);
             String value = reader.readString(valueLength);
             //System.out.println("loading from file: key: " + key + ",value: " + value);
-            data.put(key, value);
+            builder.put(key, value);
         }
 
         reader.close();
@@ -56,7 +61,7 @@ public class ReadHandler implements Closeable {
         }
 
         inputFile.read(stringBytes);
-        return new String(stringBytes, AbstractTable.CHARSET);
+        return new String(stringBytes, AbstractDatabaseTable.CHARSET);
     }
 
     public boolean readEnd() throws IOException {

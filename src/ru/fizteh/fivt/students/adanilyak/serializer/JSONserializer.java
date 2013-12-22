@@ -17,7 +17,7 @@ import java.text.ParseException;
  */
 public class JSONserializer {
     private static Object getRightClassObject(Table table, JSONArray input, int index) throws ColumnFormatException {
-        if (input.get(index) == JSONObject.NULL) {
+        if (input.get(index) == JSONObject.NULL || input.get(index) == null) {
             return null;
         }
         if (input.get(index).getClass() == Integer.class && table.getColumnType(index) == Integer.class) {
@@ -52,8 +52,8 @@ public class JSONserializer {
                 try {
                     result.setColumnAt(i, JSONserializer.getRightClassObject(table, input, i));
                 } catch (ColumnFormatException | IndexOutOfBoundsException exc) {
-                    throw new ParseException("JSONserializer: deserialize: can not set column at," +
-                            " type mismatch or out of bounds", 0);
+                    throw new ParseException("JSONserializer: deserialize: can not set column at,"
+                            + " type mismatch or out of bounds", 0);
                 }
             }
         } catch (JSONException exc) {

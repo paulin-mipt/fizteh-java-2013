@@ -3,6 +3,7 @@ package ru.fizteh.fivt.students.adanilyak.storeable;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.students.adanilyak.tools.StringCreationTools;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,15 +31,15 @@ public class StoreableRow implements Storeable {
         types = new ArrayList<>();
         row = new ArrayList<>();
         if (givenTable.getColumnsCount() != givenValues.size()) {
-            throw new IndexOutOfBoundsException("storeable row: " +
-                    "size of value-list not equals to amount of columns in table");
+            throw new IndexOutOfBoundsException("storeable row: "
+                    + "size of value-list not equals to amount of columns in table");
         }
 
         for (int i = 0; i < givenValues.size(); ++i) {
             if (givenValues.get(i) != null) {
                 if (givenTable.getColumnType(i) != givenValues.get(i).getClass()) {
-                    throw new ColumnFormatException("storeable row: " +
-                            "types in value-list and in table's columns conflict");
+                    throw new ColumnFormatException("storeable row: "
+                            + "types in value-list and in table's columns conflict");
                 }
             }
             types.add(givenTable.getColumnType(i));
@@ -114,5 +115,10 @@ public class StoreableRow implements Storeable {
     @Override
     public String getStringAt(int columnIndex) throws ColumnFormatException, IndexOutOfBoundsException {
         return (String) getSomethingAt(columnIndex, String.class);
+    }
+
+    @Override
+    public String toString() {
+        return StringCreationTools.createString(getClass().getSimpleName(), row);
     }
 }

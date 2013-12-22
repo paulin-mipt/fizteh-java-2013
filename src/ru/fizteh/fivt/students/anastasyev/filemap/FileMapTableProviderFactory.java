@@ -4,10 +4,17 @@ import ru.fizteh.fivt.storage.structured.TableProviderFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
-public class FileMapTableProviderFactory implements TableProviderFactory {
+public class FileMapTableProviderFactory implements TableProviderFactory, AutoCloseable {
+    private ArrayList<FileMapTableProvider> fileMapTableProviders = new ArrayList<FileMapTableProvider>();
+    private boolean isOpen = true;
+
     @Override
     public FileMapTableProvider create(String dir) throws IOException {
+        if (!isOpen) {
+            throw new IllegalStateException("TableProviderFactory is already closed");
+        }
         if (dir == null || dir.trim().trim().isEmpty()) {
             throw new IllegalArgumentException("Directory path can't be null");
         }
@@ -28,6 +35,19 @@ public class FileMapTableProviderFactory implements TableProviderFactory {
         } catch (IOException e) {
             throw new IllegalArgumentException(e.getMessage(), e);
         }
+        fileMapTableProviders.add(fileMapTableProvider);
         return fileMapTableProvider;
+    }
+
+    @Override
+    public void close() {
+        if (!isOpen) {
+            throw new IllegalStateException("TableProviderFactory is already closed");
+        }
+        for (FileMapTableProvider provider : fileMapTableProviders) {
+            if (provider.isOpen()) {
+                provider.close();
+            }
+        }
     }
 }

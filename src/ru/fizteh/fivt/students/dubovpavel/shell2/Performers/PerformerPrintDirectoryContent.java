@@ -13,7 +13,7 @@ public class PerformerPrintDirectoryContent extends PerformerShell {
 
     public void execute(Dispatcher dispatcher, Command command) throws PerformerException {
         File directory = getCanonicalFile(".");
-        for(String entry: directory.list()) {
+        for (String entry : directory.list()) {
             dispatcher.callbackWriter(Dispatcher.MessageType.SUCCESS, entry);
         }
     }

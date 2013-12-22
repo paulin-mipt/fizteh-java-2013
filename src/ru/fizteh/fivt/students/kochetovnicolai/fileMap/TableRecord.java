@@ -54,7 +54,7 @@ public class TableRecord implements Storeable {
     }
 
     public boolean equals(Object other) {
-       if (other.getClass() != this.getClass()) {
+       if (other == null || other.getClass() != this.getClass()) {
            return false;
        }
        TableRecord record = (TableRecord) other;
@@ -202,5 +202,22 @@ public class TableRecord implements Storeable {
 
     List<Class<?>> getTypes() {
         return types;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder(this.getClass().getSimpleName());
+        builder.append('[');
+        boolean isFirst = true;
+        for (Object value : values) {
+            if (!isFirst) {
+                builder.append(',');
+            }
+            isFirst = false;
+            if (value != null) {
+                builder.append(value);
+            }
+        }
+        return builder.append(']').toString();
     }
 }

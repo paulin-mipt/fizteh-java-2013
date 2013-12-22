@@ -8,36 +8,53 @@ import java.util.regex.Pattern;
 
 public class WrappedMindfulDataBaseMultiFileHashMap<V> extends MindfulDataBaseMultiFileHashMap<V> {
     private Dispatcher dispatcher;
-    private static final Pattern whitespacePattern;
+    private static final Pattern WHITESPACE_PATTERN;
+
     static {
-        whitespacePattern = Pattern.compile("\\s");
+        WHITESPACE_PATTERN = Pattern.compile("\\s");
     }
 
     public WrappedMindfulDataBaseMultiFileHashMap(File path, Dispatcher dispatcher, ObjectTransformer<V> transformer) {
         super(path, transformer);
         this.dispatcher = dispatcher;
     }
+
+    protected void checkGetInput(String key) {
+        if (key == null) {
+            throw new IllegalArgumentException();
+        }
+    }
+
     @Override
     public V get(String key) {
-        if(key == null) {
-            throw new IllegalArgumentException();
-        }
+        checkGetInput(key);
         return super.get(key);
     }
+
+    protected void checkPutInput(String key, V value) {
+        if (key == null || key.isEmpty() || WHITESPACE_PATTERN.matcher(key).find()) {
+            throw new IllegalArgumentException();
+        }
+    }
+
     @Override
     public V put(String key, V value) {
-        if(key == null || key.isEmpty() || whitespacePattern.matcher(key).find()) {
-            throw new IllegalArgumentException();
-        }
+        checkPutInput(key, value);
         return super.put(key, value);
     }
-    @Override
-    public V remove(String key) {
-        if(key == null) {
+
+    protected void checkRemoveInput(String key) {
+        if (key == null) {
             throw new IllegalArgumentException();
         }
+    }
+
+    @Override
+    public V remove(String key) {
+        checkRemoveInput(key);
         return super.remove(key);
     }
+
     @Override
     public int commit() {
         try {
@@ -46,6 +63,6 @@ public class WrappedMindfulDataBaseMultiFileHashMap<V> extends MindfulDataBaseMu
             dispatcher.callbackWriter(Dispatcher.MessageType.ERROR,
                     String.format("Database %s: %s", getName(), e.getMessage()));
         }
-        return 0;
+        return -1;
     }
 }

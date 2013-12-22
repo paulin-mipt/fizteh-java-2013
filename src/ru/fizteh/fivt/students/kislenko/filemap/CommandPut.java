@@ -2,23 +2,33 @@ package ru.fizteh.fivt.students.kislenko.filemap;
 
 import ru.fizteh.fivt.students.kislenko.shell.Command;
 
-import java.io.FileNotFoundException;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class CommandPut implements Command<FilemapState> {
+public class CommandPut implements Command<FatherState> {
+    @Override
     public String getName() {
         return "put";
     }
 
+    @Override
     public int getArgCount() {
         return 2;
     }
 
-    public void run(FilemapState state, String[] args) throws FileNotFoundException {
-        if (state.hasKey(args[0])) {
-            System.out.println("overwrite\n" + state.getValue(args[0]));
-        } else {
+    @Override
+    public void run(FatherState state, String[] args) throws Exception {
+        AtomicReference<Exception> exception = new AtomicReference<Exception>(null);
+        CommandUtils.assertStartingStateIsAlright(state);
+
+        String value = state.get(args[0], exception);
+        CommandUtils.assertWorkIsSuccessful(exception.get());
+
+        state.put(args[0], args[1], exception);
+        CommandUtils.assertWorkIsSuccessful(exception.get());
+        if (value == null) {
             System.out.println("new");
+        } else {
+            System.out.println("overwrite\n" + value);
         }
-        state.putValue(args[0], args[1]);
     }
 }

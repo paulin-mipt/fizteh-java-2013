@@ -11,10 +11,11 @@ public class PerformerGet<D extends Dispatcher & DataBaseAccessible<String, Stri
     public boolean pertains(Command command) {
         return command.getHeader().equals("get") && command.argumentsCount() == 1;
     }
+
     public void execute(D dispatcher, Command command) throws PerformerException {
         try {
             String value = dispatcher.getDataBase().get(command.getArgument(0));
-            if(value == null) {
+            if (value == null) {
                 dispatcher.callbackWriter(Dispatcher.MessageType.ERROR, "not found");
             } else {
                 dispatcher.callbackWriter(Dispatcher.MessageType.SUCCESS, String.format("found%n%s", value));

@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class MyTable implements Table {
+public class MyTable implements Table, AutoCloseable {
 
     private DataBase[][] data = new DataBase[16][16];
     private String currTablePath = null;
@@ -26,7 +26,7 @@ public class MyTable implements Table {
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     private Lock read = readWriteLock.readLock();
     private Lock write = readWriteLock.writeLock();
-    
+    private volatile boolean isClosed = false;
     
     private ThreadLocal<HashMap<String, Storeable>> changesMap = new ThreadLocal<HashMap<String, Storeable>>() {
         @Override
@@ -35,15 +35,18 @@ public class MyTable implements Table {
         }
     };
 
-    public MyTableProvider getProvider() {
+    protected MyTableProvider getProvider() {
+        checkClosed();
         return provider;
     }
 
-    public String getTablePath() {
+    protected String getTablePath() {
+        checkClosed();
         return currTablePath;
     }
 
-    protected DataBase getDataBaseFromKey(String key) throws RuntimeException {
+    private DataBase getDataBaseFromKey(String key) throws RuntimeException {
+        checkClosed();
         int hashcode = Math.abs(key.hashCode());
         int ndir = hashcode % 16;
         int nfile = hashcode / 16 % 16;
@@ -51,36 +54,29 @@ public class MyTable implements Table {
     }
 
     public String getName() {
+        checkClosed();
         return currTableName;
     }
 
-    public boolean isEmpty(String val) {
+    private boolean isEmpty(String val) {
+        checkClosed();
         return (val == null || val.trim().isEmpty());
     }
 
-    public boolean isCorrectKey(String key) {
+    private boolean isCorrectKey(String key) {
+        checkClosed();
         return (!provider.hasBadSymbols(key) && !key.contains("[") && !key
                 .contains("]"));
     }
    
-//read
-    public Storeable get(String key) throws IllegalArgumentException {
-        if (isEmpty(key)) {
-            throw new IllegalArgumentException("get: key is empty");
+    private void checkClosed() throws IllegalStateException {
+        if (isClosed) {
+            throw new IllegalStateException(currTableName + " is closed");
         }
-        if (changesMap.get().containsKey(key)) {
-            return changesMap.get().get(key);
-        } else {
-            read.lock();
-            try {
-                return getDataBaseFromKey(key).get(key);
-            } finally {
-                read.unlock();
-            }
-        } 
     }
-
+    
     private void checkValue(Storeable value) {
+        checkClosed();
         for (int i = 0; i < types.size(); ++i) {
             try {
                 Object val = value.getColumnAt(i);
@@ -101,6 +97,7 @@ public class MyTable implements Table {
     }
 
     private boolean differs(Storeable st1, Storeable st2) {
+        checkClosed();
         if (st1 == null && st2 == null) {
             return true;
         }
@@ -115,9 +112,141 @@ public class MyTable implements Table {
         return (!str1.equals(str2));
     }
 
+    public void setNameToNull() {
+        checkClosed();
+        currTablePath = null;
+        currTableName = null;
+    }
+
+// write to disk
+    private void saveChanges() throws RuntimeException {
+        checkClosed();
+        if (currTableName == null) {
+            return;
+        }
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
+                write.lock();
+                try {
+                    if (data[i][j].hasFile() && data[i][j].hasChanged) {
+                        try {
+                            data[i][j].commitChanges();
+                            data[i][j].hasChanged = false;
+                        } catch (IOException e) {
+                            throw new RuntimeException("can't write to file", e);
+                        }
+                    }
+                } finally {
+                    write.unlock();
+                }
+            }
+        }
+        Shell sh = new Shell(currTablePath, false);
+        for (int i = 0; i < 16; i++) {
+            File tmpDir = new File(currTablePath + File.separator + i + ".dir");
+            if (tmpDir.exists() && tmpDir.list().length == 0) {
+                if (sh.rm(tmpDir.getAbsolutePath()) != Shell.ExitCode.OK) {
+                    throw new RuntimeException(tmpDir.getAbsolutePath()
+                            + " can't delete directory");
+                }
+            }
+        }
+    }
+
+//read from disk
+    private void loadFromDisk() throws RuntimeException {
+        checkClosed();
+        if (changesMap != null) {
+            changesMap.get().clear();
+        } else {
+            changesMap.set(new HashMap<String, Storeable>());
+        }
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
+                read.lock();
+                try {
+                    try {
+                        data[i][j] = new DataBase(this, i, j);
+                    } catch (ParseException e) {
+                        throw new RuntimeException("wrong type (load "
+                                + e.getMessage() + ")", e);
+                    }
+                } finally {
+                    read.unlock();
+                }
+            }
+        }
+    }
+
+ // write
+    private void trackChanges() {
+        checkClosed();
+        Set<Map.Entry<String, Storeable>> mySet = changesMap.get().entrySet();
+        String key;
+        Storeable value;
+        DataBase mdb;
+        for (Map.Entry<String, Storeable> myEntry : mySet) {
+            key = myEntry.getKey();
+            value = myEntry.getValue();
+            mdb = getDataBaseFromKey(myEntry.getKey());
+            write.lock();
+            try {
+                if (value == null) {
+                    mdb.remove(key);
+                } else {
+                    mdb.put(key, value);
+                }
+                mdb.createFile();
+                mdb.hasChanged = true;
+            } finally {
+                write.unlock();
+            }
+        }
+    }
+    
+    public int getUncommitedChanges() {
+        checkClosed();
+        Set<Map.Entry<String, Storeable>> mySet = changesMap.get().entrySet();
+        String key;
+        Storeable value;
+        DataBase mdb;
+        int nchanges = 0;
+        for (Map.Entry<String, Storeable> myEntry : mySet) {
+            key = myEntry.getKey();
+            value = myEntry.getValue();
+            mdb = getDataBaseFromKey(key);
+            if (differs(value, mdb.get(key))) {
+                nchanges++;
+            }
+        }
+        return nchanges;
+    }
+
 //read
+    @Override
+    public Storeable get(String key) throws IllegalArgumentException {
+        checkClosed();
+        if (isEmpty(key)) {
+            throw new IllegalArgumentException("get: key is empty");
+        }
+        if (changesMap.get().containsKey(key)) {
+            return changesMap.get().get(key);
+        } else {
+            read.lock();
+            try {
+                return getDataBaseFromKey(key).get(key);
+            } finally {
+                read.unlock();
+            }
+        } 
+    }
+
+
+//read
+    @Override
     public Storeable put(String key, Storeable value)
             throws IllegalArgumentException, ColumnFormatException {
+        checkClosed();
         if (isEmpty(key)) {
             throw new IllegalArgumentException("put: key is empty");
         }
@@ -155,7 +284,9 @@ public class MyTable implements Table {
     }
     
 //read
+    @Override
     public Storeable remove(String key) throws IllegalArgumentException {
+        checkClosed();
         if (isEmpty(key)) {
             throw new IllegalArgumentException("remove: key is empty");
         }
@@ -183,7 +314,9 @@ public class MyTable implements Table {
     }
 
 //read
+    @Override
     public int size() {
+        checkClosed();
         int n = 0;
         for (int i = 0; i < 16; i++) {
             for (int j = 0; j < 16; j++) {
@@ -208,32 +341,10 @@ public class MyTable implements Table {
         return n;
     }
 
-// write
-    public void trackChanges() {
-        Set<Map.Entry<String, Storeable>> mySet = changesMap.get().entrySet();
-        String key;
-        Storeable value;
-        DataBase mdb;
-        for (Map.Entry<String, Storeable> myEntry : mySet) {
-            key = myEntry.getKey();
-            value = myEntry.getValue();
-            mdb = getDataBaseFromKey(myEntry.getKey());
-            write.lock();
-            try {
-                if (value == null) {
-                    mdb.remove(key);
-                } else {
-                    mdb.put(key, value);
-                }
-                mdb.createFile();
-                mdb.hasChanged = true;
-            } finally {
-                write.unlock();
-            }
-        }
-    }
-    
+
+    @Override
     public int commit() throws RuntimeException {
+        checkClosed();
         int nchanges = getUncommitedChanges();
         trackChanges();
         if (nchanges != 0) {
@@ -243,99 +354,17 @@ public class MyTable implements Table {
         return nchanges;
     }
 
+    @Override
     public int rollback() throws RuntimeException {
+        checkClosed();
         int nchanges = getUncommitedChanges();
         changesMap.get().clear();
         return nchanges;
     }
 
-    public void setNameToNull() {
-        currTablePath = null;
-        currTableName = null;
-    }
-
-// write to disk
-    public void saveChanges() throws RuntimeException {
-        if (currTableName == null) {
-            return;
-        }
-        for (int i = 0; i < 16; i++) {
-            for (int j = 0; j < 16; j++) {
-                write.lock();
-                try {
-                    if (data[i][j].hasFile() && data[i][j].hasChanged) {
-                        try {
-                            data[i][j].commitChanges();
-                            data[i][j].hasChanged = false;
-                        } catch (IOException e) {
-                            throw new RuntimeException("can't write to file", e);
-                        }
-                    }
-                } finally {
-                    write.unlock();
-                }
-            }
-        }
-        Shell sh = new Shell(currTablePath, false);
-        for (int i = 0; i < 16; i++) {
-            File tmpDir = new File(currTablePath + File.separator + i + ".dir");
-            if (tmpDir.exists() && tmpDir.list().length == 0) {
-                if (sh.rm(tmpDir.getAbsolutePath()) != Shell.ExitCode.OK) {
-                    throw new RuntimeException(tmpDir.getAbsolutePath()
-                            + " can't delete directory");
-                }
-            }
-        }
-    }
-
-//read from disk
-    public void loadFromDisk() throws RuntimeException {
-        if (changesMap != null) {
-            changesMap.get().clear();
-        } else {
-            changesMap.set(new HashMap<String, Storeable>());
-        }
-        for (int i = 0; i < 16; i++) {
-            for (int j = 0; j < 16; j++) {
-                read.lock();
-                try {
-                    try {
-                        data[i][j] = new DataBase(this, i, j);
-                    } catch (ParseException e) {
-                        throw new RuntimeException("wrong type (load "
-                                + e.getMessage() + ")", e);
-                    }
-                } finally {
-                    read.unlock();
-                }
-            }
-        }
-    }
-
-//read
-    public void loadFromDataMap() throws IllegalArgumentException,
-            ParseException {
-        if (changesMap != null) {
-            changesMap.get().clear();
-        } else {
-            changesMap.set(new HashMap<String, Storeable>());
-        }
-
-        for (int i = 0; i < 16; i++) {
-            for (int j = 0; j < 16; j++) {
-                read.lock();
-                try {
-                    if (data[i][j].hasFile()) {
-                        data[i][j].loadDataToMap(changesMap.get());
-                    }
-                } finally {
-                    read.unlock();
-                }
-            }
-        }
-    }
 
     public MyTable() {
+        isClosed = false;
     }
 
     public MyTable(String path, String name, MyTableProvider mtp,
@@ -344,6 +373,8 @@ public class MyTable implements Table {
         currTablePath = path;
         currTableName = name;
         types = new ArrayList<Class<?>>(columnTypes);
+        isClosed = false;
+
         if (currTableName != null) {
             loadFromDisk();
         }
@@ -351,29 +382,14 @@ public class MyTable implements Table {
 
     @Override
     public int getColumnsCount() {
+        checkClosed();
         return types.size();
-    }
-
-    public int getUncommitedChanges() {
-        Set<Map.Entry<String, Storeable>> mySet = changesMap.get().entrySet();
-        String key;
-        Storeable value;
-        DataBase mdb;
-        int nchanges = 0;
-        for (Map.Entry<String, Storeable> myEntry : mySet) {
-            key = myEntry.getKey();
-            value = myEntry.getValue();
-            mdb = getDataBaseFromKey(key);
-            if (differs(value, mdb.get(key))) {
-                nchanges++;
-            }
-        }
-        return nchanges;
     }
     
     @Override
     public Class<?> getColumnType(int columnIndex)
             throws IndexOutOfBoundsException {
+        checkClosed();
         if (0 > columnIndex || columnIndex >= types.size()) {
             throw new IndexOutOfBoundsException(
                     "get column type: index is out of bounds");
@@ -381,7 +397,7 @@ public class MyTable implements Table {
         return types.get(columnIndex);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NoSuchMethodException, Throwable {
         MyTableProviderFactory myFactory = new MyTableProviderFactory();
         MyTableProvider provider;
         try {
@@ -401,7 +417,28 @@ public class MyTable implements Table {
         } catch (RuntimeException e3) {
             System.err.println(e3.getMessage());
             System.exit(1);
+        } finally {
+            try {
+                myFactory.close();
+            } catch (Exception e) {
+                //what's a pitty
+            }
         }
     }
 
+    @Override
+    public String toString() {
+        checkClosed();
+        String className = MyTable.class.getSimpleName();
+        return (className + "[" + currTablePath + "]");
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (!isClosed) {
+            rollback();
+            provider.removeTableFromMap(currTableName);
+        }
+        isClosed = true;
+    }
 }

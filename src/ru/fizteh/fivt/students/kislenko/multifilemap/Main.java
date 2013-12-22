@@ -1,5 +1,8 @@
 package ru.fizteh.fivt.students.kislenko.multifilemap;
 
+import ru.fizteh.fivt.students.kislenko.filemap.CommandGet;
+import ru.fizteh.fivt.students.kislenko.filemap.CommandPut;
+import ru.fizteh.fivt.students.kislenko.filemap.CommandRemove;
 import ru.fizteh.fivt.students.kislenko.shell.Command;
 import ru.fizteh.fivt.students.kislenko.shell.Shell;
 
@@ -31,8 +34,8 @@ public class Main {
             }
             Path db = dbDir.toPath();
             MultiFileHashMapState state = new MultiFileHashMapState(db);
-            Command[] commandList = new Command[]{new CommandMultiRemove(), new CommandMultiPut(), new CommandCreate(),
-                    new CommandDrop(), new CommandMultiGet(), new CommandUse()};
+            Command[] commandList = new Command[]{new CommandRemove(), new CommandPut(), new CommandCreate(),
+                    new CommandDrop(), new CommandGet(), new CommandUse()};
             MultiFilemapBuilder builder = new MultiFilemapBuilder();
             builder.build(state);
             Shell<MultiFileHashMapState> shell = new Shell<MultiFileHashMapState>(state, commandList);

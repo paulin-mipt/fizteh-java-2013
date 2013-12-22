@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import ru.fizteh.fivt.students.annasavinova.filemap.DBaseProviderFactory;
+import ru.fizteh.fivt.students.annasavinova.filemap.DataBaseProvider;
 
 public class DBaseProviderFactoryTest {
     DBaseProviderFactory test;
@@ -42,5 +43,20 @@ public class DBaseProviderFactoryTest {
     public void testCreate() throws IOException {
         assertNotNull(test.create(root.newFolder().getAbsolutePath()));
 
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose1() throws Exception {
+        DBaseProviderFactory tmp = new DBaseProviderFactory();
+        tmp.close();
+        tmp.create(root.newFolder().toString());
+    }
+    
+    @Test(expected = IllegalStateException.class)
+    public void testClose2() throws Exception {
+        DBaseProviderFactory tmp = new DBaseProviderFactory();
+        DataBaseProvider prov = (DataBaseProvider) tmp.create(root.newFolder().toString());
+        tmp.close();
+        prov.createTable("aa", null);
     }
 }

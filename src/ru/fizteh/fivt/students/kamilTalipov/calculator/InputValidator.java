@@ -12,7 +12,7 @@ public class InputValidator {
     }
 
     public static boolean is19BaseDigit(char c) {
-        return Character.isDigit (c)
+        return Character.isDigit(c)
                 || (c >= 'A' && c <= 'I')
                 || (c >= 'a' && c <= 'i');
     }

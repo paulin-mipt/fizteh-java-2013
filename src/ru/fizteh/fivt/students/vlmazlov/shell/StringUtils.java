@@ -3,20 +3,20 @@ package ru.fizteh.fivt.students.vlmazlov.shell;
 import java.util.Collection;
 
 public class StringUtils {
-	public static String join(Collection<?> items, String separator) {
-		boolean first = true;
-		StringBuilder joinBuilder = new StringBuilder();
-		
-		for (Object item: items) {
+    public static String join(Collection<?> items, String separator) {
+        boolean first = true;
+        StringBuilder joinBuilder = new StringBuilder();
 
-			if (!first) {
-				joinBuilder.append(separator);
-			}
+        for (Object item : items) {
 
-			first = false;
-			joinBuilder.append(item.toString());
-		}
+            if (!first) {
+                joinBuilder.append(separator);
+            }
 
-		return joinBuilder.toString();
-	} 
+            first = false;
+            joinBuilder.append(item.toString());
+        }
+
+        return joinBuilder.toString();
+    }
 }

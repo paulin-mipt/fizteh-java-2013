@@ -3,18 +3,20 @@ package ru.fizteh.fivt.students.irinapodorozhnaya.multifilemap;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import ru.fizteh.fivt.students.irinapodorozhnaya.utils.FileStorage;
 import ru.fizteh.fivt.students.irinapodorozhnaya.utils.Utils;
 
 public abstract class GenericTable<ValueType> {
-    private final String name;
+    protected final String name;
     protected ReadWriteLock lock = new ReentrantReadWriteLock(true);
-    protected ReadWriteLock hardDiskLock = new ReentrantReadWriteLock(true);
+    protected ReadWriteLock hardDriveLock = new ReentrantReadWriteLock(true);
     protected final File tableDirectory;
-    private final Map<String, ValueType> oldDatabase = new HashMap<>();
+    private final LazyMultiFileHashMap<ValueType> oldDatabase;
     private final ThreadLocal<Map<String, ValueType>> changedValues = new ThreadLocal<Map<String, ValueType>>() {
         @Override
         protected Map<String, ValueType> initialValue() {
@@ -27,6 +29,11 @@ public abstract class GenericTable<ValueType> {
         if (!tableDirectory.isDirectory()) {
             throw new IllegalArgumentException(name + "not exist");
         }
+        try {
+            oldDatabase = new LazyMultiFileHashMap<>(tableDirectory, this);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+        }
         this.name = name;
     }
 
@@ -38,6 +45,8 @@ public abstract class GenericTable<ValueType> {
             try {
                 lock.readLock().lock();
                 return  oldDatabase.get(key);
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
             } finally {
                 lock.readLock().unlock();
             }
@@ -65,8 +74,12 @@ public abstract class GenericTable<ValueType> {
         lock.readLock().lock();
         int res = 0;
         for (String s: changedValues.get().keySet()) {
-            if (!checkEquals(changedValues.get().get(s), oldDatabase.get(s))) {
-                ++res;
+            try {
+                if (!checkEquals(changedValues.get().get(s), oldDatabase.get(s))) {
+                    ++res;
+                }
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
             }
         }
         lock.readLock().unlock();
@@ -81,37 +94,36 @@ public abstract class GenericTable<ValueType> {
     }
 
     public int commit() throws IOException {
+        ThreadLocal<Map<Integer, Map<String, ValueType>>> database =
+                new ThreadLocal<Map<Integer, Map<String, ValueType>>>() {
+            @Override
+            protected Map<Integer, Map<String, ValueType>> initialValue() {
+                return new HashMap<>();
+            }
+        };
+        ThreadLocal<Set<Integer>> filesToUpdate = new ThreadLocal<Set<Integer>>() {
+            @Override
+            protected Set<Integer> initialValue() {
+                return new HashSet<>();
+            }
+        };
+
         int res = countChanges();
+        oldDatabase.commitSize(size());
         try {
             lock.writeLock().lock();
-            for (String s: changedValues.get().keySet()) {
-                if (changedValues.get().get(s) == null) {
-                    oldDatabase.remove(s);
-                } else {
-                    oldDatabase.put(s, changedValues.get().get(s));
+            for (Map.Entry<String, ValueType> s: changedValues.get().entrySet()) {
+                int nfile = Utils.getNumberOfFile(s.getKey());
+                filesToUpdate.get().add(nfile);
+                if (database.get().get(nfile) == null) {
+                    database.get().put(nfile, new HashMap<String, ValueType>());
                 }
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-        try {
-            hardDiskLock.writeLock().lock();
-            Map<Integer, Map<String, ValueType>> database = new HashMap<>();
-            try {
-                lock.readLock().lock();
-                for (Map.Entry<String, ValueType> s: oldDatabase.entrySet()) {
-                    int nfile = Utils.getNumberOfFile(s.getKey());
-                    if (database.get(nfile) == null) {
-                        database.put(nfile, new HashMap<String, ValueType>());
-                    }
-                    database.get(nfile).put(s.getKey(), s.getValue());
-                }
-            } finally {
-                lock.readLock().unlock();
+                database.get().get(nfile).put(s.getKey(), s.getValue());
             }
 
-            for (int i = 0; i < 256; ++i) {
-                FileStorage.commitDiff(getFile(i), serialize(database.get(i)));
+            for (Integer nfile: filesToUpdate.get()) {
+                Map<String, ValueType> data = oldDatabase.putAllInMap(nfile, database.get().get(nfile));
+                FileStorage.commitDiff(getFile(nfile), serialize(data));
             }
 
             for (int i = 0; i < 16; ++i) {
@@ -119,7 +131,7 @@ public abstract class GenericTable<ValueType> {
                 dir.delete();
             }
         } finally {
-            hardDiskLock.writeLock().unlock();
+            lock.writeLock().unlock();
         }
         changedValues.get().clear();
         return res;
@@ -163,10 +175,14 @@ public abstract class GenericTable<ValueType> {
         lock.readLock().lock();
         int res = oldDatabase.size();
         for (Map.Entry<String, ValueType> s: changedValues.get().entrySet()) {
-            if (s.getValue() == null && oldDatabase.get(s.getKey()) != null) {
-                --res;
-            } else if (s.getValue() != null && oldDatabase.get(s.getKey()) == null) {
-                ++res;
+            try {
+                if (s.getValue() == null && oldDatabase.get(s.getKey()) != null) {
+                    --res;
+                } else if (s.getValue() != null && oldDatabase.get(s.getKey()) == null) {
+                    ++res;
+                }
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
             }
         }
         lock.readLock().unlock();
@@ -180,7 +196,6 @@ public abstract class GenericTable<ValueType> {
 
     protected void loadOldDatabase() throws IOException {
         try {
-            hardDiskLock.readLock().lock();
             lock.writeLock().lock();
             oldDatabase.clear();
             for (int i = 0; i < 16; ++i) {
@@ -194,7 +209,7 @@ public abstract class GenericTable<ValueType> {
                     File db = new File(dir, j + ".dat");
                     if (db.isFile()) {
                         Map<String, String> fromFile = FileStorage.openDataFile(db, i * 16 + j);
-                        oldDatabase.putAll(deserialize(fromFile));
+                        oldDatabase.putAllInMap(i * 16 + j, deserialize(fromFile));
                         if (fromFile.isEmpty()) {
                             throw new IOException("empty file");
                         }
@@ -203,7 +218,6 @@ public abstract class GenericTable<ValueType> {
             }
         } finally {
             lock.writeLock().unlock();
-            hardDiskLock.readLock().unlock();
         }
     }
 

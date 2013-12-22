@@ -6,8 +6,8 @@ class SafeInteger {
     }
 
     public static Integer add(Integer l, Integer r) throws ArithmeticException {
-        if(r > 0 && l > Integer.MAX_VALUE - r ||
-                r < 0 && l < Integer.MIN_VALUE - r) {
+        if (r > 0 && l > Integer.MAX_VALUE - r
+                || r < 0 && l < Integer.MIN_VALUE - r) {
             throw new ArithmeticException(getOverflowExceptionText());
         } else {
             return l + r;
@@ -15,8 +15,8 @@ class SafeInteger {
     }
 
     public static Integer subtract(Integer l, Integer r) throws ArithmeticException {
-        if(r > 0 && l < Integer.MIN_VALUE + r ||
-                r < 0 && l > Integer.MAX_VALUE + r) {
+        if (r > 0 && l < Integer.MIN_VALUE + r
+                || r < 0 && l > Integer.MAX_VALUE + r) {
             throw new ArithmeticException(getOverflowExceptionText());
         } else {
             return l - r;
@@ -24,11 +24,11 @@ class SafeInteger {
     }
 
     public static Integer multiply(Integer l, Integer r) throws ArithmeticException {
-        if(r > 0 &&
-                (l > Integer.MAX_VALUE / r || l < Integer.MIN_VALUE / r) ||
-            r == -1 && l == Integer.MIN_VALUE ||
-            r < -1 &&
-                (l > Integer.MIN_VALUE / r || l < Integer.MAX_VALUE / r)) {
+        if (r > 0
+                && (l > Integer.MAX_VALUE / r || l < Integer.MIN_VALUE / r)
+            || r == -1 && l == Integer.MIN_VALUE
+            || r < -1
+                && (l > Integer.MIN_VALUE / r || l < Integer.MAX_VALUE / r)) {
             throw new ArithmeticException(getOverflowExceptionText());
         } else {
             return l * r;
@@ -36,7 +36,7 @@ class SafeInteger {
     }
 
     public static Integer divide(Integer l, Integer r) throws ArithmeticException {
-        if(l == Integer.MIN_VALUE && r == -1) {
+        if (l == Integer.MIN_VALUE && r == -1) {
             throw new ArithmeticException(getOverflowExceptionText());
         } else {
             return l / r;

@@ -3,7 +3,7 @@ package ru.fizteh.fivt.students.kislenko.junit.test;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import ru.fizteh.fivt.students.kislenko.junit.MyTableProviderFactory;
+import ru.fizteh.fivt.students.kislenko.multifilemap.MyTableProviderFactory;
 
 import java.io.File;
 

@@ -24,7 +24,7 @@ public class SuperTableProviderFactory {
         Path directory = Paths.get(dir);
 
         if (Files.notExists(directory)) {
-            Files.createDirectory(directory);
+            Files.createDirectories(directory);
         }
 
         if (directory.toFile().isFile()) {

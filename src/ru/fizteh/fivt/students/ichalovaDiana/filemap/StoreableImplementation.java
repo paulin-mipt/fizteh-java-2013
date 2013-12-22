@@ -160,4 +160,24 @@ public class StoreableImplementation implements Storeable {
         }
     }
     
+    @Override
+    public String toString() {
+        String result = "";
+        Object value;
+        
+        result += this.getClass().getSimpleName();
+        result += "[";             
+        for (int columnIndex = 0; columnIndex < values.size(); ++columnIndex) {
+            value = values.get(columnIndex);
+            if (value != null) {
+                result += value; //?!
+            }
+            if (columnIndex != values.size() - 1) {
+                result += ",";
+            }
+        }
+        result += "]";
+        return result;
+    }
+    
 }

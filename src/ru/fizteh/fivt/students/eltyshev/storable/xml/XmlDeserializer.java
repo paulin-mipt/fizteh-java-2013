@@ -42,25 +42,26 @@ public class XmlDeserializer {
         Object value = null;
         try {
             int nodeType = xmlReader.next();
-            if (nodeType != XMLStreamConstants.START_ELEMENT || !xmlReader.getName().getLocalPart().equals("col")) {
-                throw new ParseException("incorrect xml", 0);
-            }
-            nodeType = xmlReader.next();
-            if (nodeType == XMLStreamConstants.CHARACTERS) {
-                value = TypesFormatter.parseByClass(xmlReader.getText(), expectedType);
+            if (nodeType == XMLStreamConstants.START_ELEMENT) {
+                if (xmlReader.getName().getLocalPart().equals("col")) {
+                    nodeType = xmlReader.next();
+                    if (nodeType == XMLStreamConstants.CHARACTERS) {
+                        value = TypesFormatter.parseByClass(xmlReader.getText(), expectedType);
+                    } else {
+                        throw new ParseException("incorrect xml: expected characters between cols", 0);
+                    }
+                    nodeType = xmlReader.next();
+                    if (nodeType != XMLStreamConstants.END_ELEMENT) {
+                        throw new ParseException("incorrect xml: end element expected", 0);
+                    }
+                } else if (xmlReader.getName().getLocalPart().equals("null")) {
+                    value = null;
+                    xmlReader.next();
+                } else {
+                    throw new ParseException("incorrect xml: col or null expected", 0);
+                }
             } else {
-                if (!xmlReader.getName().getLocalPart().equals("null")) {
-                    throw new ParseException("incorrect xml", 0);
-                }
-                value = null;
-                nodeType = xmlReader.next();
-                if (nodeType != XMLStreamConstants.END_ELEMENT) {
-                    throw new ParseException("incorrect xml", 0);
-                }
-            }
-            nodeType = xmlReader.next();
-            if (nodeType != XMLStreamConstants.END_ELEMENT) {
-                throw new ParseException("incorrect xml", 0);
+                throw new ParseException("incorrect xml: start element expected", 0);
             }
         } catch (XMLStreamException e) {
             throw new ParseException("incorrect xml: " + e.getMessage(), 0);

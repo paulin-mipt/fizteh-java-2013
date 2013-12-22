@@ -14,13 +14,15 @@ import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class DatabaseTableProvider implements TableProvider {
+public class DatabaseTableProvider implements TableProvider, AutoCloseable {
     public DatabaseTable curTable = null;
     HashMap<String, DatabaseTable> tables = new HashMap<String, DatabaseTable>();
     String curDir;
     private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
+    volatile boolean isClosed;
 
     public DatabaseTableProvider(String directory) {
+        isClosed = false;
         if (directory == null || directory.isEmpty()) {
             throw new IllegalArgumentException("Error with the property");
         }
@@ -31,7 +33,13 @@ public class DatabaseTableProvider implements TableProvider {
         }
     }
 
+    public String getDatabaseDirectory() {
+        return curDir;
+    }
+
     public DatabaseTable getTable(String name) throws IllegalArgumentException, IllegalStateException {
+        isCloseChecker();
+
         if (name == null || (name.isEmpty() || name.trim().isEmpty())) {
             throw new IllegalArgumentException("table's name cannot be null");
         }
@@ -40,28 +48,32 @@ public class DatabaseTableProvider implements TableProvider {
                 || name.startsWith(".") || name.endsWith(".")) {
             throw new RuntimeException("Bad symbols in suggested tablename " + name);
         }
-        lock.readLock().lock();
+        lock.writeLock().lock();
         try {
+            if (!tables.containsKey(name)) {
+                return null;
+            }
             DatabaseTable table = tables.get(name);
+            if (table.isClosed) {
+                table = new DatabaseTable(table);
+                tables.put(name, table);
+            }
 
             if (table == null) {
                 return table;
-            }
-
-            if (curTable != null && curTable.uncommittedChanges.get() > 0) {
-                throw new IllegalArgumentException(String.format("%d unsaved changes", curTable.uncommittedChanges));
             }
 
             curTable = table;
 
             return table;
         } finally {
-            lock.readLock().unlock();
+            lock.writeLock().unlock();
         }
     }
 
     public Table createTable(String name, List<Class<?>> columnTypes)
             throws IllegalArgumentException, IllegalStateException {
+        isCloseChecker();
         if (name == null || (name.isEmpty() || name.trim().isEmpty())) {
             throw new IllegalArgumentException("table's name cannot be null");
         }
@@ -136,6 +148,7 @@ public class DatabaseTableProvider implements TableProvider {
     }
 
     public void removeTable(String name) throws IllegalArgumentException, IllegalStateException {
+        isCloseChecker();
         if (name == null || (name.isEmpty() || name.trim().isEmpty())) {
             throw new IllegalArgumentException("table's name cannot be null");
         }
@@ -169,6 +182,7 @@ public class DatabaseTableProvider implements TableProvider {
     }
 
     public Storeable deserialize(Table table, String value) throws ParseException {
+        isCloseChecker();
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException("value cannot be null or empty");
         }
@@ -213,6 +227,7 @@ public class DatabaseTableProvider implements TableProvider {
     }
 
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        isCloseChecker();
         if (value == null) {
             throw new IllegalArgumentException("value cannot be null");
         }
@@ -232,6 +247,7 @@ public class DatabaseTableProvider implements TableProvider {
     }
 
     public Storeable createFor(Table table) {
+        isCloseChecker();
         if (table == null) {
             return null;
         }
@@ -244,6 +260,7 @@ public class DatabaseTableProvider implements TableProvider {
     }
 
     public Storeable createFor(Table table, List<?> values) throws ColumnFormatException, IndexOutOfBoundsException {
+        isCloseChecker();
         if (values == null) {
             throw new IllegalArgumentException("values cannot be null");
         }
@@ -365,7 +382,6 @@ public class DatabaseTableProvider implements TableProvider {
                     }
                 }
             }
-            loadingTable.uncommittedChanges.set(0);
             tables.put(curTableName, loadingTable);
         }
         curTable = null;
@@ -430,5 +446,28 @@ public class DatabaseTableProvider implements TableProvider {
         } else {
             throw new IllegalArgumentException("File has incorrect format");
         }
+    }
+
+    public void isCloseChecker() {
+        if (isClosed) {
+            throw new IllegalStateException("It is closed");
+        }
+    }
+
+    @Override
+    public String toString() {
+        isCloseChecker();
+        return String.format("%s[%s]", getClass().getSimpleName(), curDir);
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (isClosed) {
+            return;
+        }
+        for (final String tableName : tables.keySet()) {
+            tables.get(tableName).close();
+        }
+        isClosed = true;
     }
 }

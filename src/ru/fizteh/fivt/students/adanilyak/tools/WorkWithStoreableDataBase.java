@@ -22,7 +22,6 @@ public class WorkWithStoreableDataBase {
             hashCode *= Integer.signum(hashCode);
             int indexDir = hashCode % 16;
             int indexDat = hashCode / 16 % 16;
-
             if (mapReadyForWrite[indexDir][indexDat] == null) {
                 mapReadyForWrite[indexDir][indexDat] = new HashMap<>();
             }
@@ -46,7 +45,6 @@ public class WorkWithStoreableDataBase {
                                       Table table, TableProvider provider) throws IOException {
         Map<String, String>[][] mapReadyForWrite = new Map[16][16];
         makeUpParsedMap(mapReadyForWrite, dataBase, table, provider);
-
         for (int indexDir = 0; indexDir < 16; ++indexDir) {
             File fileDir = new File(dataBaseDirectory, indexDir + ".dir");
             for (int indexDat = 0; indexDat < 16; ++indexDat) {
@@ -59,13 +57,11 @@ public class WorkWithStoreableDataBase {
                     }
                     continue;
                 }
-
                 if (!fileDir.exists()) {
                     if (!fileDir.mkdir()) {
                         throw new IOException(fileDat.toString() + ": can not create file, something went wrong");
                     }
                 }
-
                 if (!fileDat.createNewFile()) {
                     if (!fileDat.exists()) {
                         throw new IOException(fileDat.toString() + ": can not create file, something went wrong");
@@ -85,7 +81,6 @@ public class WorkWithStoreableDataBase {
                 throw new IOException("signature.tsv file is empty");
             }
             String[] types = scanner.nextLine().split("\\s");
-
             List<Class<?>> result = new ArrayList<>();
             for (Integer i = 0; i < types.length; ++i) {
                 switch (types[i]) {
@@ -133,31 +128,24 @@ public class WorkWithStoreableDataBase {
         for (int index = 0; index < 16; ++index) {
             String indexDirectoryName = index + ".dir";
             File indexDirectory = new File(dataBaseDirectory, indexDirectoryName);
-
             if (!indexDirectory.exists()) {
                 continue;
             }
-
             if (!indexDirectory.isDirectory()) {
                 throw new IOException(indexDirectory.toString() + ": not directory");
             }
-
             if (indexDirectory.list().length == 0) {
                 throw new IOException(indexDirectory.toString() + ": is empty");
             }
-
             for (int fileIndex = 0; fileIndex < 16; ++fileIndex) {
                 String fileIndexName = fileIndex + ".dat";
                 File fileIndexDat = new File(indexDirectory, fileIndexName);
-
                 if (!fileIndexDat.exists()) {
                     continue;
                 }
-
                 if (fileIndexDat.length() == 0) {
                     throw new IOException(fileIndexDat.toString() + ": is empty");
                 }
-
                 WorkWithDatFiles.readIntoStoreableMap(fileIndexDat, map, table, provider, index, fileIndex);
             }
         }
@@ -167,7 +155,6 @@ public class WorkWithStoreableDataBase {
     public static void createSignatureFile(File tableStorageDirectory, Table table) {
         try {
             File signatureFile = new File(tableStorageDirectory, "signature.tsv");
-
             if (!signatureFile.exists()) {
                 signatureFile.createNewFile();
             }

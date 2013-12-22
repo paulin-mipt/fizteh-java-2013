@@ -37,7 +37,9 @@ public class StoreableState extends State implements MultiDbState {
         File file = new File(path);
 
         if (!file.exists()) {
-            file.mkdir();
+            if (!file.mkdirs()) {
+                throw new IOException("can't create directory");
+            }
         }
         provider = new MyTableProviderFactory().create(path);
         

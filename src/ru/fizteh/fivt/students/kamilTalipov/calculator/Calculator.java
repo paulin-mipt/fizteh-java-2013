@@ -130,7 +130,7 @@ public class Calculator {
         OPERATOR
     }
 
-    public static int BASE = 19;
+    public static final int BASE = 19;
 
     private static class Lexeme {
         public String lexeme;

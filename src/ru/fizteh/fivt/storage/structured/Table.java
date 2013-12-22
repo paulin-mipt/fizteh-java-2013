@@ -10,24 +10,7 @@ import java.io.IOException;
  *
  * Данный интерфейс не является потокобезопасным.
  */
-public interface Table {
-
-    /**
-     * Возвращает название таблицы.
-     *
-     * @return Название таблицы.
-     */
-    String getName();
-
-    /**
-     * Получает значение по указанному ключу.
-     *
-     * @param key Ключ для поиска значения. Не может быть null.
-     * @return Значение. Если не найдено, возвращает null.
-     *
-     * @throws IllegalArgumentException Если значение параметра key является null.
-     */
-    Storeable get(String key);
+public interface Table extends Index {
 
     /**
      * Устанавливает значение по указанному ключу.

@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public interface Command<State> {
 
-    public String getName();
+    String getName();
 
-    public void executeCmd(State shell, String[] args) throws IOException;
+    void executeCmd(State inState, String[] args) throws IOException;
 }

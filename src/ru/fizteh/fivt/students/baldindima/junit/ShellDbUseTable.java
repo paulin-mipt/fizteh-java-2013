@@ -2,6 +2,7 @@ package ru.fizteh.fivt.students.baldindima.junit;
 
 import java.io.IOException;
 
+import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.baldindima.shell.ShellIsItCommand;
 
 public class ShellDbUseTable extends ShellIsItCommand {
@@ -19,14 +20,15 @@ public class ShellDbUseTable extends ShellIsItCommand {
              System.out.println(context.getChanges() + " unsaved changes");
              return;
          }
-
+    	 Table oldTable = context.table;
          context.table = context.provider.getTable(arguments[1]);
          if (context.table != null) {
              System.out.println("using " + arguments[1]);
          } else {
              System.out.println(arguments[1] + " not exists");
+             context.table = oldTable;
          }
     }
-
+    
 }
 

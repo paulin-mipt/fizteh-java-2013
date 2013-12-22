@@ -18,7 +18,7 @@ import java.io.IOException;
  * Time: 11:21
  */
 public class FileMapShell extends GenericShell {
-    private final Integer PARSER_AND_EXECUTOR = 1;
+    private final Integer parserAndExecutor = 1;
 
     public FileMapShell(String[] args, String datFileName) {
         File datFile = new File(System.getProperty("fizteh.db.dir"), datFileName);
@@ -34,9 +34,9 @@ public class FileMapShell extends GenericShell {
 
     private void runFileMapShell(String[] args, GenericCmdList cmdList) {
         if (args.length == 0) {
-            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         } else {
-            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         }
     }
 

@@ -13,9 +13,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class DBTable implements Table {
+public class DBTable implements Table, AutoCloseable {
 
     private File tableDirectory;
+    private volatile boolean isClosed = false;
     private HashMap<String, Storeable> originalTable = new HashMap<>();
     private List<Class<?>> columnTypes;
     private TableProvider tableProvider;
@@ -56,12 +57,26 @@ public class DBTable implements Table {
     }
 
     @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "[" + tableDirectory + "]";
+    }
+
+    public void close() {
+        if (!isClosed) {
+            rollback();
+            isClosed = true;
+        }
+    }
+
+    @Override
     public String getName() {
+        checkIsClosed();
         return tableDirectory.getName();
     }
 
     @Override
     public Storeable get(String key) {
+        checkIsClosed();
         if (key == null) {
             throw new IllegalArgumentException("remove: key is null");
         }
@@ -105,6 +120,7 @@ public class DBTable implements Table {
 
     @Override
     public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        checkIsClosed();
         if (value == null || key == null) {
             throw new IllegalArgumentException("put: key or value is null");
         }
@@ -136,6 +152,7 @@ public class DBTable implements Table {
 
     @Override
     public Storeable remove(String key) {
+        checkIsClosed();
         if (key == null) {
             throw new IllegalArgumentException("table remove: key is null");
         }
@@ -168,6 +185,7 @@ public class DBTable implements Table {
 
     @Override
     public int size() {
+        checkIsClosed();
         int count;
         readLock.lock();
         try {
@@ -198,6 +216,7 @@ public class DBTable implements Table {
     //@return Количество сохранённых ключей.
     @Override
     public int commit() throws IOException {
+        checkIsClosed();
         int count = -1;
         writeLock.lock();
         try {
@@ -226,6 +245,7 @@ public class DBTable implements Table {
 
     @Override
     public int rollback() {
+        checkIsClosed();
         int count = -1;
         readLock.lock();
         try {
@@ -240,11 +260,13 @@ public class DBTable implements Table {
 
     @Override
     public int getColumnsCount() {
+        checkIsClosed();
         return columnTypes.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkIsClosed();
         if (columnIndex >= columnTypes.size() || columnIndex < 0) {
             throw new IndexOutOfBoundsException("invalid column index: " + columnIndex);
         }
@@ -253,6 +275,7 @@ public class DBTable implements Table {
 
     //Перед вызовом этой функции нужно блокировать запись в originalTable
     public int countTheNumberOfChanges() {
+        checkIsClosed();
         int countOfChanges = 0;
         for (String currentKey : removedKeys.get()) {
             if (!originalTable.containsKey(currentKey)) {
@@ -278,5 +301,15 @@ public class DBTable implements Table {
         String string1 = tableProvider.serialize(this, first);
         String string2 = tableProvider.serialize(this, second);
         return string1.equals(string2);
+    }
+
+    private void checkIsClosed() throws IllegalStateException {
+        if (isClosed) {
+            throw new IllegalStateException("table was closed");
+        }
+    }
+
+    public Boolean isClosed() {
+        return isClosed;
     }
 }

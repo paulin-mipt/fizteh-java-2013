@@ -1,9 +1,6 @@
 package ru.fizteh.fivt.students.yaninaAnastasia.filemap;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 
@@ -207,5 +204,16 @@ public class TestDatabaseStoreable {
     public void testSetColumnNoException() {
         storeable.setColumnAt(1, "a");
         Assert.assertTrue(storeable.getColumnAt(1).equals("a"));
+    }
+
+    @Test
+    public void testToString() throws Exception {
+        storeable.setColumnAt(0, 5);
+        storeable.setColumnAt(1, "Five");
+        storeable.setColumnAt(2, 5L);
+        storeable.setColumnAt(3, true);
+        storeable.setColumnAt(4, 5.5);
+        storeable.setColumnAt(5, 5.5f);
+        Assert.assertEquals(storeable.toString(), "DatabaseStoreable[5,Five,5,true,5.5,5.5]");
     }
 }

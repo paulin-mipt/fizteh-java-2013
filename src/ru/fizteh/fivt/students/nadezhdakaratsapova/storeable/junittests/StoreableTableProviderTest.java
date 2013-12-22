@@ -9,6 +9,7 @@ import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.shell.CommandUtils;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableDataValue;
+import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableTable;
 import ru.fizteh.fivt.students.nadezhdakaratsapova.storeable.StoreableTableProvider;
 
 import java.io.File;
@@ -41,8 +42,10 @@ public class StoreableTableProviderTest {
 
     @After
     public void tearDown() throws Exception {
-        if (tableProvider.getTable(TESTED_TABLE) != null) {
-            tableProvider.removeTable(TESTED_TABLE);
+        if (!tableProvider.isTableProviderClosed()) {
+            if (tableProvider.getTable(TESTED_TABLE) != null) {
+                tableProvider.removeTable(TESTED_TABLE);
+            }
         }
         CommandUtils.recDeletion(testedFile);
     }
@@ -258,5 +261,23 @@ public class StoreableTableProviderTest {
         firstThread.join();
         secondThread.join();
         Assert.assertTrue(firstThreadFlag ^ secondThreadFlag);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCreateTableProviderShouldFail() throws Exception {
+        tableProvider.close();
+        tableProvider.createTable("NewTable", types);
+    }
+
+    @Test
+    public void closeTableGetTable() throws Exception {
+        StoreableTable newTable = tableProvider.createTable(TESTED_TABLE, types);
+        newTable.put("key", tableProvider.deserialize(newTable,
+                "<row><col>5</col><col>key</col><col>true</col></row>"));
+        newTable.commit();
+        newTable.close();
+        StoreableTable sameNewTable = tableProvider.getTable(TESTED_TABLE);
+        Assert.assertEquals("<row><col>5</col><col>key</col><col>true</col></row>",
+                tableProvider.serialize(sameNewTable, sameNewTable.get("key")));
     }
 }

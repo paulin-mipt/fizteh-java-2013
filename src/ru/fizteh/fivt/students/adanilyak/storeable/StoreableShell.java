@@ -12,9 +12,9 @@ import ru.fizteh.fivt.students.adanilyak.userinterface.GenericShell;
  * Time: 20:19
  */
 public class StoreableShell extends GenericShell {
-    private final Integer PARSER_AND_EXECUTOR = 2;
+    private final Integer parserAndExecutor = 2;
 
-    public StoreableShell(String args[]) {
+    public StoreableShell(String[] args) {
         String workingDirectory = System.getProperty("fizteh.db.dir");
         if (workingDirectory == null) {
             System.err.println("Data Base directory is not set");
@@ -33,9 +33,9 @@ public class StoreableShell extends GenericShell {
 
     public void runShell(String[] args, GenericCmdList cmdList) {
         if (args.length == 0) {
-            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         } else {
-            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         }
     }
 

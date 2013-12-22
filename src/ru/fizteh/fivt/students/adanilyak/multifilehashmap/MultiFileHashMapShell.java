@@ -12,7 +12,7 @@ import ru.fizteh.fivt.students.adanilyak.userinterface.GenericShell;
  * Time: 16:40
  */
 public class MultiFileHashMapShell extends GenericShell {
-    private final Integer PARSER_AND_EXECUTOR = 1;
+    private final Integer parserAndExecutor = 1;
 
     public MultiFileHashMapShell(String[] args) {
         String workingDirectory = System.getProperty("fizteh.db.dir");
@@ -33,9 +33,9 @@ public class MultiFileHashMapShell extends GenericShell {
 
     public void runShell(String[] args, GenericCmdList cmdList) {
         if (args.length == 0) {
-            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         } else {
-            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         }
     }
 

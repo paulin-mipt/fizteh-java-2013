@@ -27,7 +27,7 @@ public class GetCommand extends SimpleCommand {
             if (value == null) {
                 System.out.println("not found");
             } else {
-                System.out.println("found\n" + value);
+                System.out.println("found\n" + database.serialize(value));
             }
         } catch (NoTableSelectedException e) {
             System.err.println("no table");

@@ -13,11 +13,11 @@ public class GenericShell {
     }
 
     public GenericShell(String[] args, GenericCmdList cmdList) {
-        final Integer PARSER_AND_EXECUTOR = 0;
+        final Integer parserAndExecutor = 0;
         if (args.length == 0) {
-            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.interactiveMode(System.in, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         } else {
-            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, PARSER_AND_EXECUTOR);
+            ShellLogic.packageMode(args, cmdList.getCmdList(), System.out, System.err, parserAndExecutor);
         }
     }
 }

@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
+import static org.junit.Assert.*;
+
 public class TableProviderTester {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -144,6 +146,66 @@ public class TableProviderTester {
             if (!executor.awaitTermination(500, TimeUnit.MILLISECONDS)) {
                 throw new IllegalStateException("Timeout");
             }
+        }
+    }
+
+    @Test
+    public void manyClosesTest() throws IOException {
+        List<Class<?>> types = new ArrayList<>();
+        types.add(Integer.class);
+        provider.createTable("Table1", types);
+        provider.createTable("Table2", types);
+
+        for (int i = 0; i < 5; ++i) {
+            provider.close();
+        }
+    }
+
+    @Test
+    public void workAfterCloseTest() throws IOException {
+        List<Class<?>> types = new ArrayList<>();
+        types.add(Integer.class);
+        types.add(String.class);
+        Table table = provider.createTable("Hello", types);
+
+        provider.close();
+
+        try {
+            provider.createTable("hello", types);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            //normal result
+        }
+
+        try {
+            provider.removeTable("test");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            //normal result
+        }
+
+        try {
+            provider.getTable("test");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            //normal result
+        }
+
+        try {
+            provider.createFor(table);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            //normal result
+        }
+
+        try {
+            ArrayList<Object> testValues = new ArrayList<>();
+            testValues.add(5);
+            testValues.add("value");
+            provider.createFor(table, testValues);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            //normal result
         }
     }
 }

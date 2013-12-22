@@ -10,7 +10,7 @@ public class DbMain {
 
     public static void main(String[] args) throws IOException {
         //args = new String[]{"get ключ; get key; get 123"};
-//        String path = "/home/deamoon/Music/deamoonSql";
+        //String path = "/home/deamoon/Music/deamoonSql";
 
         try {
             String path = System.getProperty("fizteh.db.dir");

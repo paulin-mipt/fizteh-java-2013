@@ -15,11 +15,38 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.xml.stream.*;
 
-public class DistributedTableProvider implements TableProvider {
+public class DistributedTableProvider implements TableProvider, AutoCloseable {
 
     private HashMap<String, DistributedTable> tables;
     private Path currentPath;
     private ReadWriteLock tablesLock;
+    private volatile boolean isClosed = false;
+    private DistributedTableProviderFactory factory;
+
+    private void checkState() throws IllegalArgumentException {
+        if (isClosed) {
+            throw new IllegalStateException("table provider already closed");
+        }
+    }
+
+    public void close() throws IOException {
+        if (isClosed) {
+            return;
+        }
+        tablesLock.writeLock().lock();
+        try {
+            if (isClosed) {
+                return;
+            }
+            factory.forgetTableProvider(currentPath);
+            for (DistributedTable table : tables.values()) {
+                table.close();
+            }
+            isClosed = true;
+        } finally {
+            tablesLock.writeLock().unlock();
+        }
+    }
 
     public static boolean isValidName(String name) {
         return name != null && !name.equals("") && !name.contains(".") && !name.contains("/") && !name.contains("\\");
@@ -31,7 +58,7 @@ public class DistributedTableProvider implements TableProvider {
         }
         if (!tables.containsKey(name)) {
             try {
-                tables.put(name, new DistributedTable(currentPath.resolve(name), name));
+                tables.put(name, new DistributedTable(this, currentPath.resolve(name), name));
             } catch (IOException e) {
                 return false;
             }
@@ -40,6 +67,7 @@ public class DistributedTableProvider implements TableProvider {
     }
 
     public boolean existsTable(String name) {
+        checkState();
         tablesLock.readLock().lock();
         try {
             if (tables.containsKey(name)) {
@@ -56,7 +84,8 @@ public class DistributedTableProvider implements TableProvider {
         }
     }
 
-    public DistributedTableProvider(Path workingDirectory) throws IOException, IllegalArgumentException {
+    public DistributedTableProvider(Path workingDirectory, DistributedTableProviderFactory factory) throws IOException {
+        this.factory = factory;
         currentPath = workingDirectory;
         if (currentPath == null) {
             throw new IllegalArgumentException("working directory shouldn't be null");
@@ -65,7 +94,7 @@ public class DistributedTableProvider implements TableProvider {
             throw new IllegalArgumentException("couldn't create working directory on file");
         }
         if (!Files.exists(currentPath)) {
-            Files.createDirectory(currentPath);
+            Files.createDirectories(currentPath);
         }
         tables = new HashMap<>();
         tablesLock = new ReentrantReadWriteLock(true);
@@ -73,6 +102,7 @@ public class DistributedTableProvider implements TableProvider {
 
     @Override
     public DistributedTable getTable(String name) throws IllegalArgumentException {
+        checkState();
         if (!isValidName(name)) {
             throw new IllegalArgumentException("invalid table name");
         }
@@ -95,6 +125,7 @@ public class DistributedTableProvider implements TableProvider {
 
     @Override
     public DistributedTable createTable(String name, List<Class<?>> columnTypes) throws IOException {
+        checkState();
         if (columnTypes == null || columnTypes.size() == 0) {
             throw new IllegalArgumentException("invalid column type");
         }
@@ -106,8 +137,21 @@ public class DistributedTableProvider implements TableProvider {
             if (loadTable(name)) {
                 return null;
             }
-            tables.put(name, new DistributedTable(currentPath.resolve(name), name, columnTypes));
+            tables.put(name, new DistributedTable(this, currentPath.resolve(name), name, columnTypes));
             return tables.get(name);
+        } finally {
+            tablesLock.writeLock().unlock();
+        }
+    }
+
+    public void forgetTable(String name) {
+        checkState();
+        if (!isValidName(name)) {
+            throw new IllegalArgumentException("invalid table name");
+        }
+        tablesLock.writeLock().lock();
+        try {
+            tables.remove(name);
         } finally {
             tablesLock.writeLock().unlock();
         }
@@ -115,6 +159,7 @@ public class DistributedTableProvider implements TableProvider {
 
     @Override
     public void removeTable(String name) throws IOException {
+        checkState();
         if (!isValidName(name)) {
             throw new IllegalArgumentException("invalid table name");
         }
@@ -133,6 +178,7 @@ public class DistributedTableProvider implements TableProvider {
 
     @Override
     public TableRecord createFor(Table table) {
+        checkState();
         if (table == null) {
             throw new IllegalArgumentException("argument shouldn't be null");
         }
@@ -149,6 +195,7 @@ public class DistributedTableProvider implements TableProvider {
 
     @Override
     public TableRecord createFor(Table table, List<?> values) throws ColumnFormatException, IndexOutOfBoundsException {
+        checkState();
         if (values == null) {
             throw new IllegalArgumentException("list of values shouldn't be null");
         }
@@ -235,6 +282,7 @@ public class DistributedTableProvider implements TableProvider {
 
     @Override
     public TableRecord deserialize(Table table, String value) throws ParseException {
+        checkState();
         if (value == null) {
             return null;
         }
@@ -243,6 +291,9 @@ public class DistributedTableProvider implements TableProvider {
     }
 
     public static String serializeByTypesList(List<Class<?>> tableTypes, Storeable storeable) {
+        if (storeable == null) {
+            return null;
+        }
         TableRecord.checkStoreableTypes(storeable, tableTypes);
         StringWriter stringWriter = new StringWriter();
         try {
@@ -272,6 +323,7 @@ public class DistributedTableProvider implements TableProvider {
     }
 
     public String serialize(Table table, Storeable value) throws ColumnFormatException {
+        checkState();
         if (table == null) {
             throw new IllegalArgumentException("table shouldn't be null");
         }
@@ -289,5 +341,11 @@ public class DistributedTableProvider implements TableProvider {
             tablesLock.readLock().unlock();
         }
         return serializeByTypesList(tableTypes, value);
+    }
+
+    @Override
+    public String toString() {
+        checkState();
+        return this.getClass().getSimpleName() + '[' + currentPath.toAbsolutePath() + ']';
     }
 }

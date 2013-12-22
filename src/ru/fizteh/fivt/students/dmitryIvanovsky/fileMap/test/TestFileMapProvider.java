@@ -5,8 +5,8 @@ import org.junit.Before;
 import org.junit.Test;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapProvider;
+import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapProviderFactory;
 import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapUtils;
 import ru.fizteh.fivt.students.dmitryIvanovsky.shell.CommandShell;
 import ru.fizteh.fivt.students.dmitryIvanovsky.shell.ErrorShell;
@@ -27,7 +27,8 @@ import static org.junit.Assert.assertEquals;
 
 public class TestFileMapProvider {
 
-    private TableProvider multiMap;
+    private FileMapProviderFactory multiMapFactory;
+    private FileMapProvider multiMap;
     private CommandShell mySystem;
     private Path pathTables;
 
@@ -42,9 +43,9 @@ public class TestFileMapProvider {
         } catch (ErrorShell e) {
             e.printStackTrace();
         }
-
+        multiMapFactory = new FileMapProviderFactory();
         try {
-            multiMap = new FileMapProvider(pathTables.toAbsolutePath().toString());
+            multiMap = (FileMapProvider) multiMapFactory.create(pathTables.toAbsolutePath().toString());
         } catch (Exception e) {
             e.printStackTrace();
             FileMapUtils.getMessage(e);
@@ -153,8 +154,45 @@ public class TestFileMapProvider {
         multiMap.deserialize(table, res);
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallCloseTable() {
+        multiMap.close();
+        multiMap.closeTable("123");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallCreateFor() {
+        multiMap.close();
+        multiMap.createFor(null);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallGetTable() {
+        multiMap.close();
+        multiMap.getTable("123");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallCreateTable() throws IOException {
+        multiMap.close();
+        multiMap.createTable(null, null);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeFactoryCallProvider() throws IOException {
+        multiMapFactory.close();
+        multiMap.createTable(null, null);
+    }
+
+    @Test()
+    public void correctToString() throws IOException {
+        assertEquals(multiMap.toString(),
+                String.format("%s[%s]", "FileMapProvider", pathTables.toFile().getCanonicalPath().toString()));
+    }
+
     @After
     public void tearDown() {
+        multiMapFactory.close();
         try {
             mySystem.rm(new String[]{pathTables.toString()});
         } catch (Exception e) {

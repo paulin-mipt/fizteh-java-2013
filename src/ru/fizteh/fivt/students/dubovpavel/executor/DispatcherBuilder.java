@@ -7,7 +7,7 @@ public abstract class DispatcherBuilder {
     protected ArrayList<Performer> performers;
 
     protected Dispatcher setPerformers(Dispatcher dispatcher) {
-        for(Performer performer : performers) {
+        for (Performer performer : performers) {
             dispatcher.addPerformer(performer);
         }
         return dispatcher;
@@ -16,6 +16,7 @@ public abstract class DispatcherBuilder {
     public DispatcherBuilder() {
         clear();
     }
+
     public void setForwarding(boolean forwarding) {
         this.forwarding = forwarding;
     }

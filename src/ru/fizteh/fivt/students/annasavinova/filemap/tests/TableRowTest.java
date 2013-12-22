@@ -24,6 +24,7 @@ public class TableRowTest {
 
     @Before
     public void init() throws IOException {
+        @SuppressWarnings("resource")
         DBaseProviderFactory fact = new DBaseProviderFactory();
         TableProvider prov = null;
         prov = fact.create(root.newFolder().toString());
@@ -232,5 +233,17 @@ public class TableRowTest {
         String a = "12.1";
         row.setColumnAt(6, a);
         assertSame(row.getStringAt(6), "12.1");
+    }
+
+    @Test
+    public void testToString() {
+        row.setColumnAt(0, 1);
+        row.setColumnAt(1, 2L);
+        row.setColumnAt(2, null);
+        row.setColumnAt(3, 2.1f);
+        row.setColumnAt(4, 2.3);
+        row.setColumnAt(5, false);
+        row.setColumnAt(6, "test");
+        assertTrue(row.toString().equals("TableRow[1,2,,2.1,2.3,false,test]"));
     }
 }

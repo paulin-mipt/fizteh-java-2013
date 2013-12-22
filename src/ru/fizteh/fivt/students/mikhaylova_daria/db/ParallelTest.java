@@ -26,10 +26,10 @@ public class ParallelTest {
     private File mainDir;
     private File tableFile;
 
-    private ru.fizteh.fivt.storage.structured.TableProviderFactory factory;
+    private TableManagerFactory factory;
     private ArrayList<Class<?>> goodTypeList;
-    private TableProvider provider;
-    private Table table;
+    private TableManager provider;
+    private TableData table;
     private File goodTableSign;
     private final String goodStrVal
             = "<row><col>12</col></row>";
@@ -68,6 +68,7 @@ public class ParallelTest {
 
     @After
     public void after() {
+        factory.close();
         folder.delete();
     }
 

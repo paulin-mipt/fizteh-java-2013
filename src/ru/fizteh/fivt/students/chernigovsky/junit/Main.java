@@ -41,35 +41,8 @@ public class Main {
         commandMap.put("rollback", new CommandRollback());
 
         if (args.length == 0) { // Interactive mode
-            interactiveMode(commandMap, fileMapState);
-        } else { // Batch mode
-            StringBuilder stringBuilder = new StringBuilder();
-            for (String string : args) {
-                stringBuilder.append(string);
-                stringBuilder.append(" ");
-            }
-            String commands = stringBuilder.toString();
-            batchMode(commands, commandMap, fileMapState);
-        }
-
-        try {
-            MultiFileHashMapUtils.writeTable(fileMapState);
-        } catch (IOException ex) {
-            System.err.println(ex.getMessage());
-            System.exit(1);
-        }
-
-    }
-
-    private static void interactiveMode(Map<String, Command> commandMap, FileMapState fileMapState) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("$ ");
-        while (scanner.hasNextLine()){
-            String string = scanner.nextLine();
             try {
-                parseCommands(string, commandMap, fileMapState);
-            } catch (IOException ex) {
-                System.err.println(ex.getMessage());
+                Mods.interactiveMode(commandMap, fileMapState);
             } catch (ExitException ex) {
                 if (fileMapState.getCurrentTable() != null) {
                     try {
@@ -81,43 +54,28 @@ public class Main {
                 }
                 System.exit(0);
             }
-            System.out.print("$ ");
+        } else { // Batch mode
+            try {
+                Mods.batchMode(args, commandMap, fileMapState);
+            } catch (ExitException ex) {
+                if (fileMapState.getCurrentTable() != null) {
+                    try {
+                        MultiFileHashMapUtils.writeTable(fileMapState);
+                    } catch (IOException exc) {
+                        System.err.println(exc.getMessage());
+                        System.exit(1);
+                    }
+                }
+                System.exit(0);
+            }
         }
-    }
 
-    private static void batchMode(String commands, Map<String, Command> commandMap, FileMapState fileMapState) {
         try {
-            parseCommands(commands, commandMap, fileMapState);
+            MultiFileHashMapUtils.writeTable(fileMapState);
         } catch (IOException ex) {
             System.err.println(ex.getMessage());
-        } catch (ExitException ex) {
-            if (fileMapState.getCurrentTable() != null) {
-                try {
-                    MultiFileHashMapUtils.writeTable(fileMapState);
-                } catch (IOException exc) {
-                    System.err.println(exc.getMessage());
-                    System.exit(1);
-                }
-            }
-            System.exit(0);
-        }
-    }
-
-    private static void parseCommands(String commands, Map<String, Command> commandMap, FileMapState fileMapState) throws IOException, ExitException {
-        String[] listOfCommand = commands.trim().split("\\s*;\\s*");
-        for (String string : listOfCommand) {
-            String[] commandArguments = string.split("\\s+");
-            Command command = commandMap.get(commandArguments[0]);
-            if (command == null) {
-                throw new IOException("Wrong command name");
-            }
-            if (commandArguments.length != command.getArgumentsCount() + 1) {
-                throw new IOException("Wrong argument count");
-            } else {
-                command.execute(fileMapState, commandArguments);
-            }
+            System.exit(1);
         }
 
     }
-
 }

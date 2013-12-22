@@ -4,8 +4,10 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import ru.fizteh.fivt.storage.structured.*;
 
+import ru.fizteh.fivt.students.anastasyev.filemap.FileMapTable;
 import ru.fizteh.fivt.students.anastasyev.filemap.FileMapTableProviderFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -18,6 +20,7 @@ public class FileMapTableTest {
     TableProvider tableProvider;
     Table currTable;
     String currTableName;
+    String path;
     List<Class<?>> classes;
     String value = "[0,1,2,3,4,5.4,false,\"string1\",\"string2\"]";
 
@@ -74,7 +77,8 @@ public class FileMapTableTest {
         classes.add(Boolean.class);
         classes.add(String.class);
         classes.add(String.class);
-        tableProvider = factory.create(folder.newFolder().toString());
+        path = folder.newFolder().toString();
+        tableProvider = factory.create(path);
         assertNotNull(tableProvider);
         currTable = tableProvider.createTable("TestTable", classes);
         currTableName = "TestTable";
@@ -499,65 +503,6 @@ public class FileMapTableTest {
     }
 
     @Test
-    public void testParallelsCommit() throws InterruptedException {
-        first = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                assertNull(table.put(value1, value1Storeable));
-                assertNull(table.put(value2, value2Storeable));
-                assertNull(table.put(value3, value3Storeable));
-                try {
-                    Thread.sleep(100);
-                    assertEquals(table.commit(), 3);
-                } catch (IOException | InterruptedException e) {
-                    //
-                }
-            }
-        });
-        second = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                assertNull(table.put(value1, value1Storeable));
-                assertNull(table.put(value2, value2Storeable));
-                assertNull(table.put(value3, value3Storeable));
-                try {
-                    first.join();
-                    assertEquals(table.commit(), 0);
-                } catch (IOException | InterruptedException e) {
-                    //
-                }
-                assertNull(table.put(value4, value1Storeable));
-                try {
-                    third.join();
-                    assertTrue(storeableEquals(table.remove(value4), value1Storeable, table));
-                    assertEquals(table.commit(), 1);
-                } catch (IOException | InterruptedException e) {
-                    //
-                }
-            }
-        });
-        third = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(100);
-                    assertNull(table.put(value4, value4Storeable));
-                    assertEquals(table.commit(), 1);
-                } catch (IOException | InterruptedException e) {
-                    //
-                }
-            }
-        });
-
-        first.start();
-        second.start();
-        first.join();
-        third.start();
-        second.join();
-        third.join();
-    }
-
-    @Test
     public void testParallelsRemoveSynohronize() throws InterruptedException {
         first = new Thread(new Runnable() {
             @Override
@@ -609,6 +554,7 @@ public class FileMapTableTest {
         assertTrue(storeableEquals(table.get(value2), value4Storeable, table));
         assertTrue(storeableEquals(table.get(value3), value3Storeable, table));
     }
+
     @Test
     public void testParallelsCommits() throws InterruptedException {
         table.put("key1", value1Storeable);
@@ -647,5 +593,74 @@ public class FileMapTableTest {
         second.start();
         first.join();
         second.join();
+    }
+
+    @Test
+    public void testDoubleCloseTable() throws ParseException {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.close();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testPutAfterClose() {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.put("key1", value1Storeable);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetAfterClose() {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.get("key1");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testRemoveAfterClose() {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.remove("key1");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCommitAfterClose() {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.commit();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testRollbackAfterClose() {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.rollback();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testSizeAfterClose() {
+        FileMapTable fileMapTable = (FileMapTable) table;
+        assertNull(fileMapTable.put("key", value1Storeable));
+        fileMapTable.close();
+        fileMapTable.size();
+    }
+
+    @Test
+    public void testToString() {
+        String str = table.toString();
+        assertEquals(str, "FileMapTable[" + path + File.separator + "table]");
+    }
+
+    @Test
+    public void getTableAfterClose() throws IOException {
+        Table table = tableProvider.createTable("closedTable", classes);
+        ((FileMapTable) table).close();
+        assertNotSame(table, tableProvider.getTable("closedTable"));
     }
 }

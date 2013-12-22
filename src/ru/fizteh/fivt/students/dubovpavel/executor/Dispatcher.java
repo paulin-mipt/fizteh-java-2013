@@ -5,10 +5,12 @@ import java.util.ArrayList;
 
 public class Dispatcher {
     private Parser parser;
-    private int invalidSequences, invalidOperations;
+    private int invalidSequences;
+    private int invalidOperations;
     private ArrayList<Performer> performers;
     private boolean forwarding;
     protected boolean shutdown;
+    private Boolean quiet;
 
     public static class DispatcherException extends Exception {
         public DispatcherException(String msg) {
@@ -22,11 +24,17 @@ public class Dispatcher {
         ERROR
     }
 
+    public void setQuiet(boolean quiet) {
+        synchronized (this.quiet) {
+            this.quiet = quiet;
+        }
+    }
     public String getInitProperty(String key) throws DispatcherException {
         String value = System.getProperty(key);
-        if(value == null) {
+        if (value == null) {
             shutdown = true;
-            throw new DispatcherException(callbackWriter(MessageType.ERROR, String.format("'%s' property is null", key)));
+            throw new DispatcherException(
+                    callbackWriter(MessageType.ERROR, String.format("'%s' property is null", key)));
         } else {
             return value;
         }
@@ -36,8 +44,9 @@ public class Dispatcher {
         invalidSequences = 0;
         parser = new Parser();
         this.forwarding = forwarding;
-        performers = new ArrayList<Performer>();
+        performers = new ArrayList<>();
         shutdown = false;
+        quiet = false;
     }
 
     public void addPerformer(Performer performer) {
@@ -45,14 +54,20 @@ public class Dispatcher {
     }
 
     public String callbackWriter(MessageType type, String msg) {
-        PrintStream stream = null;
-        if(type == MessageType.SUCCESS || type == MessageType.WARNING) {
-            stream = System.out;
-        } else {
-            stream = System.err;
+        synchronized (quiet) {
+            if (!quiet) {
+                PrintStream stream;
+                if (type == MessageType.SUCCESS || type == MessageType.WARNING) {
+                    stream = System.out;
+                } else {
+                    stream = System.err;
+                }
+                stream.println(msg);
+                return msg;
+            } else {
+                return null;
+            }
         }
-        stream.println(msg);
-        return msg;
     }
 
     public void shutDown() {
@@ -66,32 +81,32 @@ public class Dispatcher {
     public void sortOut(String commandSequence) throws DispatcherException {
         try {
             ArrayList<Command> commands = parser.getCommands(this, commandSequence);
-            for(Command command: commands) {
+            for (Command command : commands) {
                 try {
-                    if(shutdown) {
+                    if (shutdown) {
                         break;
                     }
                     boolean performed = false;
-                    for(Performer performer: performers) {
-                        if(performer.pertains(command)) {
+                    for (Performer performer : performers) {
+                        if (performer.pertains(command)) {
                             performer.execute(this, command);
                             performed = true;
                             break;
                         }
                     }
-                    if(!performed) {
+                    if (!performed) {
                         callbackWriter(MessageType.ERROR, String.format("%s is not correct", command.getDescription()));
                     }
-                } catch(PerformerException e) {
+                } catch (PerformerException e) {
                     invalidOperations++;
-                    if(forwarding) {
+                    if (forwarding) {
                         throw new DispatcherException(e.getMessage());
                     }
                 }
             }
-        } catch(Parser.IncorrectSyntaxException e) {
+        } catch (Parser.IncorrectSyntaxException e) {
             invalidSequences++;
-            if(forwarding) {
+            if (forwarding) {
                 throw new DispatcherException(e.getMessage());
             }
         }

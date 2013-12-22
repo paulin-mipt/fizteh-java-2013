@@ -1,6 +1,10 @@
 package ru.fizteh.fivt.students.kochetovnicolai.fileMap;
 
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -8,7 +12,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
@@ -18,7 +21,7 @@ import java.util.ArrayList;
 @RunWith(Theories.class)
 public class TestTableProvider {
     protected DistributedTableProviderFactory factory;
-    protected TableProvider provider;
+    protected DistributedTableProvider provider;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -306,5 +309,25 @@ public class TestTableProvider {
         } catch (InterruptedException e) {
             Assert.fail(e.getMessage());
         }
+    }
+
+    @Test
+    public void doubleCloseShouldWork() throws IOException {
+        provider.close();
+        provider.close();
+
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldThrowExceptionAfterClose() throws IOException {
+        provider.close();
+        provider.toString();
+    }
+
+    @Test
+    public void factoryShouldReturnNewProviderAfterClose() throws IOException {
+        provider.close();
+        Assert.assertNotEquals("closed provider, but factory returned same", provider,
+                factory.create(folder.getRoot().getPath()));
     }
 }

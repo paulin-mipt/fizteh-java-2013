@@ -26,15 +26,14 @@ public class XmlSerializer implements Closeable {
 
     public void write(Object value) throws IOException, ParseException {
         try {
-            writer.writeStartElement("col");
             if (value == null) {
-                writer.writeStartElement("null");
-                writer.writeEndElement();
+                writer.writeEmptyElement("null");
             } else {
+                writer.writeStartElement("col");
                 StoreableUtils.checkValue(value, value.getClass());
                 writer.writeCharacters(value.toString());
+                writer.writeEndElement();
             }
-            writer.writeEndElement();
         } catch (XMLStreamException e) {
             throw new IOException("error while serializing: " + e.getMessage());
         }

@@ -6,10 +6,12 @@ import ru.fizteh.fivt.students.dubovpavel.multifilehashmap.StorageBuilder;
 
 public class DispatcherStoreable extends DispatcherMultiFileHashMap {
     private PerformerAdapterStoreable adapter;
+
     public DispatcherStoreable(boolean forwarding, StorageBuilder builder) {
         super(forwarding, builder);
         adapter = new PerformerAdapterStoreable(storage);
     }
+
     @Override
     public DataBaseHandler<String, String> getDataBase() {
         return adapter.checked();

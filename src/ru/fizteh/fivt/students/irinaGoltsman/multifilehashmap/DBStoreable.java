@@ -96,4 +96,17 @@ public class DBStoreable implements Storeable {
         checkEqualityTypes(columnIndex, String.class);
         return (String) rowValues.get(columnIndex);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Object value : rowValues) {
+            if (value != null) {
+                stringBuilder.append(value.toString());
+            }
+            stringBuilder.append(",");
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+        return this.getClass().getSimpleName() + "[" + stringBuilder.toString() + "]";
+    }
 }

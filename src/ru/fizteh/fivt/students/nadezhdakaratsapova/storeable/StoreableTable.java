@@ -27,6 +27,15 @@ public class StoreableTable extends UniversalDataTable<Storeable> implements Tab
         columnTypes = types;
     }
 
+    public StoreableTable(StoreableTable table) throws IOException, ParseException {
+        tableProvider = table.tableProvider;
+        valueConverter = new StoreableValueConverter(tableProvider, this);
+        dataBaseDirectory = table.dataBaseDirectory;
+        tableName = table.tableName;
+        columnTypes = table.columnTypes;
+        this.load();
+    }
+
     @Override
     public Storeable put(String key, Storeable value) throws IllegalArgumentException {
         if ((key == null) || (key.trim().isEmpty()) || (value == null) || (key.matches("(.*\\s+.*)+"))) {
@@ -52,11 +61,14 @@ public class StoreableTable extends UniversalDataTable<Storeable> implements Tab
 
     }
 
+
     public int getColumnsCount() {
+        checkNotClosed();
         return columnTypes.size();
     }
 
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkNotClosed();
         if (columnIndex >= columnTypes.size() || columnIndex < 0) {
             throw new IndexOutOfBoundsException();
         }
@@ -65,9 +77,11 @@ public class StoreableTable extends UniversalDataTable<Storeable> implements Tab
 
     @Override
     public int commit() throws IOException {
+        checkNotClosed();
         int commitSize = 0;
         tableChangesLock.writeLock().lock();
         try {
+            checkNotClosed();
             commitSize = commitWithoutWriteToDataBase();
             writeToDataBase();
             return commitSize;

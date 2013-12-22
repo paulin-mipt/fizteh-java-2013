@@ -5,18 +5,20 @@ import ru.fizteh.fivt.students.dubovpavel.strings.WrappedMindfulDataBaseMultiFil
 import java.util.ArrayList;
 
 public class TableStoreableBuilder extends WrappedMindfulDataBaseMultiFileHashMapBuilder {
-    private ArrayList<Class<?>> fields;
+    protected ArrayList<Class<?>> fields;
 
-    ArrayList<Class<?>> cloneFields(ArrayList<Class<?>> types) {
-        if(types == null) {
+    protected ArrayList<Class<?>> cloneFields(ArrayList<Class<?>> types) {
+        if (types == null) {
             return new ArrayList<>();
         } else {
-            return (ArrayList<Class<?>>)types.clone();
+            return (ArrayList<Class<?>>) types.clone();
         }
     }
+
     public void setFields(ArrayList<Class<?>> types) {
         fields = cloneFields(types);
     }
+
     public TableStoreable construct() {
         ArrayList<Class<?>> fieldsCopy = cloneFields(fields);
         return new TableStoreable(dir, dispatcher, fieldsCopy);

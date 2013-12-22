@@ -9,5 +9,6 @@ public abstract class FileRepresentativeDataBase<V> extends DataBase<V> {
     public FileRepresentativeDataBase(Serial<V> builder) {
         super(builder);
     }
+
     public abstract File getPath();
 }

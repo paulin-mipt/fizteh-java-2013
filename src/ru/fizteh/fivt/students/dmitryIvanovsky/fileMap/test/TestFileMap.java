@@ -2,7 +2,7 @@ package ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.test;
 
 import org.junit.*;
 import ru.fizteh.fivt.storage.structured.Storeable;
-import ru.fizteh.fivt.storage.structured.Table;
+import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMap;
 import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapProvider;
 import ru.fizteh.fivt.students.dmitryIvanovsky.fileMap.FileMapUtils;
 import ru.fizteh.fivt.students.dmitryIvanovsky.shell.CommandShell;
@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 
 public class TestFileMap {
 
-    private Table fileMap;
+    private FileMap fileMap;
     private String nameTable;
     private CommandShell mySystem;
     private Path pathTables;
@@ -43,7 +43,7 @@ public class TestFileMap {
 
         try {
             nameTable = "table";
-            fileMap = multiMap.createTable("table", list);
+            fileMap = (FileMap) multiMap.createTable("table", list);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -207,8 +207,76 @@ public class TestFileMap {
         assertEquals(String.class, fileMap.getColumnType(0));
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallGetName() {
+        fileMap.close();
+        fileMap.getName();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallToString() {
+        fileMap.close();
+        fileMap.toString();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallGet() {
+        fileMap.close();
+        fileMap.get("132");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallCommit() {
+        fileMap.close();
+        fileMap.commit();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallRemove() {
+        fileMap.close();
+        fileMap.remove("123");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallRollback() {
+        fileMap.close();
+        fileMap.rollback();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableCallSize() {
+        fileMap.close();
+        fileMap.size();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallTableSize() {
+        multiMap.close();
+        fileMap.size();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallTableToString() {
+        multiMap.close();
+        fileMap.toString();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void closeTableProviderCallTableName() {
+        multiMap.close();
+        fileMap.getName();
+    }
+
+    @Test()
+    public void correctToString() throws IOException {
+        assertEquals(fileMap.toString(),
+                String.format("%s[%s]", "FileMap", pathTables.resolve("table").toAbsolutePath().toString()));
+    }
+
     @After
     public void tearDown() {
+        multiMap.close();
+        fileMap.close();
         try {
             mySystem.rm(new String[]{pathTables.toString()});
         } catch (Exception e) {

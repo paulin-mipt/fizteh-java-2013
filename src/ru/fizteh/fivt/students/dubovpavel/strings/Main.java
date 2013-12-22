@@ -23,17 +23,22 @@ public class Main {
         storageBuilder.setDataBaseBuilder(new StringWrappedMindfulDataBaseMultiFileHashMapBuilder());
         storageBuilder.setPath(true, "fizteh.db.dir");
         dispatcherMultiFileHashMapBuilder.setStorageBuilder(storageBuilder);
-        dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerGet()));
-        dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerPut()));
-        dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerRemove()));
+        dispatcherMultiFileHashMapBuilder.addPerformer(
+                new PerformerSafeDataBaseOperationWrapper(new PerformerGet()));
+        dispatcherMultiFileHashMapBuilder.addPerformer(
+                new PerformerSafeDataBaseOperationWrapper(new PerformerPut()));
+        dispatcherMultiFileHashMapBuilder.addPerformer(
+                new PerformerSafeDataBaseOperationWrapper(new PerformerRemove()));
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerCreate());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerDrop());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerUse());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerHalt());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerExit());
         dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerSize()));
-        dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerCommit()));
-        dispatcherMultiFileHashMapBuilder.addPerformer(new PerformerSafeDataBaseOperationWrapper(new PerformerRollBack()));
+        dispatcherMultiFileHashMapBuilder.addPerformer(
+                new PerformerSafeDataBaseOperationWrapper(new PerformerCommit()));
+        dispatcherMultiFileHashMapBuilder.addPerformer(
+                new PerformerSafeDataBaseOperationWrapper(new PerformerRollBack()));
         Feeder.feed(dispatcherMultiFileHashMapBuilder, args);
     }
 }

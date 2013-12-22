@@ -1,11 +1,7 @@
 package ru.fizteh.fivt.students.eltyshev.multifilemap.commands;
 
-import ru.fizteh.fivt.storage.strings.Table;
 import ru.fizteh.fivt.students.eltyshev.multifilemap.MultifileMapUtils;
 import ru.fizteh.fivt.students.eltyshev.shell.commands.AbstractCommand;
-import ru.fizteh.fivt.students.eltyshev.shell.commands.CommandParser;
-
-import java.util.ArrayList;
 
 public class CreateCommand<Table, Key, Value, State extends BaseDatabaseShellState<Table, Key, Value>> extends AbstractCommand<State> {
     public CreateCommand() {
@@ -20,7 +16,7 @@ public class CreateCommand<Table, Key, Value, State extends BaseDatabaseShellSta
         try {
             newTable = shellState.createTable(params);
         } catch (IllegalArgumentException e) {
-            System.err.println(e.getMessage());
+            System.err.println(String.format("wrong type (%s)", e.getMessage()));
             return;
         }
         if (newTable == null) {

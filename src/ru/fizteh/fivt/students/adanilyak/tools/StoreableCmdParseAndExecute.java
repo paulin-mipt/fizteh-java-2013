@@ -12,6 +12,9 @@ import java.util.regex.Pattern;
  * Time: 13:48
  */
 public class StoreableCmdParseAndExecute {
+    static final Pattern SOMETHING_IN_SQUARE_BRACKETS = Pattern.compile("\\[.+\\]");
+    static final Pattern SOMETHING_IN_ROUND_BRACKETS = Pattern.compile("\\(.+\\)");
+
     public static List<String> splitByDelimiter(String cmd, String delimiter) {
         cmd.trim();
         String[] tokens = cmd.split(delimiter);
@@ -39,7 +42,7 @@ public class StoreableCmdParseAndExecute {
                 case "put":
                     try {
                         cmdAndArgs.add(cmdScanner.next());
-                        cmdAndArgs.add(cmdScanner.findInLine(Pattern.compile("\\[.+\\]")));
+                        cmdAndArgs.add(cmdScanner.findInLine(SOMETHING_IN_SQUARE_BRACKETS));
                     } catch (NullPointerException exc) {
                         throw new IOException("wrong type (execute put: bad arguments)");
                     }
@@ -51,7 +54,7 @@ public class StoreableCmdParseAndExecute {
                 case "create":
                     try {
                         cmdAndArgs.add(cmdScanner.next());
-                        String temp = cmdScanner.findInLine(Pattern.compile("\\(.+\\)"))
+                        String temp = cmdScanner.findInLine(SOMETHING_IN_ROUND_BRACKETS)
                                 .replaceFirst("\\(", "").replaceFirst("\\)", "");
                         temp = temp.replaceAll("\\s+", " ");
                         if (temp.trim().isEmpty()) {
@@ -86,7 +89,7 @@ public class StoreableCmdParseAndExecute {
             Cmd command = cmdList.get(commandName);
             command.work(cmdAndArgs);
         } catch (IOException exc) {
-            System.err.println(/**cmdAndArgs + ": " +*/exc.getMessage());
+            System.err.println(exc.getMessage());
         }
     }
 }

@@ -4,7 +4,6 @@ package ru.fizteh.fivt.students.kamilTalipov.database.core;
 import ru.fizteh.fivt.storage.structured.ColumnFormatException;
 import ru.fizteh.fivt.storage.structured.Storeable;
 import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.students.kamilTalipov.database.utils.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.List;

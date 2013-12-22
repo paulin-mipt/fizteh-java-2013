@@ -1,6 +1,5 @@
 package ru.fizteh.fivt.students.ermolenko.shell;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,14 +53,12 @@ public class Mv implements Command<ShellState> {
             if (source.toFile().isFile() && !target.toFile().exists()) {
                 Files.copy(source, target);
                 source.toFile().delete();
-            }
-            //можно копировать файл в директорию
-            else if (source.toFile().isFile() && target.toFile().isDirectory()) {
+            } else
+            if (source.toFile().isFile() && target.toFile().isDirectory()) {
                 Files.copy(source, target.resolve(source.getFileName()));
                 source.toFile().delete();
-            }
-            //можно копировать директорию в директорию
-            else if (source.toFile().isDirectory() && target.toFile().isDirectory()) {
+            } else
+            if (source.toFile().isDirectory() && target.toFile().isDirectory()) {
                 File[] masOfSource = source.toFile().listFiles();
                 target.toFile().mkdir();
                 if (masOfSource != null) {

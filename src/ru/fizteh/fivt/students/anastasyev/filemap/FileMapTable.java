@@ -14,11 +14,12 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class FileMapTable implements Table {
+public class FileMapTable implements Table, AutoCloseable {
     private File currentFileMapTable;
     private ArrayList<Class<?>> columnTypes;
     private FileMapTableProvider provider;
     private FileMap[][] mapsTable;
+    private volatile boolean isOpen;
 
     private ThreadLocal<HashMap<String, Storeable>> changedKeys = new ThreadLocal<HashMap<String, Storeable>>() {
         @Override
@@ -29,6 +30,12 @@ public class FileMapTable implements Table {
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     private Lock read = readWriteLock.readLock();
     private Lock write = readWriteLock.writeLock();
+
+    private void checkStatus() {
+        if (!isOpen) {
+            throw new IllegalStateException(currentFileMapTable.getName() + " is already closed");
+        }
+    }
 
     private Storeable onDiskValue(String key) {
         int absHash = Math.abs(key.hashCode());
@@ -229,6 +236,7 @@ public class FileMapTable implements Table {
     }
 
     public FileMapTable(String tableName, FileMapTableProvider newProvider) throws IOException, ParseException {
+        isOpen = true;
         currentFileMapTable = new File(tableName);
         provider = newProvider;
         if (!currentFileMapTable.exists()) {
@@ -245,6 +253,7 @@ public class FileMapTable implements Table {
 
     public FileMapTable(String tableName, List<Class<?>> newColumnTypes, FileMapTableProvider newProvider)
             throws IOException, ParseException {
+        isOpen = true;
         currentFileMapTable = new File(tableName);
         if (!currentFileMapTable.exists()) {
             if (!currentFileMapTable.mkdir()) {
@@ -261,11 +270,13 @@ public class FileMapTable implements Table {
 
     @Override
     public String getName() {
+        checkStatus();
         return currentFileMapTable.getName();
     }
 
     @Override
     public Storeable put(String key, Storeable value) throws IllegalArgumentException {
+        checkStatus();
         if (isEmptyString(key) || key.split("\\s").length > 1) {
             throw new IllegalArgumentException("Wrong key");
         }
@@ -286,6 +297,7 @@ public class FileMapTable implements Table {
 
     @Override
     public Storeable remove(String key) throws IllegalArgumentException {
+        checkStatus();
         if (isEmptyString(key) || key.split("\\s").length > 1) {
             throw new IllegalArgumentException("Wrong key");
         }
@@ -304,6 +316,7 @@ public class FileMapTable implements Table {
 
     @Override
     public Storeable get(String key) throws IllegalArgumentException {
+        checkStatus();
         if (isEmptyString(key) || key.split("\\s").length > 1) {
             throw new IllegalArgumentException("Wrong key");
         }
@@ -321,6 +334,7 @@ public class FileMapTable implements Table {
 
     @Override
     public int commit() throws RuntimeException {
+        checkStatus();
         class Pair {
             int dir;
             int dat;
@@ -380,6 +394,7 @@ public class FileMapTable implements Table {
 
     @Override
     public int rollback() throws RuntimeException {
+        checkStatus();
         int changesCount;
         read.lock();
         try {
@@ -393,6 +408,7 @@ public class FileMapTable implements Table {
 
     @Override
     public int size() {
+        checkStatus();
         read.lock();
         try {
             return oldSize() + changesSize();
@@ -402,6 +418,7 @@ public class FileMapTable implements Table {
     }
 
     public int uncommittedChangesCount() {
+        checkStatus();
         read.lock();
         try {
             return changesCount();
@@ -412,14 +429,33 @@ public class FileMapTable implements Table {
 
     @Override
     public int getColumnsCount() {
+        checkStatus();
         return columnTypes.size();
     }
 
     @Override
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        checkStatus();
         if (columnIndex < 0 || columnIndex >= columnTypes.size()) {
             throw new IndexOutOfBoundsException(columnIndex + " outOfBounds");
         }
         return columnTypes.get(columnIndex);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + currentFileMapTable.getAbsolutePath() + "]";
+    }
+
+    public boolean isOpen() {
+        return isOpen;
+    }
+
+    @Override
+    public void close() {
+        if (isOpen) {
+            rollback();
+            isOpen = false;
+        }
     }
 }

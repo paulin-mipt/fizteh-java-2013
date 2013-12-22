@@ -8,8 +8,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import ru.fizteh.fivt.storage.structured.Storeable;
-import ru.fizteh.fivt.storage.structured.Table;
-import ru.fizteh.fivt.storage.structured.TableProvider;
 import java.text.ParseException;
 
 import java.io.IOException;
@@ -19,8 +17,8 @@ import java.util.ArrayList;
 public class TestTable {
 
     DistributedTableProviderFactory factory;
-    TableProvider provider;
-    Table table;
+    DistributedTableProvider provider;
+    DistributedTable table;
     protected String validTableName = "default";
     protected String validString = "<row><col>justSimpleValidKeyOrValue</col></row>";
 
@@ -149,5 +147,24 @@ public class TestTable {
         Assert.assertEquals("key should exists in file", table.get("key3"), value3);
         Assert.assertEquals("key should not exists in file", table.get("key4"), null);
         Assert.assertEquals("key should not exists in file", table.get("key5"), null);
+    }
+
+    @Test
+    public void doubleCloseShouldWork() throws IOException {
+        table.close();
+        table.close();
+
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldThrowExceptionAfterClose() throws IOException {
+        table.close();
+        table.getName();
+    }
+
+    @Test
+    public void providerShouldReturnNewTableAfterClose() throws IOException {
+        table.close();
+        Assert.assertNotEquals("closed table, but provider returned same", table, provider.getTable(validTableName));
     }
 }

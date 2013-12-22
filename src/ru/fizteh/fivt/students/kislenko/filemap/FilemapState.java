@@ -3,8 +3,9 @@ package ru.fizteh.fivt.students.kislenko.filemap;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class FilemapState {
+public class FilemapState extends FatherState {
     private Map<String, String> storage;
     private Path path;
 
@@ -13,31 +14,31 @@ public class FilemapState {
         path = p;
     }
 
-    public String getValue(String key) {
-        return storage.get(key);
-    }
-
-    public void putValue(String key, String value) {
-        storage.put(key, value);
-    }
-
-    public void delValue(String key) {
-        storage.remove(key);
-    }
-
-    public boolean hasKey(String key) {
-        return storage.containsKey(key);
-    }
-
     public Map<String, String> getMap() {
         return storage;
     }
 
-    public void setMap(Map<String, String> newStorage) {
-        storage = newStorage;
-    }
-
     public Path getPath() {
         return path;
+    }
+
+    @Override
+    public boolean alrightPutGetRemove(AtomicReference<Exception> checkingException, AtomicReference<String> message) {
+        return true;
+    }
+
+    @Override
+    public String get(String key, AtomicReference<Exception> exception) {
+        return storage.get(key);
+    }
+
+    @Override
+    public void put(String key, String value, AtomicReference<Exception> exception) {
+        storage.put(key, value);
+    }
+
+    @Override
+    public void remove(String key, AtomicReference<Exception> exception) {
+        storage.remove(key);
     }
 }

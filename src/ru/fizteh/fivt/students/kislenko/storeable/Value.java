@@ -112,4 +112,19 @@ public class Value implements Storeable {
         }
         return (String) columns.get(columnIndex);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(getClass().getSimpleName() + "[");
+        for (int i = 0; i < types.size(); ++i) {
+            if (getColumnAt(i) != null) {
+                sb.append(getColumnAt(i).toString());
+            }
+            if (i < types.size() - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 }

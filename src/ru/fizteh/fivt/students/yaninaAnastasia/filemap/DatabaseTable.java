@@ -12,46 +12,42 @@ import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class DatabaseTable implements Table {
+public class DatabaseTable implements Table, AutoCloseable {
     public HashMap<String, Storeable> oldData;
-    public ThreadLocal<HashMap<String, Storeable>> modifiedData;
-    public ThreadLocal<HashSet<String>> deletedKeys;
-    public ThreadLocal<Integer> uncommittedChanges;
+    public ThreadLocal<Long> transactionId;
     private String tableName;
     public List<Class<?>> columnTypes;
     DatabaseTableProvider provider;
     private ReadWriteLock transactionLock = new ReentrantReadWriteLock(true);
+    volatile boolean isClosed;
 
 
     public DatabaseTable(String name, List<Class<?>> colTypes, DatabaseTableProvider providerRef) {
+        isClosed = false;
         this.tableName = name;
         oldData = new HashMap<String, Storeable>();
-        modifiedData = new ThreadLocal<HashMap<String, Storeable>>() {
+        transactionId = new ThreadLocal<Long>() {
             @Override
-            public HashMap<String, Storeable> initialValue() {
-                return new HashMap<String, Storeable>();
-            }
-        };
-        deletedKeys = new ThreadLocal<HashSet<String>>() {
-            @Override
-            public HashSet<String> initialValue() {
-                return new HashSet<String>();
-            }
-        };
-        uncommittedChanges = new ThreadLocal<Integer>() {
-            @Override
-            public Integer initialValue() {
-                return new Integer(0);
+            public Long initialValue() {
+                return TransactionPool.getInstance().createTransaction();
             }
         };
         columnTypes = colTypes;
         provider = providerRef;
-        uncommittedChanges.set(0);
         for (final Class<?> columnType : columnTypes) {
             if (columnType == null || ColumnTypes.fromTypeToName(columnType) == null) {
                 throw new IllegalArgumentException("unknown column type");
             }
         }
+    }
+
+    public DatabaseTable(DatabaseTable other) {
+        this.tableName = other.tableName;
+        this.columnTypes = other.columnTypes;
+        this.provider = other.provider;
+        this.oldData = other.oldData;
+        isClosed = false;
+        this.transactionId = other.transactionId;
     }
 
     public static int getDirectoryNum(String key) {
@@ -65,20 +61,29 @@ public class DatabaseTable implements Table {
     }
 
     public String getName() {
+        isCloseChecker();
         if (tableName == null) {
             throw new IllegalArgumentException("Table name cannot be null");
         }
         return tableName;
     }
 
-    public Storeable get(String key) throws IllegalArgumentException {
+    @Override
+    public Storeable get(String key) {
+        return get(key, transactionId.get());
+    }
+
+    public Storeable get(String key, long transactionId) throws IllegalArgumentException {
+        isCloseChecker();
         if (key == null || (key.isEmpty() || key.trim().isEmpty())) {
             throw new IllegalArgumentException("Table name cannot be null");
         }
-        if (modifiedData.get().containsKey(key)) {
-            return modifiedData.get().get(key);
+
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
+        if (transaction.modifiedData.containsKey(key)) {
+            return transaction.modifiedData.get(key);
         }
-        if (deletedKeys.get().contains(key)) {
+        if (transaction.deletedKeys.contains(key)) {
             return null;
         }
         transactionLock.readLock().lock();
@@ -89,7 +94,8 @@ public class DatabaseTable implements Table {
         }
     }
 
-    public Storeable put(String key, Storeable value) throws IllegalArgumentException {
+    public Storeable put(String key, Storeable value, long transactionId) throws IllegalArgumentException {
+        isCloseChecker();
         if ((key == null) || (key.trim().isEmpty())) {
             throw new IllegalArgumentException("Key can not be null");
         }
@@ -112,8 +118,9 @@ public class DatabaseTable implements Table {
             }
         }
         Storeable oldValue = null;
-        oldValue = modifiedData.get().get(key);
-        if (oldValue == null && !deletedKeys.get().contains(key)) {
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
+        oldValue = transaction.modifiedData.get(key);
+        if (oldValue == null && !transaction.deletedKeys.contains(key)) {
             transactionLock.readLock().lock();
             try {
                 oldValue = oldData.get(key);
@@ -121,21 +128,23 @@ public class DatabaseTable implements Table {
                 transactionLock.readLock().unlock();
             }
         }
-        modifiedData.get().put(key, value);
-        if (deletedKeys.get().contains(key)) {
-            deletedKeys.get().remove(key);
+        transaction.modifiedData.put(key, value);
+        if (transaction.deletedKeys.contains(key)) {
+            transaction.deletedKeys.remove(key);
         }
-        uncommittedChanges.set(changesCount());
+        transaction.uncommittedChanges = changesCount(transactionId);
         return oldValue;
     }
 
-    public Storeable remove(String key) throws IllegalArgumentException {
+    public Storeable remove(String key, long transactionId) throws IllegalArgumentException {
+        isCloseChecker();
         if (key == null || (key.isEmpty() || key.trim().isEmpty())) {
             throw new IllegalArgumentException("Key name cannot be null");
         }
         Storeable oldValue = null;
-        oldValue = modifiedData.get().get(key);
-        if (oldValue == null && !deletedKeys.get().contains(key)) {
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
+        oldValue = transaction.modifiedData.get(key);
+        if (oldValue == null && !transaction.deletedKeys.contains(key)) {
             transactionLock.readLock().lock();
             try {
                 oldValue = oldData.get(key);
@@ -143,70 +152,76 @@ public class DatabaseTable implements Table {
                 transactionLock.readLock().unlock();
             }
         }
-        if (modifiedData.get().containsKey(key)) {
-            modifiedData.get().remove(key);
+        if (transaction.modifiedData.containsKey(key)) {
+            transaction.modifiedData.remove(key);
             transactionLock.readLock().lock();
             try {
                 if (oldData.containsKey(key)) {
-                    deletedKeys.get().add(key);
+                    transaction.deletedKeys.add(key);
                 }
             } finally {
                 transactionLock.readLock().unlock();
             }
         } else {
-            deletedKeys.get().add(key);
+            transaction.deletedKeys.add(key);
         }
-        uncommittedChanges.set(changesCount());
+        transaction.uncommittedChanges = changesCount(transactionId);
         return oldValue;
     }
 
-    public int size() {
+    public int size(long transactionId) {
+        isCloseChecker();
         transactionLock.readLock().lock();
         try {
-            return oldData.size() + diffSize();
+            return oldData.size() + diffSize(transactionId);
         } finally {
             transactionLock.readLock().unlock();
         }
     }
 
-    public int commit() {
+    public int commit(long transactionId) {
+        isCloseChecker();
         int recordsCommitted = 0;
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
         transactionLock.writeLock().lock();
         try {
-            recordsCommitted = Math.abs(changesCount());
-            for (String keyToDelete : deletedKeys.get()) {
+            recordsCommitted = Math.abs(changesCount(transactionId));
+            for (String keyToDelete : transaction.deletedKeys) {
                 oldData.remove(keyToDelete);
             }
-            for (String keyToAdd : modifiedData.get().keySet()) {
-                if (modifiedData.get().get(keyToAdd) != null) {
-                    oldData.put(keyToAdd, modifiedData.get().get(keyToAdd));
+            for (String keyToAdd : transaction.modifiedData.keySet()) {
+                if (transaction.modifiedData.get(keyToAdd) != null) {
+                    oldData.put(keyToAdd, transaction.modifiedData.get(keyToAdd));
                 }
             }
-            deletedKeys.get().clear();
-            modifiedData.get().clear();
+            transaction.deletedKeys.clear();
+            transaction.modifiedData.clear();
             TableBuilder tableBuilder = new TableBuilder(provider, this);
             save(tableBuilder);
-            uncommittedChanges.set(0);
+            transaction.uncommittedChanges = 0;
         } finally {
             transactionLock.writeLock().unlock();
         }
         return recordsCommitted;
     }
 
-    public int rollback() {
-        int recordsDeleted = Math.abs(changesCount());
+    public int rollback(long transactionId) {
+        isCloseChecker();
+        int recordsDeleted = Math.abs(changesCount(transactionId));
 
-        deletedKeys.get().clear();
-        modifiedData.get().clear();
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
+        transaction.deletedKeys.clear();
+        transaction.modifiedData.clear();
 
-        uncommittedChanges.set(0);
+        transaction.uncommittedChanges = 0;
 
         return recordsDeleted;
     }
 
     public Class<?> getColumnType(int columnIndex) throws IndexOutOfBoundsException {
+        isCloseChecker();
         if (columnIndex < 0 || columnIndex >= getColumnsCount()) {
-            throw new IndexOutOfBoundsException();
+            throw new IndexOutOfBoundsException("wrong index");
         }
         return columnTypes.get(columnIndex);
     }
@@ -241,7 +256,7 @@ public class DatabaseTable implements Table {
         if (tableName.equals("")) {
             return true;
         }
-        File tablePath = new File(System.getProperty("fizteh.db.dir"), tableName);
+        File tablePath = new File(provider.getDatabaseDirectory(), tableName);
         for (int i = 0; i < 16; i++) {
             String directoryName = String.format("%d.dir", i);
             File path = new File(tablePath, directoryName);
@@ -300,6 +315,10 @@ public class DatabaseTable implements Table {
         return true;
     }
 
+    public int getUncommittedChangesCount() {
+        return TransactionPool.getInstance().getTransaction(transactionId.get()).uncommittedChanges;
+    }
+
     public boolean saveTable(Set<String> keys, String path, TableBuilder tableBuilder) throws IOException {
         if (keys.isEmpty()) {
             try {
@@ -334,15 +353,16 @@ public class DatabaseTable implements Table {
         return true;
     }
 
-    private int changesCount() {
+    private int changesCount(long transactionId) {
         HashSet<String> tempSet = new HashSet<>();
         HashSet<String> toRemove = new HashSet<>();
-        tempSet.addAll(modifiedData.get().keySet());
-        tempSet.addAll(deletedKeys.get());
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
+        tempSet.addAll(transaction.modifiedData.keySet());
+        tempSet.addAll(transaction.deletedKeys);
         transactionLock.readLock().lock();
         try {
             for (String key : tempSet) {
-                if (tempSet.contains(key) && compare(oldData.get(key), modifiedData.get().get(key))) {
+                if (tempSet.contains(key) && compare(oldData.get(key), transaction.modifiedData.get(key))) {
                     toRemove.add(key);
                 }
             }
@@ -352,9 +372,10 @@ public class DatabaseTable implements Table {
         return tempSet.size() - toRemove.size();
     }
 
-    private int diffSize() {
+    private int diffSize(long transactionId) {
+        TransactionWithModifies transaction = TransactionPool.getInstance().getTransaction(transactionId);
         int result = 0;
-        for (final String key : modifiedData.get().keySet()) {
+        for (final String key : transaction.modifiedData.keySet()) {
             Storeable oldValue;
             transactionLock.readLock().lock();
             try {
@@ -362,14 +383,14 @@ public class DatabaseTable implements Table {
             } finally {
                 transactionLock.readLock().unlock();
             }
-            Storeable newValue = modifiedData.get().get(key);
+            Storeable newValue = transaction.modifiedData.get(key);
             if (oldValue == null && newValue != null) {
                 result += 1;
             }
         }
-        for (final String key : deletedKeys.get()) {
+        for (final String key : transaction.deletedKeys) {
+            transactionLock.readLock().lock();
             try {
-                transactionLock.readLock().lock();
                 if (oldData.containsKey(key)) {
                     result -= 1;
                 }
@@ -380,7 +401,7 @@ public class DatabaseTable implements Table {
         return result;
     }
 
-    private boolean compare(Storeable key1, Storeable key2) {
+    public static boolean compare(Storeable key1, Storeable key2) {
         if (key1 == null && key2 == null) {
             return true;
         }
@@ -390,7 +411,33 @@ public class DatabaseTable implements Table {
         return key1.equals(key2);
     }
 
+    @Override
+    public Storeable put(String key, Storeable value) throws ColumnFormatException {
+        return put(key, value, transactionId.get());
+    }
+
+    @Override
+    public Storeable remove(String key) {
+        return remove(key, transactionId.get());
+    }
+
+    @Override
+    public int size() {
+        return size(transactionId.get());
+    }
+
+    @Override
+    public int commit() throws IOException {
+        return commit(transactionId.get());
+    }
+
+    @Override
+    public int rollback() {
+        return rollback(transactionId.get());
+    }
+
     public int getColumnsCount() {
+        isCloseChecker();
         return columnTypes.size();
     }
 
@@ -414,5 +461,26 @@ public class DatabaseTable implements Table {
             return;
         }
         throw new ColumnFormatException("Alien storeable with more columns");
+    }
+
+    public void isCloseChecker() {
+        if (isClosed) {
+            throw new IllegalStateException("It is closed");
+        }
+    }
+
+    @Override
+    public String toString() {
+        isCloseChecker();
+        return String.format("%s[%s]", getClass().getSimpleName(), new File(provider.curDir, tableName).toString());
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (isClosed) {
+            return;
+        }
+        rollback();
+        isClosed = true;
     }
 }

@@ -4,7 +4,7 @@ package ru.fizteh.fivt.students.baldindima.junit;
 import java.io.File;
 import java.io.IOException;
 
-import ru.fizteh.fivt.storage.strings.TableProviderFactory;
+import ru.fizteh.fivt.storage.structured.TableProviderFactory;
 import ru.fizteh.fivt.students.baldindima.shell.ExitException;
 import ru.fizteh.fivt.students.baldindima.shell.Shell;
 
@@ -14,14 +14,19 @@ public class Main {
 
     private static boolean checkDirectory() {
         String path = System.getProperty("fizteh.db.dir");
-        if ((path == null) || (!(new File(path)).isDirectory())) {
+        if (path == null){
+        	System.err.println("Choose a directory!");
+            return false;
+        }
+        new File(path).mkdirs();
+        if ((!(new File(path)).isDirectory())) {
             System.err.println("Choose a directory!");
             return false;
         }
         return true;
     }
 
-    private static void makeShell() {
+    private static void makeShell() throws IOException {
 
         shell = new Shell();
 
@@ -48,7 +53,8 @@ public class Main {
             	System.exit(1); ;
             }
             makeShell();
-
+           
+                   
             if (args.length > 0) {
                 shell.nonInteractiveMode(args);
 
@@ -59,7 +65,11 @@ public class Main {
         } catch (ExitException e) {
             //dataBaseTable.saveTable();
             System.exit(0);
-        } catch (IOException e) {
+        } catch (DataBaseException e){
+        	System.err.println(e.getMessage());
+            System.exit(2);
+        }
+          catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }

@@ -14,12 +14,12 @@ public class TableTest {
     private File path;
 
     private void cleanRecursively(File pointer) {
-        if(pointer.isDirectory()) {
-            for(File sub: pointer.listFiles()) {
+        if (pointer.isDirectory()) {
+            for (File sub : pointer.listFiles()) {
                 cleanRecursively(sub);
             }
         }
-        assert(pointer.delete() == true);
+        pointer.delete();
     }
 
     @Before
@@ -27,10 +27,10 @@ public class TableTest {
         String homeDir = System.getProperty("user.home");
         path = new File(homeDir, "sandbox/strings");
         cleanRecursively(path);
-        assert(path.mkdirs() == true);
+        assert (path.mkdirs());
         dispatcher = new Dispatcher(false);
         File tablePath = new File(path, "tableName");
-        assert(tablePath.mkdir() == true);
+        assert (tablePath.mkdir());
         db = new StringWrappedMindfulDataBaseMultiFileHashMap(tablePath, dispatcher);
     }
 
@@ -39,7 +39,7 @@ public class TableTest {
         cleanRecursively(path);
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testGetNull() {
         db.get(null);
     }
@@ -50,7 +50,7 @@ public class TableTest {
         Assert.assertEquals("value", db.get("key"));
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testPutNullValue() {
         db.put("key", null);
     }
@@ -72,7 +72,7 @@ public class TableTest {
         Assert.assertEquals(db.get("key"), "value");
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testRemoveNull() {
         db.remove(null);
     }
