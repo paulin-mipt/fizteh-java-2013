@@ -32,9 +32,9 @@ public class FileState extends State {
     private String parentPath;
     
     class IntPair {
-        public long startIndex;
-        public long endIndex;
-        public IntPair(long start, long end) {
+        public int startIndex;
+        public int endIndex;
+        public IntPair(int start, int end) {
             startIndex = start; 
             endIndex = end;
         }
@@ -103,8 +103,7 @@ public class FileState extends State {
         }
     }
     
-    private String getKeyFromFile(long offset) throws IOException {
-        dbFile.seek(offset);
+    private String getKeyFromFile(int offset) throws IOException {
         byte tempByte = dbFile.readByte();
         Vector<Byte> byteVect = new Vector<Byte>();
         while (tempByte != '\0') {  
@@ -115,7 +114,7 @@ public class FileState extends State {
         return byteVectToStr(byteVect);
     }
     
-    private String getValueFromFile(long offset, long endOffset, RandomAccessFile dbFile) throws IOException {
+    private String getValueFromFile(int offset, int endOffset, RandomAccessFile dbFile) throws IOException {
         if (offset < 0 || endOffset < 0) {
             throw new IOException("reading database: wrong file format");
         }
@@ -147,22 +146,18 @@ public class FileState extends State {
     }
     
     public Storeable loadData(String requestedKey) throws IOException {   
+        if (!mainFile.exists()) {
+            return null;
+        }
         Storeable result = null;  
         dbFile = null;
         try {
-            if (!mainFile.exists()) {
-                return null;
-            }
-            try {
-                dbFile = new RandomAccessFile(path, "rw");
-            } catch (FileNotFoundException e) {
-                throw new IllegalStateException(path + " not found");
-            }
-            long position = 0;
+            dbFile = new RandomAccessFile(path, "rw");
+            int position = 0;
             String key = getKeyFromFile(position);
-            long startOffset = dbFile.readInt();
-            long endOffset = 0;
-            long firstOffset = startOffset;
+            int startOffset = dbFile.readInt();
+            int endOffset = 0;
+            int firstOffset = startOffset;
             String value = "";
             String key2 = "";
             do {  
@@ -171,7 +166,7 @@ public class FileState extends State {
                     key2 = getKeyFromFile(position);
                     endOffset = dbFile.readInt();                        
                 } else {
-                    endOffset = dbFile.length();
+                    endOffset = (int) dbFile.length();
                 }
                 
                 if (key.equals(requestedKey)) {
@@ -232,13 +227,13 @@ public class FileState extends State {
         return result;
     }  
     //return new position for key
-    private long writeKeyValue(RandomAccessFile dbFile, long position, int offset, String key, String value)
+    private int writeKeyValue(RandomAccessFile dbFile, int position, int offset, String key, String value)
                                            throws UnsupportedEncodingException, IOException {
         dbFile.seek(position);
         dbFile.write(key.getBytes("UTF-8"));
         dbFile.write("\0".getBytes("UTF-8"));
         dbFile.writeInt(offset);
-        position = dbFile.getFilePointer();
+        position = (int) dbFile.getFilePointer();
         dbFile.seek(offset);
         dbFile.write(value.getBytes("UTF-8"));
         
@@ -290,7 +285,7 @@ public class FileState extends State {
             
             //write it all down!
             int offset = newStartOffset; 
-            long position = 0;
+            int position = 0;
             for (Map.Entry<String, IntPair> s : key2Offset.entrySet()) {                
                 IntPair valueOffs = s.getValue();
                 String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
