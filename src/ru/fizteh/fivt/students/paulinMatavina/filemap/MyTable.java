@@ -53,7 +53,6 @@ public class MyTable extends State implements Table, AutoCloseable {
         shell.cd(dbName);
         
         loadData();
-        writeSize();
     }
     
     public MyTable(String property, String dbName, MyTableProvider prov, List<Class<?>> columnTypes) 
@@ -104,11 +103,8 @@ public class MyTable extends State implements Table, AutoCloseable {
         }
         provider = prov;
         rootPath = property; 
-        shell = new ShellState();
-        shell.cd(rootPath);
-        shell.cd(dbName);
-        getObjList(signatureName);
         init(dbName);
+        getObjList(signatureName);
     }
     
     private void checkDbDir(String path) {
@@ -166,6 +162,7 @@ public class MyTable extends State implements Table, AutoCloseable {
                 data[i][j] = new FileState(filePath, i, j, provider, this);
             }
         }
+        writeSize();
     }
     
     public void dropped() {

@@ -80,8 +80,8 @@ public class MyTableProvider extends State implements TableProvider, AutoCloseab
         
         try {
             return tryToGetTable(name);
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+        } catch (Throwable e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
     

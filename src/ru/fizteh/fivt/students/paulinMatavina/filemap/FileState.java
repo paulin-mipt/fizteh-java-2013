@@ -10,28 +10,50 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import ru.fizteh.fivt.students.paulinMatavina.utils.*;
+import ru.fizteh.fivt.students.paulinMatavina.shell.*;
 import ru.fizteh.fivt.storage.structured.*;
 
 public class FileState extends State {
     private WeakHashMap<String, Storeable> cache;
     private ThreadLocal<HashMap<String, Storeable>> changes;
     public RandomAccessFile dbFile;
+    private File mainFile;
+    private File tempFile;
     public String path;
     private TableProvider provider;
     private Table table;
     private int foldNum;
     private int fileNum;
+    private ShellState shell;
+    private ReentrantReadWriteLock cacheLock;
+    private String parentPath;
     
+    class IntPair {
+        public long startIndex;
+        public long endIndex;
+        public IntPair(long start, long end) {
+            startIndex = start; 
+            endIndex = end;
+        }
+    }
+    private HashMap<String, IntPair> key2Offset;
     public FileState(String dbPath, int folder, int file, TableProvider prov, Table newTable)
                                                       throws ParseException, IOException {
         cache = new WeakHashMap<String, Storeable>();
+        cacheLock = new ReentrantReadWriteLock(true);
         foldNum = folder;
         fileNum = file;
         provider = prov;
         table = newTable;
         path = dbPath;
+        mainFile = new File(path);
+        parentPath = mainFile.getParentFile().getAbsolutePath();
+        tempFile = new File(parentPath + File.separator + "temp" + fileNum);
+        key2Offset = new HashMap<String, FileState.IntPair>();
+        
         changes = new ThreadLocal<HashMap<String, Storeable>>() {
             @Override
             public HashMap<String, Storeable> initialValue() {
@@ -39,9 +61,11 @@ public class FileState extends State {
             }
         };
         
-        if (new File(path).exists()) {
+        if (mainFile.exists()) {
             fileCheck();
         }
+        shell = new ShellState();        
+        loadData(null);
     }
     
     private void fileCheck() throws IOException {  
@@ -58,23 +82,6 @@ public class FileState extends State {
             throw new IllegalStateException(path + " not found");
         }
         return;
-    }
-    
-    private HashMap<String, Storeable> dataToWrite() throws IOException {
-        HashMap<String, Storeable> currentInFile = new HashMap<String, Storeable>();
-        loadData(null, currentInFile);
-        
-        for (Map.Entry<String, Storeable> entry : changes.get().entrySet()) {
-            Storeable changed = entry.getValue();
-            if (changed != null) {
-                currentInFile.put(entry.getKey(), changed);         
-            } else {
-                currentInFile.remove(entry.getKey());
-            }
-        }
-        
-        changes.get().clear();
-        return currentInFile;
     }
     
     public int rollback() {
@@ -96,7 +103,7 @@ public class FileState extends State {
         }
     }
     
-    private String getKeyFromFile(int offset) throws IOException {
+    private String getKeyFromFile(long offset) throws IOException {
         dbFile.seek(offset);
         byte tempByte = dbFile.readByte();
         Vector<Byte> byteVect = new Vector<Byte>();
@@ -108,7 +115,7 @@ public class FileState extends State {
         return byteVectToStr(byteVect);
     }
     
-    private String getValueFromFile(int offset, int endOffset) throws IOException {
+    private String getValueFromFile(long offset, long endOffset, RandomAccessFile dbFile) throws IOException {
         if (offset < 0 || endOffset < 0) {
             throw new IOException("reading database: wrong file format");
         }
@@ -132,20 +139,18 @@ public class FileState extends State {
                 return result;
             }
             
-            result = loadData(key, cache);
+            result = loadData(key);
         } catch (Throwable e) {
             throw new RuntimeException(e.getMessage(), e);
         }
         return result;
     }
     
-    public Storeable loadData(String requestedKey, Map<String, Storeable> map) throws IOException {    
+    public Storeable loadData(String requestedKey) throws IOException {   
         Storeable result = null;  
         dbFile = null;
         try {
-            map.clear();
-            File dbTempFile = new File(path);
-            if (!dbTempFile.exists()) {
+            if (!mainFile.exists()) {
                 return null;
             }
             try {
@@ -153,36 +158,36 @@ public class FileState extends State {
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(path + " not found");
             }
-            int position = 0;
+            long position = 0;
             String key = getKeyFromFile(position);
-            int startOffset = dbFile.readInt();
-            int endOffset = 0;
-            int firstOffset = startOffset;
+            long startOffset = dbFile.readInt();
+            long endOffset = 0;
+            long firstOffset = startOffset;
             String value = "";
             String key2 = "";
             do {  
                 position += key.getBytes().length + 5;
                 if (position < firstOffset) {   
                     key2 = getKeyFromFile(position);
-                    endOffset = dbFile.readInt();
-                    if (key.equals(requestedKey) || requestedKey == null) {
-                        value = getValueFromFile(startOffset, endOffset);
-                    }                    
+                    endOffset = dbFile.readInt();                        
                 } else {
-                    if (key.equals(requestedKey) || requestedKey == null) {
-                        value = getValueFromFile(startOffset, (int) dbFile.length());
-                    }
+                    endOffset = dbFile.length();
                 }
+                
+                if (key.equals(requestedKey)) {
+                    value = getValueFromFile(startOffset, endOffset, dbFile);
+                    Storeable stor = provider.deserialize(table, value);
+                    cache.put(key, stor);
+                    return stor;
+                } 
                 
                 if (key.getBytes().length > 0) {
                     if (getFolderNum(key) != foldNum || getFileNum(key) != fileNum) {
                         throw new RuntimeException("wrong key in file");
                     }
                     
-                    if (key.equals(requestedKey)) {
-                        Storeable stor = provider.deserialize(table, value);
-                        map.put(key, stor);
-                        return stor;
+                    if (requestedKey == null) {
+                        key2Offset.put(key, new IntPair(startOffset, endOffset));
                     }
                 }
                 
@@ -226,57 +231,101 @@ public class FileState extends State {
         }
         return result;
     }  
-
-    public int commit() throws IOException {
-        dbFile = null;
+    //return new position for key
+    private long writeKeyValue(RandomAccessFile dbFile, long position, int offset, String key, String value)
+                                           throws UnsupportedEncodingException, IOException {
+        dbFile.seek(position);
+        dbFile.write(key.getBytes("UTF-8"));
+        dbFile.write("\0".getBytes("UTF-8"));
+        dbFile.writeInt(offset);
+        position = dbFile.getFilePointer();
+        dbFile.seek(offset);
+        dbFile.write(value.getBytes("UTF-8"));
+        
+        key2Offset.put(key, new IntPair(offset, offset + value.getBytes("UTF-8").length));
+        return position;
+    }
+    
+    public int commit() throws IOException {                
         int result = getChangeNum();
         if (result == 0) {
             return 0;
         }
-        try {
-            HashMap<String, Storeable> toWrite = dataToWrite();
-            File file = new File(path);
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            try {
-                dbFile = new RandomAccessFile(path, "rw");
-            } catch (FileNotFoundException e) {
-                throw new IllegalStateException(path + " not found");
-            }
-            int offset = 0;
-            long pos = 0;
-            for (Map.Entry<String, Storeable> s : toWrite.entrySet()) {
-                if (s.getValue() != null) {
-                    offset += s.getKey().getBytes("UTF-8").length + 5;
-                } 
-            }
-            for (Map.Entry<String, Storeable> s : toWrite.entrySet()) {
-                if (s.getValue() != null) {
-                    dbFile.seek(pos);
-                    dbFile.write(s.getKey().getBytes("UTF-8"));
-                    dbFile.write("\0".getBytes("UTF-8"));
-                    dbFile.writeInt(offset);
-                    pos = (int) dbFile.getFilePointer();
-                    dbFile.seek(offset);
-                    byte[] value = provider.serialize(table, s.getValue()).getBytes("UTF-8");
-                    dbFile.write(value);
-                    offset += value.length;
+        if (!mainFile.exists()) {
+            mainFile.createNewFile();
+        }
+        shell.copy(new String[] {mainFile.getAbsolutePath(), tempFile.getAbsolutePath()});
+        
+        RandomAccessFile tempDbFile = null;
+        dbFile = null;
+        
+        int newStartOffset = 0;
+        cacheLock.readLock().lock();
+        try {            
+            dbFile = new RandomAccessFile(mainFile, "rw");
+            tempDbFile = new RandomAccessFile(tempFile, "r");
+            
+            //calculating main offset
+            for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
+                if (s.getValue() == null) {
+                    key2Offset.remove(s.getKey());
+                    changes.get().remove(s.getKey());
+                } else {
+                    IntPair valueOffs = key2Offset.get(s.getKey());
+                    if (valueOffs == null) {
+                        newStartOffset += s.getKey().getBytes().length + 5;
+                    } else {
+                        String serial = provider.serialize(table, s.getValue());
+                        String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
+                        if (!serial.equals(inFileValue)) {
+                            key2Offset.remove(s.getKey());
+                            newStartOffset += s.getKey().getBytes().length + 5;
+                        }
+                    }
                 }
             }
+            for (String s : key2Offset.keySet()) {
+                newStartOffset += s.getBytes().length + 5;
+            }              
+            
+            //write it all down!
+            int offset = newStartOffset; 
+            long position = 0;
+            for (Map.Entry<String, IntPair> s : key2Offset.entrySet()) {                
+                IntPair valueOffs = s.getValue();
+                String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
+                position = writeKeyValue(dbFile, position, offset, s.getKey(), inFileValue);
+                offset += inFileValue.getBytes("UTF-8").length;
+            }             
+                       
+            for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
+                String value = provider.serialize(table, s.getValue());
+                position = writeKeyValue(dbFile, position, offset, s.getKey(), value);
+                offset += value.getBytes("UTF-8").length;
+            } 
+            
             if (dbFile.length() == 0) {
-                (new File(path)).delete();
+                mainFile.delete();
             }
+            tempFile.delete();
+            changes.get().clear();
         } finally {
+            cacheLock.readLock().unlock();
             if (dbFile != null) {
                 try {
-                  dbFile.close();
-                } catch (Throwable e) {
-                  // ignore
-                }
+                    dbFile.close();
+                  } catch (Throwable e) {
+                    // ignore
+                  }
             }
-        }
-        
+            if (tempFile != null) {
+                try {
+                    tempDbFile.close();
+                  } catch (Throwable e) {
+                    // ignore
+                  }
+            }
+        }  
         return result;
     }
     
