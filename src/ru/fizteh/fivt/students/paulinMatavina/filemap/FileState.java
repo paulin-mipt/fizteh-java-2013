@@ -39,7 +39,7 @@ public class FileState extends State {
             endIndex = end;
         }
     }
-    private HashMap<String, IntPair> key2Offset;
+    public HashMap<String, IntPair> key2Offset;
     public FileState(String dbPath, int folder, int file, TableProvider prov, Table newTable)
                                                       throws ParseException, IOException {
         cache = new WeakHashMap<String, Storeable>();
@@ -103,7 +103,7 @@ public class FileState extends State {
         }
     }
     
-    private String getKeyFromFile(int offset) throws IOException {
+    private String getKeyFromFile() throws IOException {
         byte tempByte = dbFile.readByte();
         Vector<Byte> byteVect = new Vector<Byte>();
         while (tempByte != '\0') {  
@@ -137,12 +137,28 @@ public class FileState extends State {
             if (result != null) {
                 return result;
             }
-            
-            result = loadData(key);
+            IntPair offsets = key2Offset.get(key);
+            if (offsets == null) {
+                return null;
+            } else {
+                dbFile = null;
+                try {
+                    dbFile = new RandomAccessFile(path, "rw");
+                    String inFileValue = getValueFromFile(offsets.startIndex, offsets.endIndex, dbFile);
+                    return provider.deserialize(table, inFileValue);
+                } finally {
+                    if (dbFile != null) {
+                        try {
+                            dbFile.close();
+                        } catch (Throwable e) {
+                            //do nothing
+                        }
+                    }
+                }
+            }
         } catch (Throwable e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-        return result;
     }
     
     public Storeable loadData(String requestedKey) throws IOException {   
@@ -154,7 +170,7 @@ public class FileState extends State {
         try {
             dbFile = new RandomAccessFile(path, "rw");
             int position = 0;
-            String key = getKeyFromFile(position);
+            String key = getKeyFromFile();
             int startOffset = dbFile.readInt();
             int endOffset = 0;
             int firstOffset = startOffset;
@@ -163,7 +179,7 @@ public class FileState extends State {
             do {  
                 position += key.getBytes().length + 5;
                 if (position < firstOffset) {   
-                    key2 = getKeyFromFile(position);
+                    key2 = getKeyFromFile();
                     endOffset = dbFile.readInt();                        
                 } else {
                     endOffset = (int) dbFile.length();
