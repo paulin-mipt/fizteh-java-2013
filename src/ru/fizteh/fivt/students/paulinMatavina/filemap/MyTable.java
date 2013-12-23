@@ -145,24 +145,20 @@ public class MyTable extends State implements Table, AutoCloseable {
         checkDbDir(shell.currentDir.getAbsolutePath());
         
         data = new FileState[FOLDER_NUM][FILE_IN_FOLD_NUM];
+        int size = 0;
         for (int i = 0; i < FOLDER_NUM; i++) {
             String fold = Integer.toString(i) + ".dir";
-            if (!fileExist(fold)) {
-                for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                    String file = Integer.toString(j) + ".dat";
-                    String filePath = shell.makeNewSource(fold, file);
-                    data[i][j] = new FileState(filePath, i, j, provider, this);
-                }
-                continue;
+            if (fileExist(fold)) {
+                checkFolder(shell.makeNewSource(fold));
             }
-            checkFolder(shell.makeNewSource(fold));
             for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
                 String file = Integer.toString(j) + ".dat";
                 String filePath = shell.makeNewSource(fold, file);
                 data[i][j] = new FileState(filePath, i, j, provider, this);
+                size += data[i][j].key2Offset.size();
             }
         }
-        writeSize();
+        writeSize(size);
     }
     
     public void dropped() {
@@ -185,7 +181,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         int chNum = 0;      
         diskOperationLock.writeLock().lock();
         try {
-            writeSize();
+            writeSize(size());
             for (int i = 0; i < FOLDER_NUM; i++) {
                 String fold = Integer.toString(i) + ".dir";
                 if (!fileExist(fold)) {
@@ -321,25 +317,19 @@ public class MyTable extends State implements Table, AutoCloseable {
         return result;
     }
     
-    private void writeSize() {
+    private void writeSize(int size) {
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
-        int result = -1;
         if (!sizeFile.exists()) {
             try {
                 sizeFile.createNewFile();
             } catch (Exception e) {
                 throw new RuntimeException("error when creating size.tsv", e);
             }
-            result = 0;
-        }
-        
-        if (result < 0) {
-            result = size();
         }
         
         try (FileOutputStream out = new FileOutputStream(sizeFile);
                 DataOutputStream writer = new DataOutputStream(out)) {
-            writer.writeInt(result);
+            writer.writeInt(size);
         } catch (Exception e) { 
             throw new RuntimeException("error writing size.tsv", e);
         } 
