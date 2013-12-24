@@ -1,12 +1,9 @@
 package ru.fizteh.fivt.students.paulinMatavina.filemap;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
@@ -296,7 +293,6 @@ public class MyTable extends State implements Table, AutoCloseable {
     }
     
     private int readSize() {
-        int result = 0;
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
         if (!sizeFile.exists()) {
             try {
@@ -307,24 +303,45 @@ public class MyTable extends State implements Table, AutoCloseable {
             return 0;
         }
         
-        try (FileInputStream in = new FileInputStream(sizeFile);
-                DataInputStream intReader = new DataInputStream(in)) {
-            result = intReader.readInt();
+        Scanner stream = null;
+        try {
+            stream = new Scanner(sizeFile);
+            if (stream.hasNextInt()) {
+                return stream.nextInt();
+            } else {
+                throw new IllegalStateException("empty size.tsv");
+            }
         } catch (Exception e) { 
             throw new RuntimeException("error reading size.tsv", e);
-        } 
-        return result;
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (Throwable e) {
+                    //do nothing
+                }
+            }
+        }
     }
     
     private void writeSize() {
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
         int size = size();
-        try (FileOutputStream out = new FileOutputStream(sizeFile);
-                DataOutputStream writer = new DataOutputStream(out)) {
-            writer.writeInt(size);
+        PrintStream stream = null;
+        try {
+            stream = new PrintStream(sizeFile);
+            stream.println(size);
         } catch (Exception e) { 
             throw new RuntimeException("error writing size.tsv", e);
-        } 
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (Throwable e) {
+                    //do nothing
+                }
+            }
+        }
     }
     
     @Override
