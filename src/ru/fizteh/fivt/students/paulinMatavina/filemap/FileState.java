@@ -1,7 +1,6 @@
 package ru.fizteh.fivt.students.paulinMatavina.filemap;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
@@ -10,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import ru.fizteh.fivt.students.paulinMatavina.utils.*;
@@ -29,7 +29,7 @@ public class FileState extends State {
     private int fileNum;
     private ShellState shell;
     private ReentrantReadWriteLock cacheLock;
-    private ReentrantReadWriteLock offsetMapLock;
+    private ReentrantLock offsetMapLock;
     private String parentPath;
     
     class IntPair {
@@ -45,7 +45,7 @@ public class FileState extends State {
                                                       throws ParseException, IOException {
         cache = new WeakHashMap<String, Storeable>();
         cacheLock = new ReentrantReadWriteLock(true);
-        offsetMapLock = new ReentrantReadWriteLock(true);
+        offsetMapLock = new ReentrantLock(true);
         foldNum = folder;
         fileNum = file;
         provider = prov;
@@ -70,17 +70,11 @@ public class FileState extends State {
     }
     
     private void fileCheck() throws IOException {  
-        if (!new File(path).exists()) {
+        if (!mainFile.exists()) {
             return;
         }
-        
-        try {
-            dbFile = new RandomAccessFile(path, "rw");
-            if (dbFile.length() == 0) {
-                throw new IllegalStateException(path + " is an empty file");
-            }
-        } catch (FileNotFoundException e) {
-            throw new IllegalStateException(path + " not found");
+        if (mainFile.length() == 0) {
+            throw new IllegalStateException(path + " is an empty file");
         }
         return;
     }
@@ -182,12 +176,7 @@ public class FileState extends State {
                         throw new RuntimeException("wrong key in file");
                     }
                     if (requestedKey == null) {
-                        offsetMapLock.writeLock().lock();
-                        try {
-                            key2Offset.put(key, new IntPair(startOffset, endOffset));
-                        } finally {
-                            offsetMapLock.writeLock().unlock();
-                        }
+                        key2Offset.put(key, new IntPair(startOffset, endOffset));
                     } else {
                         if (key.equals(requestedKey)) {
                             String strOnDisk = getValueFromFile(startOffset, endOffset, dbFile);
@@ -273,7 +262,7 @@ public class FileState extends State {
         RandomAccessFile tempDbFile = null;
         dbFile = null;
         int newStartOffset = 0;           
-        offsetMapLock.writeLock().lock();
+        offsetMapLock.lock();
         try {
             //calculating main offset
             loadData(null);
@@ -324,7 +313,6 @@ public class FileState extends State {
             changes.get().clear();
             key2Offset.clear();
         } finally {
-            offsetMapLock.writeLock().unlock();
             if (dbFile != null) {
                 try {
                     dbFile.close();
@@ -339,6 +327,7 @@ public class FileState extends State {
                     // ignore
                   }
             }
+            offsetMapLock.unlock();
         }  
         return result;
     }
