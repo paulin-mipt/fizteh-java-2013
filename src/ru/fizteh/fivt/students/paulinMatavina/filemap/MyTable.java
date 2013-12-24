@@ -274,22 +274,17 @@ public class MyTable extends State implements Table, AutoCloseable {
     public int size() {
         checkCurrentTableState();
         int delta = 0;
-        sizeLock.lock();
-        try {
-            for (int i = 0; i < FOLDER_NUM; i++) {
-                for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                     delta += data[i][j].getDeltaSize();
-                }       
-            }
-            
-            int result = readSize() + delta;
-            if (result < 0) {
-                throw new IllegalStateException("size.tsv: broken file");
-            }
-            return result;  
-        } finally {
-            sizeLock.unlock();
+        for (int i = 0; i < FOLDER_NUM; i++) {
+            for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
+                 delta += data[i][j].getDeltaSize();
+            }       
         }
+        
+        int result = readSize() + delta;
+        if (result < 0) {
+            throw new IllegalStateException("size.tsv: broken file");
+        }
+        return result;
     }
     
     private int readSize() {
@@ -304,6 +299,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         }
         
         Scanner stream = null;
+        sizeLock.lock();
         try {
             stream = new Scanner(sizeFile);
             if (stream.hasNextInt()) {
@@ -314,6 +310,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         } catch (Exception e) { 
             throw new RuntimeException("error reading size.tsv", e);
         } finally {
+            sizeLock.unlock();
             if (stream != null) {
                 try {
                     stream.close();
@@ -326,14 +323,16 @@ public class MyTable extends State implements Table, AutoCloseable {
     
     private void writeSize() {
         File sizeFile = new File(shell.makeNewSource("size.tsv"));
-        int size = size();
         PrintStream stream = null;
+        sizeLock.lock();
         try {
+            int size = size();
             stream = new PrintStream(sizeFile);
             stream.print(size);
         } catch (Exception e) { 
             throw new RuntimeException("error writing size.tsv", e);
         } finally {
+            sizeLock.unlock();
             if (stream != null) {
                 try {
                     stream.close();
