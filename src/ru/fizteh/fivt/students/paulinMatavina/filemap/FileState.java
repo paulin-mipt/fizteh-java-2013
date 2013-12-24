@@ -6,7 +6,6 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
@@ -268,8 +267,7 @@ public class FileState extends State {
             loadData(null);
             dbFile = new RandomAccessFile(mainFile, "rw");
             tempDbFile = new RandomAccessFile(tempFile, "r");
-            for (Iterator<Map.Entry<String, Storeable>> it = changes.get().entrySet().iterator(); it.hasNext(); ) {
-                Map.Entry<String, Storeable> s = it.next();
+            for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
                 if (s.getValue() == null) {
                     cacheLock.writeLock().lock();
                     try {
@@ -278,7 +276,6 @@ public class FileState extends State {
                         cacheLock.writeLock().unlock();
                     }
                     key2Offset.remove(s.getKey());
-                    changes.get().remove(s.getKey());
                 } else {
                     IntPair valueOffs = key2Offset.get(s.getKey());
                     if (valueOffs == null) {
@@ -314,6 +311,9 @@ public class FileState extends State {
             }             
                        
             for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
+                if (s.getValue() == null) {
+                    continue;
+                }
                 String value = provider.serialize(table, s.getValue());
                 position = writeKeyValue(dbFile, position, offset, s.getKey(), value);
                 offset += value.getBytes("UTF-8").length;
