@@ -6,6 +6,7 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
@@ -267,7 +268,8 @@ public class FileState extends State {
             loadData(null);
             dbFile = new RandomAccessFile(mainFile, "rw");
             tempDbFile = new RandomAccessFile(tempFile, "r");
-            for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
+            for (Iterator<Map.Entry<String, Storeable>> it = changes.get().entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<String, Storeable> s = it.next();
                 if (s.getValue() == null) {
                     cacheLock.writeLock().lock();
                     try {
