@@ -155,7 +155,6 @@ public class FileState extends State {
         if (!mainFile.exists() || mainFile.length() == 0) {
             return null;
         }
-        
         Storeable result = null;
         dbFile = null;
         try {
@@ -256,7 +255,6 @@ public class FileState extends State {
             mainFile.createNewFile();
         }
         shell.copy(new String[] {mainFile.getAbsolutePath(), tempFile.getAbsolutePath()});
-        
         RandomAccessFile tempDbFile = null;
         dbFile = null;
         int newStartOffset = 0;           
@@ -264,7 +262,6 @@ public class FileState extends State {
         try {
             //calculating main offset
             loadData(null);
-            dbFile = new RandomAccessFile(mainFile, "rw");
             tempDbFile = new RandomAccessFile(tempFile, "r");
             cacheLock.writeLock().lock();
             try {
@@ -300,9 +297,13 @@ public class FileState extends State {
             }              
             
             //write it all down!
+            mainFile.delete();
+            mainFile.createNewFile();
+            dbFile = new RandomAccessFile(mainFile, "rw");
+            
             int offset = newStartOffset; 
             int position = 0;
-            for (Map.Entry<String, IntPair> s : key2Offset.entrySet()) {                
+            for (Map.Entry<String, IntPair> s : key2Offset.entrySet()) {  
                 IntPair valueOffs = s.getValue();
                 String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
                 position = writeKeyValue(dbFile, position, offset, s.getKey(), inFileValue);
@@ -310,12 +311,11 @@ public class FileState extends State {
             }             
                        
             for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
-                if (s.getValue() == null) {
-                    continue;
+                if (s.getValue() != null) {
+                    String value = provider.serialize(table, s.getValue());
+                    position = writeKeyValue(dbFile, position, offset, s.getKey(), value);
+                    offset += value.getBytes("UTF-8").length;
                 }
-                String value = provider.serialize(table, s.getValue());
-                position = writeKeyValue(dbFile, position, offset, s.getKey(), value);
-                offset += value.getBytes("UTF-8").length;
             } 
             
             if (dbFile.length() == 0) {
