@@ -173,8 +173,7 @@ public class FileState extends State {
                     endOffset = dbFile.readInt();                        
                 } else {
                     endOffset = (int) dbFile.length();
-                }
-                
+                }               
                 
                 if (key.getBytes().length > 0) {
                     if (getFolderNum(key) != foldNum || getFileNum(key) != fileNum) {
@@ -267,34 +266,34 @@ public class FileState extends State {
             loadData(null);
             dbFile = new RandomAccessFile(mainFile, "rw");
             tempDbFile = new RandomAccessFile(tempFile, "r");
-            for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
-                if (s.getValue() == null) {
-                    cacheLock.writeLock().lock();
-                    try {
+            cacheLock.writeLock().lock();
+            try {
+                for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
+                    if (s.getValue() == null) {
                         cache.remove(s.getKey());
-                    } finally {
-                        cacheLock.writeLock().unlock();
-                    }
-                    key2Offset.remove(s.getKey());
-                } else {
-                    IntPair valueOffs = key2Offset.get(s.getKey());
-                    if (valueOffs == null) {
-                        newStartOffset += s.getKey().getBytes().length + 5;
+                        key2Offset.remove(s.getKey());
                     } else {
-                        String serial = provider.serialize(table, s.getValue());
-                        String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
-                        if (!serial.equals(inFileValue)) {
-                            cacheLock.writeLock().lock();
-                            try {
-                                cache.put(s.getKey(), s.getValue());
-                            } finally {
-                                cacheLock.writeLock().unlock();
-                            }
-                            key2Offset.remove(s.getKey());
+                        IntPair valueOffs = key2Offset.get(s.getKey());
+                        if (valueOffs == null) {
                             newStartOffset += s.getKey().getBytes().length + 5;
+                        } else {
+                            String serial = provider.serialize(table, s.getValue());
+                            String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
+                            if (!serial.equals(inFileValue)) {
+                                cacheLock.writeLock().lock();
+                                try {
+                                    cache.put(s.getKey(), s.getValue());
+                                } finally {
+                                    cacheLock.writeLock().unlock();
+                                }
+                                key2Offset.remove(s.getKey());
+                                newStartOffset += s.getKey().getBytes().length + 5;
+                            }
                         }
                     }
                 }
+            } finally {
+                cacheLock.writeLock().unlock();
             }
             for (String s : key2Offset.keySet()) {
                 newStartOffset += s.getBytes().length + 5;
