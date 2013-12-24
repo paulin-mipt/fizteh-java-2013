@@ -39,7 +39,7 @@ public class FileState extends State {
             endIndex = end;
         }
     }
-    public HashMap<String, IntPair> key2Offset;
+    private HashMap<String, IntPair> key2Offset;
     public FileState(String dbPath, int folder, int file, TableProvider prov, Table newTable)
                                                       throws ParseException, IOException {
         cache = new WeakHashMap<String, Storeable>();
@@ -65,7 +65,6 @@ public class FileState extends State {
             fileCheck();
         }
         shell = new ShellState();        
-        loadData();
     }
     
     private void fileCheck() throws IOException {  
@@ -103,7 +102,8 @@ public class FileState extends State {
         }
     }
     
-    private String getKeyFromFile() throws IOException {
+    private String getKeyFromFile(int offset) throws IOException {
+        dbFile.seek(offset);
         byte tempByte = dbFile.readByte();
         Vector<Byte> byteVect = new Vector<Byte>();
         while (tempByte != '\0') {  
@@ -136,8 +136,10 @@ public class FileState extends State {
             result = cache.get(key);
             if (result != null) {
                 return result;
+            } else {
+                return loadData(key);
             }
-            IntPair offsets = key2Offset.get(key);
+           /* IntPair offsets = key2Offset.get(key);
             if (offsets == null) {
                 return null;
             } else {
@@ -157,30 +159,32 @@ public class FileState extends State {
                         }
                     }
                 }
-            }
+            } */
         } catch (Throwable e) {
             throw new RuntimeException(e.getMessage(), e);
         }
     }
     
-    public Storeable loadData() throws IOException {   
-        if (!mainFile.exists()) {
+    //if requestedKey is null, then key2Offset is filling, else returns value from disk
+    public Storeable loadData(String requestedKey) throws IOException, ParseException {   
+        if (!mainFile.exists() || mainFile.length() == 0) {
             return null;
         }
-        Storeable result = null;  
+        
+        Storeable result = null;
         dbFile = null;
         try {
             dbFile = new RandomAccessFile(path, "rw");
-            int position = 0;
-            String key = getKeyFromFile();
+            String key = getKeyFromFile(0);
             int startOffset = dbFile.readInt();
             int endOffset = 0;
             int firstOffset = startOffset;
             String key2 = "";
+            int position = 0;
             do {  
-                position += key.getBytes().length + 5;
+                position = (int) dbFile.getFilePointer();
                 if (position < firstOffset) {   
-                    key2 = getKeyFromFile();
+                    key2 = getKeyFromFile(position);
                     endOffset = dbFile.readInt();                        
                 } else {
                     endOffset = (int) dbFile.length();
@@ -191,12 +195,21 @@ public class FileState extends State {
                     if (getFolderNum(key) != foldNum || getFileNum(key) != fileNum) {
                         throw new RuntimeException("wrong key in file");
                     }
-                    key2Offset.put(key, new IntPair(startOffset, endOffset));
+                    if (requestedKey == null) {
+                        key2Offset.put(key, new IntPair(startOffset, endOffset));
+                    } else {
+                        if (key.equals(requestedKey)) {
+                            String strOnDisk = getValueFromFile(startOffset, endOffset, dbFile);
+                            Storeable valueOnDisk = provider.deserialize(table, strOnDisk);
+                            cache.put(key, valueOnDisk);
+                            return valueOnDisk;
+                        }
+                    }
                 }
                 
                 key = key2;
                 startOffset = endOffset;
-            } while (position <= firstOffset); 
+            } while (position < firstOffset); 
         } catch (IOException e) {
             if (e.getMessage() == null) {
                 throw new IOException("wrong database file " + path, e);
@@ -247,7 +260,7 @@ public class FileState extends State {
         return position;
     }
     
-    public int commit() throws IOException {  
+    public int commit() throws IOException, ParseException {  
         int result = getChangeNum();
         if (result == 0) {
             return 0;
@@ -261,12 +274,12 @@ public class FileState extends State {
         dbFile = null;
         
         int newStartOffset = 0;
-        cacheLock.readLock().lock();
+        //cacheLock.readLock().lock();
         try {   
             cache.clear();
+            loadData(null);
             dbFile = new RandomAccessFile(mainFile, "rw");
             tempDbFile = new RandomAccessFile(tempFile, "r");
-            
             //calculating main offset
             for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
                 if (s.getValue() == null) {
@@ -312,7 +325,8 @@ public class FileState extends State {
             tempFile.delete();
             changes.get().clear();
         } finally {
-            cacheLock.readLock().unlock();
+            key2Offset.clear();
+            //cacheLock.readLock().unlock();
             if (dbFile != null) {
                 try {
                     dbFile.close();
