@@ -138,7 +138,12 @@ public class FileState extends State {
             if (result != null) {
                 return result;
             } else {
-                return loadData(key);
+                offsetMapLock.lock();
+                try {
+                    return loadData(key);
+                } finally {
+                    offsetMapLock.unlock();
+                }
             }
         } catch (Throwable e) {
             throw new RuntimeException(e.getMessage(), e);
