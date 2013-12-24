@@ -258,12 +258,6 @@ public class FileState extends State {
         }
         shell.copy(new String[] {mainFile.getAbsolutePath(), tempFile.getAbsolutePath()});
         
-        cacheLock.writeLock().lock();
-        try {
-            cache.clear();
-        } finally {
-            cacheLock.writeLock().unlock();
-        }
         RandomAccessFile tempDbFile = null;
         dbFile = null;
         int newStartOffset = 0;           
