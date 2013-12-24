@@ -29,6 +29,7 @@ public class FileState extends State {
     private int fileNum;
     private ShellState shell;
     private ReentrantReadWriteLock cacheLock;
+    private ReentrantReadWriteLock offsetMapLock;
     private String parentPath;
     
     class IntPair {
@@ -44,6 +45,7 @@ public class FileState extends State {
                                                       throws ParseException, IOException {
         cache = new WeakHashMap<String, Storeable>();
         cacheLock = new ReentrantReadWriteLock(true);
+        offsetMapLock = new ReentrantReadWriteLock(true);
         foldNum = folder;
         fileNum = file;
         provider = prov;
@@ -133,33 +135,17 @@ public class FileState extends State {
     private Storeable getValue(String key) {
         Storeable result = null;
         try {
-            result = cache.get(key);
+            cacheLock.readLock().lock();
+            try {
+                result = cache.get(key);
+            } finally {
+                cacheLock.readLock().unlock();
+            } 
             if (result != null) {
                 return result;
             } else {
                 return loadData(key);
             }
-           /* IntPair offsets = key2Offset.get(key);
-            if (offsets == null) {
-                return null;
-            } else {
-                dbFile = null;
-                try {
-                    dbFile = new RandomAccessFile(path, "rw");
-                    String inFileValue = getValueFromFile(offsets.startIndex, offsets.endIndex, dbFile);
-                    Storeable stor = provider.deserialize(table, inFileValue);
-                    cache.put(key, stor);
-                    return stor;
-                } finally {
-                    if (dbFile != null) {
-                        try {
-                            dbFile.close();
-                        } catch (Throwable e) {
-                            //do nothing
-                        }
-                    }
-                }
-            } */
         } catch (Throwable e) {
             throw new RuntimeException(e.getMessage(), e);
         }
@@ -196,12 +182,22 @@ public class FileState extends State {
                         throw new RuntimeException("wrong key in file");
                     }
                     if (requestedKey == null) {
-                        key2Offset.put(key, new IntPair(startOffset, endOffset));
+                        offsetMapLock.writeLock().lock();
+                        try {
+                            key2Offset.put(key, new IntPair(startOffset, endOffset));
+                        } finally {
+                            offsetMapLock.writeLock().unlock();
+                        }
                     } else {
                         if (key.equals(requestedKey)) {
                             String strOnDisk = getValueFromFile(startOffset, endOffset, dbFile);
                             Storeable valueOnDisk = provider.deserialize(table, strOnDisk);
-                            cache.put(key, valueOnDisk);
+                            cacheLock.writeLock().lock();
+                            try {
+                                cache.put(key, valueOnDisk);
+                            } finally {
+                                cacheLock.writeLock().unlock();
+                            }
                             return valueOnDisk;
                         }
                     }
@@ -255,8 +251,6 @@ public class FileState extends State {
         position = (int) dbFile.getFilePointer();
         dbFile.seek(offset);
         dbFile.write(value.getBytes("UTF-8"));
-        
-        key2Offset.put(key, new IntPair(offset, offset + value.getBytes("UTF-8").length));
         return position;
     }
     
@@ -270,17 +264,21 @@ public class FileState extends State {
         }
         shell.copy(new String[] {mainFile.getAbsolutePath(), tempFile.getAbsolutePath()});
         
+        cacheLock.writeLock().lock();
+        try {
+            cache.clear();
+        } finally {
+            cacheLock.writeLock().unlock();
+        }
         RandomAccessFile tempDbFile = null;
         dbFile = null;
-        
-        int newStartOffset = 0;
-        //cacheLock.readLock().lock();
-        try {   
-            cache.clear();
+        int newStartOffset = 0;           
+        offsetMapLock.writeLock().lock();
+        try {
+            //calculating main offset
             loadData(null);
             dbFile = new RandomAccessFile(mainFile, "rw");
             tempDbFile = new RandomAccessFile(tempFile, "r");
-            //calculating main offset
             for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
                 if (s.getValue() == null) {
                     key2Offset.remove(s.getKey());
@@ -324,9 +322,9 @@ public class FileState extends State {
             }
             tempFile.delete();
             changes.get().clear();
-        } finally {
             key2Offset.clear();
-            //cacheLock.readLock().unlock();
+        } finally {
+            offsetMapLock.writeLock().unlock();
             if (dbFile != null) {
                 try {
                     dbFile.close();
