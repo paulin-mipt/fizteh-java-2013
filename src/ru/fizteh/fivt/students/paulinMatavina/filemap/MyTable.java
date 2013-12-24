@@ -330,7 +330,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         PrintStream stream = null;
         try {
             stream = new PrintStream(sizeFile);
-            stream.println(size);
+            stream.print(size);
         } catch (Exception e) { 
             throw new RuntimeException("error writing size.tsv", e);
         } finally {
