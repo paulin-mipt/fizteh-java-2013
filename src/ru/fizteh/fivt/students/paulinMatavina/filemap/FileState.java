@@ -275,6 +275,12 @@ public class FileState extends State {
             tempDbFile = new RandomAccessFile(tempFile, "r");
             for (Map.Entry<String, Storeable> s : changes.get().entrySet()) {
                 if (s.getValue() == null) {
+                    cacheLock.writeLock().lock();
+                    try {
+                        cache.remove(s.getKey());
+                    } finally {
+                        cacheLock.writeLock().unlock();
+                    }
                     key2Offset.remove(s.getKey());
                     changes.get().remove(s.getKey());
                 } else {
@@ -285,6 +291,12 @@ public class FileState extends State {
                         String serial = provider.serialize(table, s.getValue());
                         String inFileValue = getValueFromFile(valueOffs.startIndex, valueOffs.endIndex, tempDbFile);
                         if (!serial.equals(inFileValue)) {
+                            cacheLock.writeLock().lock();
+                            try {
+                                cache.put(s.getKey(), s.getValue());
+                            } finally {
+                                cacheLock.writeLock().unlock();
+                            }
                             key2Offset.remove(s.getKey());
                             newStartOffset += s.getKey().getBytes().length + 5;
                         }
