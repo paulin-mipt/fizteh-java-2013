@@ -255,10 +255,10 @@ public class FileState extends State {
             mainFile.createNewFile();
         }
         shell.copy(new String[] {mainFile.getAbsolutePath(), tempFile.getAbsolutePath()});
-        RandomAccessFile tempDbFile = null;
-        dbFile = null;
         int newStartOffset = 0;           
         offsetMapLock.lock();
+        RandomAccessFile tempDbFile = null;
+        dbFile = null;
         try {
             //calculating main offset
             loadData(null);
