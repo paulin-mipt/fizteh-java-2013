@@ -35,7 +35,7 @@ public class PutServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no transaction " + tid + " found");
             return;
         }
-        transaction.start();
+
         try {
             MyTable table = transaction.getTable();
             Storeable value;
@@ -47,8 +47,6 @@ public class PutServlet extends HttpServlet {
             ServletUtils.sendInfo(response, storedValue);
         } catch (Throwable e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        } finally {
-            transaction.end();
         }
     }
 }

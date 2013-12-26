@@ -23,15 +23,12 @@ public class RollbackServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no transaction " + tid + " found");
             return;
         }
-        transaction.start();
         try {
             int changeNum = transaction.getTable().rollback();
             ServletUtils.sendInfo(response, "diff=" + changeNum);
             database.cancelTransaction(tid);
         } catch (Throwable e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        } finally {
-            transaction.end();
         }
     }
 }
