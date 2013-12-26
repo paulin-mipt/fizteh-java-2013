@@ -26,9 +26,7 @@ public class SizeServlet extends HttpServlet {
 
         try {
             int tsize = transaction.getTable().size();
-            System.out.println("here! " + tsize);
             Integer size = new Integer(tsize);
-            System.out.println("here!");
             ServletUtils.sendInfo(response, size);
         } catch (Throwable e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
