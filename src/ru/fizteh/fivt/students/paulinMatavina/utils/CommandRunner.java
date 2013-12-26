@@ -56,7 +56,17 @@ public class CommandRunner {
                         args[i] = token.nextToken();
                     }
                     if (command.getArgNum() == 0 && command.spaceAllowed()) {
-                        return command.execute(args, state);
+                        try {
+                            return command.execute(args, state);
+                        } catch (RuntimeException e) {
+                            try {
+                                int code = Integer.parseInt(e.getMessage());
+                                state.exitWithError(code);
+                            } catch (NumberFormatException e2) {
+                                System.err.println(e.getMessage());
+                                return 1;
+                            } 
+                        }
                     }
                     
                     int currSize = 0;
