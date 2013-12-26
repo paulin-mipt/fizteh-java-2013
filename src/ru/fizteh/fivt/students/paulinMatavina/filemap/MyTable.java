@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,8 +19,8 @@ import java.text.ParseException;
 
 public class MyTable extends State implements Table, AutoCloseable {
     public MyTableProvider provider;
-    static final int FOLDER_NUM = 16;
-    static final int FILE_IN_FOLD_NUM = 16;
+    public static final int FOLDER_NUM = 16;
+    public static final int FILE_IN_FOLD_NUM = 16;
     private String tableName;
     FileState[][] data;
     public ShellState shell;
@@ -470,5 +471,26 @@ public class MyTable extends State implements Table, AutoCloseable {
     
     public boolean wasClosed() {
         return isClosed;
+    }
+    
+    @SuppressWarnings("rawtypes")
+    public Map[][] getChanges() {
+        Map[][] result;
+        result = new Map[FOLDER_NUM][FILE_IN_FOLD_NUM];
+        for (int i = 0; i < FOLDER_NUM; i++) {
+            for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
+                result[i][j] = new HashMap<String, Storeable>(data[i][j].getChanges());
+            }
+        }
+        return result;
+    }
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public void setChanges(Map[][] newChanges) {
+        for (int i = 0; i < FOLDER_NUM; i++) {
+            for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
+                data[i][j].setChanges((HashMap<String, Storeable>) newChanges[i][j]);
+            }
+        }
     }
 }

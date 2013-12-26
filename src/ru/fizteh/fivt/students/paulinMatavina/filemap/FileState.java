@@ -405,4 +405,12 @@ public class FileState extends State {
         }
         return result;
     }
+    
+    public HashMap<String, Storeable> getChanges() {
+        return changes.get();
+    }
+    
+    public void setChanges(HashMap<String, Storeable> newChanges) {
+        changes.set(newChanges);
+    }
 }

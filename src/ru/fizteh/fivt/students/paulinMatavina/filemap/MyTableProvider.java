@@ -12,6 +12,7 @@ import org.json.JSONArray;
 import java.text.ParseException;
 
 import ru.fizteh.fivt.storage.structured.*;
+import ru.fizteh.fivt.students.paulinMatavina.servlet.MyServer;
 import ru.fizteh.fivt.students.paulinMatavina.shell.ShellState;
 import ru.fizteh.fivt.students.paulinMatavina.utils.*;
 
@@ -46,6 +47,7 @@ public class MyTableProvider extends State implements TableProvider, AutoCloseab
         
         shell.cd(dir);
         commands = new HashMap<String, Command>();
+        MyServer server = new MyServer(this);
         this.add(new DbGet());
         this.add(new DbPut());
         this.add(new DbRemove());
@@ -55,6 +57,8 @@ public class MyTableProvider extends State implements TableProvider, AutoCloseab
         this.add(new DbCommit());
         this.add(new DbRollback());
         this.add(new DbSize());
+        this.add(new DbServerStart(server));
+        this.add(new DbServerStop(server));
         
         currTableName = null;
         tableMap = new HashMap<String, MyTable>();
