@@ -23,14 +23,15 @@ public class SizeServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no transaction " + tid + " found");
             return;
         }
-        transaction.start();
+
         try {
-            Integer size = new Integer(transaction.getTable().size());
+            int tsize = transaction.getTable().size();
+            System.out.println("here! " + tsize);
+            Integer size = new Integer(tsize);
+            System.out.println("here!");
             ServletUtils.sendInfo(response, size);
         } catch (Throwable e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        } finally {
-            transaction.end();
         }
     }
 }
