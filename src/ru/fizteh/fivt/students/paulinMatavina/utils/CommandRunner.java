@@ -55,6 +55,7 @@ public class CommandRunner {
                     for (int i = 0; i < command.getArgNum() - 1; i++) {
                         args[i] = token.nextToken();
                     }
+                    //various var number
                     if (command.getArgNum() == 0 && command.spaceAllowed()) {
                         try {
                             return command.execute(args, state);
