@@ -10,8 +10,6 @@ public class MultiFileMapMain {
         try {
             String property = System.getProperty("fizteh.db.dir");
             state = new MyTableProvider(property);  
-        } catch (DbExitException e) {
-            System.exit(Integer.parseInt(e.getMessage()));
         } catch (Throwable e) {
             System.out.println(e.getMessage());
             System.exit(1);
@@ -25,18 +23,11 @@ public class MultiFileMapMain {
                 public void run() {
                     try {
                         server.stop();
-                    } catch (Exception e) {
-                        // ignore
+                    } catch (Throwable e) {
+                        //ignore
                     }
                 }
             });
-        } catch (DbExitException e) {
-            try {
-                server.stop();
-            } catch (Throwable e2) {
-                //ignore
-            }
-            System.exit(Integer.parseInt(e.getMessage()));
         } catch (Throwable e) {
             try {
                 server.stop();
