@@ -65,6 +65,7 @@ public class Database {
         try {
             transactionMap.remove(name);
             transaction2Change.remove(name);
+            currentChanges.clear();
         } finally {
             mapsAccessLock.writeLock().unlock();
         }

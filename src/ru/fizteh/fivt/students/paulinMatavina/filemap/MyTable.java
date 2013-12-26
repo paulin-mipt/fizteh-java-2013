@@ -517,6 +517,11 @@ public class MyTable extends State implements Table, AutoCloseable {
     }
     
     public void setChanges(HashMap<String, Storeable> newChanges) {
+        for (int i = 0; i < FOLDER_NUM; i++) {
+            for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
+                data[i][j].changes.get().clear();
+            }
+        }
         for (Map.Entry<String, Storeable> s : newChanges.entrySet()) {
             data[getFolderNum(s.getKey())][getFileNum(s.getKey())].put(s.getKey(), s.getValue());
         }
