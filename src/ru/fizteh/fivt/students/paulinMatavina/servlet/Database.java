@@ -3,25 +3,34 @@ package ru.fizteh.fivt.students.paulinMatavina.servlet;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashMap;
-import java.util.Map;
 
 import ru.fizteh.fivt.students.paulinMatavina.filemap.*;
+import ru.fizteh.fivt.storage.structured.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-@SuppressWarnings("rawtypes")
 public class Database {
     private static final int MAX_TRANSNUM = 100000;
     private MyTableProvider tableProvider;
     private HashMap<String, MyTable> transactionMap;
-    private HashMap<String, Map[][]> transaction2Change;
+    private HashMap<String, HashMap<String, Storeable>> transaction2Change;
     private final NumberFormat format = new DecimalFormat("00000");
+    private HashMap<String, Storeable> savedChanges;
+    private HashMap<String, Storeable> currentChanges;
     
     private ReentrantReadWriteLock mapsAccessLock;
     public class Transaction {
         private MyTable table;
-
-        public Transaction(Map[][] newChanges, MyTable newTable) {
+        public Transaction(HashMap<String, Storeable> newChanges, MyTable newTable) {
+            currentChanges = newChanges;
             table = newTable;
+        }
+        
+        public void start() {
+            savedChanges = table.getChanges();
+            table.setChanges(currentChanges);
+        }
+        public void end() {
+            table.setChanges(savedChanges);
         }
         
         public MyTable getTable() {
@@ -40,7 +49,7 @@ public class Database {
         mapsAccessLock.readLock().lock();
         try {
             if (transactionMap.containsKey(name)) {
-                Map[][] change = transaction2Change.get(name);
+                HashMap<String, Storeable> change = transaction2Change.get(name);
                 MyTable transTable = transactionMap.get(name);
                 return new Transaction(change, transTable);
             } else {
@@ -69,7 +78,7 @@ public class Database {
                 if (!transactionMap.containsKey(tidString)) {
                     MyTable table = (MyTable) tableProvider.getTable(tableName);
                     transactionMap.put(tidString, table);
-                    transaction2Change.put(tidString, new Map[MyTable.FOLDER_NUM][MyTable.FILE_IN_FOLD_NUM]);
+                    transaction2Change.put(tidString, new HashMap<String, Storeable>());
                     return tidString;
                 }
             }

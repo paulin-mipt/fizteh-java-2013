@@ -494,6 +494,7 @@ public class MyTable extends State implements Table, AutoCloseable {
     @Override
     public void close() throws Exception {
         if (!isClosed) {
+            System.out.println("i'm closing");
             rollback();  
             isClosed = true;
         }      
@@ -503,24 +504,21 @@ public class MyTable extends State implements Table, AutoCloseable {
         return isClosed;
     }
     
-    @SuppressWarnings("rawtypes")
-    public Map[][] getChanges() {
-        Map[][] result;
-        result = new Map[FOLDER_NUM][FILE_IN_FOLD_NUM];
+    public HashMap<String, Storeable> getChanges() {
+        HashMap<String, Storeable> result = new HashMap<String, Storeable>();
         for (int i = 0; i < FOLDER_NUM; i++) {
             for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                result[i][j] = new HashMap<String, Storeable>(data[i][j].getChanges());
+                for (Map.Entry<String, Storeable> s : data[i][j].getChanges().entrySet()) {
+                    result.put(s.getKey(), s.getValue());
+                }
             }
         }
         return result;
     }
     
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public void setChanges(Map[][] newChanges) {
-        for (int i = 0; i < FOLDER_NUM; i++) {
-            for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                data[i][j].setChanges((HashMap<String, Storeable>) newChanges[i][j]);
-            }
+    public void setChanges(HashMap<String, Storeable> newChanges) {
+        for (Map.Entry<String, Storeable> s : newChanges.entrySet()) {
+            data[getFolderNum(s.getKey())][getFileNum(s.getKey())].put(s.getKey(), s.getValue());
         }
     }
 }
