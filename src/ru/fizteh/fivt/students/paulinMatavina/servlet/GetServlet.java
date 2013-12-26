@@ -28,6 +28,7 @@ public class GetServlet extends HttpServlet {
             Storeable value = transaction.getTable().get(key);
             if (value == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, key + " not found");
+                return;
             }
             ServletUtils.sendInfo(response, value);
         } catch (Throwable e) {

@@ -26,11 +26,12 @@ public class ServletUtils {
         try {
             tidIsCorrect(tid);
         } catch (IllegalArgumentException e) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+            return;
         }
         Database.Transaction transaction = database.getTransaction(tid);
         if (transaction == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "no transaction " + tid + " found");
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no transaction " + tid + " found");
             return;
         }
     }
