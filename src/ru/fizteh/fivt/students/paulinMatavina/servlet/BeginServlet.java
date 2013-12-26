@@ -21,7 +21,7 @@ public class BeginServlet extends HttpServlet {
         String name = request.getParameter("table");
         if (name == null) {
             String text = name + "no such table";
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, text);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, text);
             return;
         }
         
