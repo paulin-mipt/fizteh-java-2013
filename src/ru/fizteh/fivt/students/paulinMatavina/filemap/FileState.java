@@ -18,7 +18,7 @@ import ru.fizteh.fivt.storage.structured.*;
 
 public class FileState extends State {
     private WeakHashMap<String, Storeable> cache;
-    private ThreadLocal<HashMap<String, Storeable>> changes;
+    ThreadLocal<HashMap<String, Storeable>> changes;
     public RandomAccessFile dbFile;
     private File mainFile;
     private File tempFile;
@@ -404,13 +404,5 @@ public class FileState extends State {
             }
         }
         return result;
-    }
-    
-    public HashMap<String, Storeable> getChanges() {
-        return changes.get();
-    }
-    
-    public void setChanges(HashMap<String, Storeable> newChanges) {
-        changes.set(newChanges);
     }
 }

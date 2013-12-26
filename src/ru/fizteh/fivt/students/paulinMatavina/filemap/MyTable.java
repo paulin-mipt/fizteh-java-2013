@@ -22,7 +22,7 @@ public class MyTable extends State implements Table, AutoCloseable {
     public static final int FOLDER_NUM = 16;
     public static final int FILE_IN_FOLD_NUM = 16;
     private String tableName;
-    FileState[][] data;
+    private FileState[][] data;
     public ShellState shell;
     private String rootPath;
     private volatile boolean isDropped;
@@ -508,7 +508,7 @@ public class MyTable extends State implements Table, AutoCloseable {
         HashMap<String, Storeable> result = new HashMap<String, Storeable>();
         for (int i = 0; i < FOLDER_NUM; i++) {
             for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
-                for (Map.Entry<String, Storeable> s : data[i][j].getChanges().entrySet()) {
+                for (Map.Entry<String, Storeable> s : data[i][j].changes.get().entrySet()) {
                     result.put(s.getKey(), s.getValue());
                 }
             }
