@@ -51,12 +51,13 @@ public class CommandRunner {
                 }
                 
                 String[] args = new String[command.getArgNum()];
-                if (command.spaceAllowed()) {
-                    for (int i = 0; i < command.getArgNum() - 1; i++) {
-                        args[i] = token.nextToken();
-                    }
-                    //various var number
-                    if (command.getArgNum() == 0 && command.spaceAllowed()) {
+                if (command.spaceAllowed()) {                    
+                  //various var number
+                    if (command.getArgNum() == 0) {
+                        args = new String[] {null};
+                        if (token.hasMoreTokens()) {
+                            args[0] = token.nextToken();
+                        }
                         try {
                             return command.execute(args, state);
                         } catch (RuntimeException e) {
@@ -70,6 +71,9 @@ public class CommandRunner {
                         }
                     }
                     
+                    for (int i = 0; i < command.getArgNum() - 1; i++) {
+                        args[i] = token.nextToken();
+                    }
                     int currSize = 0;
                     for (int i = 0; i < command.getArgNum(); i++) {
                         while (Character.toString(query.charAt(currSize)).matches("\\S")) {

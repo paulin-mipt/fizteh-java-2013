@@ -10,17 +10,14 @@ public class DbServerStart implements Command {
     }
     
     @Override
-    public int execute(String[] args, State state) {
-        if (args.length > 1) {
-            throw new RuntimeException("starthttp: too many arguments");
-        }
-        
+    public int execute(String[] args, State state) {        
         String key = args[0];
         String portString = "10001";
         if (key != null) {
             portString = key;
         }
         
+        System.out.println("i'm here, port " + portString);
         if (server.isStarted()) {
             System.out.println("not started: already started");
             return 0;
