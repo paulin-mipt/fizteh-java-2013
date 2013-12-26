@@ -17,7 +17,6 @@ public class DbServerStart implements Command {
             portString = key;
         }
         
-        System.out.println("i'm here, port " + portString);
         if (server.isStarted()) {
             System.out.println("not started: already started");
             return 0;
