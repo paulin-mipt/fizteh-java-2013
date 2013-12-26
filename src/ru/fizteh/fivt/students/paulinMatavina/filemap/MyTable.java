@@ -201,6 +201,36 @@ public class MyTable extends State implements Table, AutoCloseable {
         return chNum;
     }
     
+    public int commit(String tid) throws IOException {
+        checkCurrentTableState();
+        
+        int chNum = 0;      
+        diskOperationLock.writeLock().lock();
+        try {
+            writeSize();
+            for (int i = 0; i < FOLDER_NUM; i++) {
+                String fold = Integer.toString(i) + ".dir";
+                if (!fileExist(fold)) {
+                    shell.mkdir(new String[] {fold});
+                }
+                for (int j = 0; j < FILE_IN_FOLD_NUM; j++) {
+                    chNum += data[i][j].commit();
+                }
+               
+                File folderFile = new File(shell.makeNewSource(fold));
+                if (folderFile.exists() && folderFile.listFiles().length == 0) {
+                    String[] arg = {shell.makeNewSource(fold)};
+                    shell.rm(arg);
+                }
+            }
+        } catch (ParseException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        } finally {
+            diskOperationLock.writeLock().unlock();
+        }
+        return chNum;
+    }
+    
     private int getFolderNum(String key) {
         byte[] bytes = key.getBytes();
         return (Math.abs(bytes[0]) % 16);

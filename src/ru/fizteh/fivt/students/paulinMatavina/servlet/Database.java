@@ -17,27 +17,15 @@ public class Database {
     private final NumberFormat format = new DecimalFormat("00000");
     
     private ReentrantReadWriteLock mapsAccessLock;
-    public static class Transaction {
+    public class Transaction {
         private MyTable table;
-        private Map[][] currentChanges;
-        private Map[][] savedChanges;
 
         public Transaction(Map[][] newChanges, MyTable newTable) {
             table = newTable;
-            currentChanges = newChanges;
         }
         
         public MyTable getTable() {
             return table;
-        }
-
-        public void start() {
-            savedChanges = table.getChanges();
-            table.setChanges(currentChanges);
-        }
-
-        public void end() {
-            table.setChanges(savedChanges);
         }
     }
 
