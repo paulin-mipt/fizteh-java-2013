@@ -43,6 +43,7 @@ public class PutServlet extends HttpServlet {
             Storeable storedValue = transaction.getTable().put(key, value);
             if (storedValue == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "no previous value found");
+                return;
             }
             ServletUtils.sendInfo(response, storedValue);
         } catch (Throwable e) {
