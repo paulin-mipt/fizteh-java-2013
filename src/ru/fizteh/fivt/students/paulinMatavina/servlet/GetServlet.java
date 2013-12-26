@@ -15,7 +15,9 @@ public class GetServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        ServletUtils.checkParameters(database, request, response);
+        if (ServletUtils.checkParameters(database, request, response) != 0) {
+            return;
+        }
         String tid = request.getParameter("tid");
         String key = request.getParameter("key");
         if (key == null) {
@@ -23,6 +25,10 @@ public class GetServlet extends HttpServlet {
             return;
         }
         Database.Transaction transaction = database.getTransaction(tid);
+        if (transaction == null) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no transaction " + tid + " found");
+            return;
+        }
         transaction.start();
         try {
             Storeable value = transaction.getTable().get(key);

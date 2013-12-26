@@ -20,20 +20,16 @@ public class ServletUtils {
         }
     }
     
-    public static void checkParameters(Database database, HttpServletRequest request,
+    public static int checkParameters(Database database, HttpServletRequest request,
                                HttpServletResponse response) throws IOException {
         String tid = request.getParameter("tid");
         try {
             tidIsCorrect(tid);
         } catch (IllegalArgumentException e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-            return;
+            return 1;
         }
-        Database.Transaction transaction = database.getTransaction(tid);
-        if (transaction == null) {
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "no transaction " + tid + " found");
-            return;
-        }
+        return 0;
     }
     
     public static void sendInfo(HttpServletResponse response, Object valueToSend) throws IOException {

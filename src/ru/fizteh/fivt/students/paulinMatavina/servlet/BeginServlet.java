@@ -26,11 +26,7 @@ public class BeginServlet extends HttpServlet {
         }
         
         String transactionId = database.makeNewID(name);
-        ServletUtils.sendInfo(response, "tid=" + new Integer(transactionId).toString());
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("text/plain");
-        response.setCharacterEncoding("UTF8");
-        response.getWriter().println("tid=" + transactionId);
+        ServletUtils.sendInfo(response, "tid=" + transactionId);
     }
 
 }
